@@ -1,0 +1,53 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* #css_wrapper_metadata_start
+ * #type=style-lit
+ * #scheme=relative
+ * #css_wrapper_metadata_end */
+
+:host {
+  color: var(--color-sys-on-surface);
+  display: block;
+  font-size: 13px;
+  height: 100%;
+  overflow-y: auto;
+  user-select: none;
+}
+
+#tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+}
+
+.tab {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  height: 32px;
+  padding: 0 8px;
+}
+
+.tab:hover {
+  background: var(--color-sys-state-hover-on-subtle);
+}
+
+.tab[active] {
+  background: var(--color-sys-tonal-container);
+}
+
+.favicon {
+  flex-shrink: 0;
+  height: 16px;
+  width: 16px;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

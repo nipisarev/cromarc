@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 24 Oct 2026 00:14:16 +0200
+Subject: [PATCH 1/5] Cromarc H0: build //cromarc into Chrome
+
+Links //cromarc/browser/ui/sidebar into //chrome/browser/ui, lets the WebUI
+configs see its headers, packs chrome://cromarc-sidebar resources into
+resources.pak and gives them grit ids.
+
+diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
+index 238f8625e42d8..83b1e1b1baf5f 100644
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -2507,6 +2507,9 @@ static_library("ui") {
+       "//chrome/browser/ui/webui/metrics_reporter:impl",
+       "//chrome/browser/ui/webui/new_tab_footer",
+       "//chrome/browser/ui/webui/new_tab_footer:impl",
++      # Cromarc
++      "//cromarc/browser/ui/sidebar",
++      "//cromarc/browser/ui/sidebar:impl",
+       "//chrome/browser/ui/webui/organizer_panel",
+       "//chrome/browser/ui/webui/page_action_internals",
+       "//chrome/browser/ui/webui/settings",
+diff --git a/chrome/browser/ui/webui/BUILD.gn b/chrome/browser/ui/webui/BUILD.gn
+index 7341632b43d34..9261ddb6f4685 100644
+--- a/chrome/browser/ui/webui/BUILD.gn
++++ b/chrome/browser/ui/webui/BUILD.gn
+@@ -53,6 +53,8 @@ source_set("configs") {
+     ":signin_internals_ui",
+     ":webui",
+     "//chrome/browser/actor/ui:actor_overlay",
++    # Cromarc
++    "//cromarc/browser/ui/sidebar",
+     "//chrome/browser/browser_actuator/internals",
+     "//chrome/browser/contextual_tasks:ui",
+     "//chrome/browser/glic",
+diff --git a/chrome/chrome_paks.gni b/chrome/chrome_paks.gni
+index 12a5e53584f9f..edbb3a92614d7 100644
+--- a/chrome/chrome_paks.gni
++++ b/chrome/chrome_paks.gni
+@@ -275,6 +275,11 @@ template("chrome_extra_paks") {
+         "//components/headless/command_handler",
+         "//content/browser/tracing:resources",
+       ]
++
++      # Cromarc
++      sources += [ "$root_gen_dir/chrome/cromarc_sidebar_resources.pak" ]
++      deps += [ "//cromarc/webui/sidebar:resources" ]
++
+       if (is_chrome_branded) {
+         sources += [
+           "$root_gen_dir/chrome/browser/nearby_sharing/internal/icons/nearby_share_internal_icons.pak",
+diff --git a/tools/gritsettings/resource_ids.spec b/tools/gritsettings/resource_ids.spec
+index 8749c14d44f1b..63f56d34d2e16 100644
+--- a/tools/gritsettings/resource_ids.spec
++++ b/tools/gritsettings/resource_ids.spec
+@@ -1799,6 +1799,12 @@
+     "includes": [10140],
+   },
+ 
++  # Cromarc
++  "<(SHARED_INTERMEDIATE_DIR)/cromarc/webui/sidebar/resources.grd": {
++    "META": {"sizes": {"includes": [20]}},
++    "includes": [10300],
++  },
++
+   "<(SHARED_INTERMEDIATE_DIR)/THIS_IS_A_PLACEHOLDER.grd": {
+     "META": {"sizes": {"includes": [800]}},
+     "includes": [12000],

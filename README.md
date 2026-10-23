@@ -18,9 +18,12 @@ Needs full Xcode and about 100 GB free disk. The Chromium tree lives outside thi
 ```bash
 tooling/bootstrap        # depot_tools in ~/depot_tools
 tooling/sync             # Chromium at the tag in CHROMIUM_VERSION
+tooling/apply            # src/ -> chromium/src/cromarc, patches/hooks -> branch cromarc-work
 tooling/build release    # out/release/Chromium.app
-tooling/check            # shellcheck + tooling tests
+tooling/check            # shellcheck, tooling tests, WebUI unit tests
 ```
+
+Our code lives in `src/` and is mirrored into the Chromium tree as `//cromarc`. The few edits to upstream files are commits on `cromarc-work`, kept in `patches/hooks/`: to change one, commit on `cromarc-work` and run `tooling/export-patches`.
 
 Issues and pull requests are closed for now.
 

@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 24 Oct 2026 00:14:53 +0200
+Subject: [PATCH 3/5] Cromarc H2: sidebar in the vertical tab strip region
+
+The region keeps its layout, caption-button handling, resize and collapse;
+the native tab list it adds is hidden and the Cromarc WebUI sidebar takes
+its place.
+
+diff --git a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+index fdfdd93f076b3..93fa25b7688f3 100644
+--- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+@@ -82,6 +82,7 @@
+ #include "ui/views/view.h"
+ #include "ui/views/view_class_properties.h"
+ #include "ui/views/view_utils.h"
++#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
+ 
+ namespace {
+ constexpr int kResizeAreaWidth = 5;
+@@ -855,7 +856,9 @@ void VerticalTabStripRegionView::AddTabStripView(
+   std::optional<size_t> separator_index =
+       content_parent->GetIndexOf(top_button_separator_);
+   CHECK(separator_index.has_value());
+-  content_parent->AddChildViewAt(std::move(view), separator_index.value() + 1);
++  views::View* const tab_list = content_parent->AddChildViewAt(
++      std::move(view), separator_index.value() + 1);
++  cromarc::InstallSidebar(content_parent, tab_list, browser_view()->browser());
+ 
+   // Pre-set the animation values to the appropriate state.
+   auto* const animation_controller =
