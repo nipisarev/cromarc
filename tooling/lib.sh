@@ -48,6 +48,13 @@ require_macos_arm64() {
   [ "$(uname -m)" = "arm64" ] || die "arm64 only (got $(uname -m))"
 }
 
+# Since Xcode 26 the Metal compiler is a separate download; ANGLE compiles Metal shaders
+# with it. `xcrun -f metal` finds a stub even when it is missing, so run it.
+require_metal_toolchain() {
+  "${XCRUN:-/usr/bin/xcrun}" metal --version >/dev/null 2>&1 || die "the Metal Toolchain is not installed (ANGLE needs it). Install it once:
+       xcodebuild -downloadComponent MetalToolchain"
+}
+
 add_depot_tools_to_path() {
   [ -d "$DEPOT_TOOLS_DIR" ] || die "depot_tools not found at $DEPOT_TOOLS_DIR — run tooling/bootstrap"
   case ":$PATH:" in

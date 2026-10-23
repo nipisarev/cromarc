@@ -28,6 +28,7 @@ args_file="$CROMARC_ROOT/tooling/args/$config.gn"
 [ -d "$CHROMIUM_SRC/.git" ] || die "no checkout at $CHROMIUM_SRC — run tooling/sync"
 require_no_ancestor_node_modules "$CHROMIUM_ROOT"
 require_free_gb "$CHROMIUM_ROOT" "${CROMARC_BUILD_MIN_FREE_GB:-20}"
+require_metal_toolchain
 
 cd "$CHROMIUM_SRC" || die "cannot enter $CHROMIUM_SRC"
 

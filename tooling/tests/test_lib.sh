@@ -119,7 +119,36 @@ test_reexecs_native_under_rosetta() {
   expect "arch: a script started under Rosetta re-runs natively with its arguments" "got: $out" $?
 }
 
+fake_xcrun() {
+  # $1: exit status of `xcrun metal --version`
+  local dir
+  dir="$(mktemp -d)"
+  printf '#!/bin/bash\necho "fake metal" >&2\nexit %s\n' "$1" > "$dir/xcrun"
+  chmod +x "$dir/xcrun"
+  echo "$dir/xcrun"
+}
+
+test_metal_toolchain_missing_dies() {
+  local xcrun out status
+  xcrun="$(fake_xcrun 1)"
+  out="$(XCRUN="$xcrun" bash -c ". '$TOOLING_DIR/lib.sh'; require_metal_toolchain" 2>&1)"; status=$?
+  rm -rf "$(dirname "$xcrun")"
+  [[ "$status" -eq 1 && "$out" == *"xcodebuild -downloadComponent MetalToolchain"* ]]
+  expect "metal: a missing Metal Toolchain names the remedy" "status=$status out=$out" $?
+}
+
+test_metal_toolchain_present_passes() {
+  local xcrun status
+  xcrun="$(fake_xcrun 0)"
+  XCRUN="$xcrun" bash -c ". '$TOOLING_DIR/lib.sh'; require_metal_toolchain" >/dev/null 2>&1; status=$?
+  rm -rf "$(dirname "$xcrun")"
+  [ "$status" -eq 0 ]
+  expect "metal: an installed Metal Toolchain passes" "status=$status" $?
+}
+
 echo "tooling/lib.sh"
+test_metal_toolchain_missing_dies
+test_metal_toolchain_present_passes
 test_reexecs_native_under_rosetta
 test_pin_is_loaded
 test_tag_matches_milestone

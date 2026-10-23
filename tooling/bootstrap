@@ -27,6 +27,8 @@ esac
        sudo xcodebuild -license accept
        sudo xcodebuild -runFirstLaunch"
 
+require_metal_toolchain
+
 log "Xcode:  $(xcodebuild -version | head -1) ($xcode_path)"
 log "macOS:  $(sw_vers -productVersion) $(uname -m)"
 log "python: $(python3 --version 2>&1)"
