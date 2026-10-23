@@ -146,7 +146,15 @@ test_metal_toolchain_present_passes() {
   expect "metal: an installed Metal Toolchain passes" "status=$status" $?
 }
 
+test_build_env_drops_toolchain_overrides() {
+  local out
+  out="$(GOROOT=/somewhere/go GOFLAGS=-mod=vendor bash -c ". '$TOOLING_DIR/lib.sh'; sanitize_build_env; printf '[%s][%s]' \"\${GOROOT-unset}\" \"\${GOFLAGS-unset}\"" 2>&1)"
+  [ "$out" = "[unset][unset]" ]
+  expect "build env: GOROOT and GOFLAGS from the user's shell do not reach the build" "got: $out" $?
+}
+
 echo "tooling/lib.sh"
+test_build_env_drops_toolchain_overrides
 test_metal_toolchain_missing_dies
 test_metal_toolchain_present_passes
 test_reexecs_native_under_rosetta

@@ -48,6 +48,12 @@ require_macos_arm64() {
   [ "$(uname -m)" = "arm64" ] || die "arm64 only (got $(uname -m))"
 }
 
+# The checkout brings its own Go (Dawn's code generators run it); a GOROOT or GOFLAGS
+# from the user's shell points it at another toolchain ('go: no such tool "compile"').
+sanitize_build_env() {
+  unset GOROOT GOFLAGS
+}
+
 # Since Xcode 26 the Metal compiler is a separate download; ANGLE compiles Metal shaders
 # with it. `xcrun -f metal` finds a stub even when it is missing, so run it.
 require_metal_toolchain() {
