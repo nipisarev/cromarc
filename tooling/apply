@@ -1,0 +1,62 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Puts Cromarc onto the Chromium tree at the pin:
+#   src/              -> $CHROMIUM_SRC/cromarc/ (a mirror; git there ignores it)
+#   patches/hooks/    -> branch cromarc-work = the pin tag + these patches (git am -3)
+# The branch is rebuilt from the tag on every run, so patches/hooks is the source of
+# truth. To change a hook: edit on cromarc-work, commit, tooling/export-patches.
+#
+# Usage: tooling/apply
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+case "${1:-}" in
+  -h|--help) sed -n '6,12p' "$0"; exit 0 ;;
+  '') ;;
+  *) die "unknown argument: $1" ;;
+esac
+
+require_macos_arm64 "$@"
+[ -d "$CHROMIUM_SRC/.git" ] || die "no checkout at $CHROMIUM_SRC — run tooling/sync"
+cd "$CHROMIUM_SRC" || die "cannot enter $CHROMIUM_SRC"
+
+pin="refs/tags/$CHROMIUM_TAG"
+git rev-parse -q --verify "$pin^{commit}" >/dev/null || die "no tag $CHROMIUM_TAG in $CHROMIUM_SRC — run tooling/sync"
+use_cromarc_identity
+require_clean_chromium_tree
+
+shopt -s nullglob
+patches=("$CROMARC_ROOT"/patches/hooks/*.patch)
+shopt -u nullglob
+
+# Rebuilding the branch drops its commits: refuse when one of them is not in patches/hooks.
+if git rev-parse -q --verify refs/heads/cromarc-work >/dev/null; then
+  # ${a[@]+...}: /bin/bash 3.2 treats an empty array as unset under set -u.
+  exported="$(cat /dev/null ${patches[@]+"${patches[@]}"} | git patch-id --stable | cut -d' ' -f1 | sort -u)"
+  while read -r id commit; do
+    [ -n "$id" ] || continue
+    grep -qx "$id" <<<"$exported" || die "cromarc-work has $(git log -1 --format='%h "%s"' "$commit"), which is not in patches/hooks.
+     Keep it: tooling/export-patches, then re-run. Drop it: git -C $CHROMIUM_SRC branch -D cromarc-work"
+  done < <(git log -p --reverse "$pin..refs/heads/cromarc-work" | git patch-id --stable)
+fi
+
+log "cromarc-work = $CHROMIUM_TAG + ${#patches[@]} hook patch(es)"
+git checkout -q -B cromarc-work "$pin"
+if [ "${#patches[@]}" -gt 0 ]; then
+  git am -q -3 "${patches[@]}" || {
+    git am --abort 2>/dev/null || true
+    die "a hook patch does not apply to $CHROMIUM_TAG. Re-run by hand to resolve:
+         cd $CHROMIUM_SRC && git checkout -B cromarc-work $pin && git am -3 $CROMARC_ROOT/patches/hooks/*.patch
+     then tooling/export-patches."
+  }
+fi
+
+log "src/ -> $CHROMIUM_SRC/cromarc/"
+mirror_cromarc_sources
+
+log "applied: $(git rev-list --count "$pin..HEAD") commit(s) on $CHROMIUM_TAG"
+log "next: tooling/build release"

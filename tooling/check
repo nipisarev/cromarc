@@ -4,13 +4,15 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # Repository checks that need no Chromium checkout: shell syntax, shellcheck, tooling
-# unit tests. CI runs this same script.
+# unit tests, unit tests of the WebUI code that runs without a browser (node --test).
+# CI runs this same script.
 # Usage: tooling/check
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-scripts=(tooling/lib.sh tooling/bootstrap tooling/sync tooling/build tooling/check tooling/tests/*.sh)
+scripts=(tooling/lib.sh tooling/bootstrap tooling/sync tooling/apply tooling/export-patches tooling/build
+  tooling/check tooling/tests/*.sh)
 
 echo "==> bash -n"
 for f in "${scripts[@]}"; do bash -n "$f"; done
@@ -25,3 +27,11 @@ fi
 
 echo "==> tests"
 for t in tooling/tests/test_*.sh; do "$t"; done
+
+echo "==> webui tests"
+if command -v node >/dev/null; then
+  node --test src/webui/*/tests/
+else
+  echo "node not installed; skipped" >&2
+  [ -z "${CI:-}" ] || exit 1
+fi

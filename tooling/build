@@ -41,6 +41,8 @@ if [ "$head_commit" = "$tag_commit" ]; then
   log "tree:    vanilla, at the pin"
 elif [ "$tag_commit" != unknown ] && [ "$(git merge-base "$head_commit" "$tag_commit")" = "$tag_commit" ]; then
   log "tree:    $(git rev-parse --abbrev-ref HEAD), $(git rev-list --count "$tag_commit..$head_commit") commit(s) on top of the pin"
+  # Hooks reference //cromarc: build what is in src/ now, not the last tooling/apply.
+  mirror_cromarc_sources
 else
   die "src is at $head_commit, neither the pin $CHROMIUM_TAG ($tag_commit) nor a descendant of it.
      Vanilla tree that drifted: tooling/sync. Patches here: rebase onto the pin first."

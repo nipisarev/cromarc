@@ -1,0 +1,39 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Writes the commits on cromarc-work (on top of the pin) to patches/hooks/, replacing
+# what is there. Refuses commits whose author or committer is not this repository's
+# address: the patches are published.
+#
+# Usage: tooling/export-patches
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+case "${1:-}" in
+  -h|--help) sed -n '6,10p' "$0"; exit 0 ;;
+  '') ;;
+  *) die "unknown argument: $1" ;;
+esac
+
+require_macos_arm64 "$@"
+[ -d "$CHROMIUM_SRC/.git" ] || die "no checkout at $CHROMIUM_SRC — run tooling/sync"
+cd "$CHROMIUM_SRC" || die "cannot enter $CHROMIUM_SRC"
+
+pin="refs/tags/$CHROMIUM_TAG"
+[ "$(git rev-parse --abbrev-ref HEAD)" = cromarc-work ] || die "not on cromarc-work — run tooling/apply first"
+require_clean_chromium_tree
+
+email="$(git -C "$CROMARC_ROOT" config user.email)" || die "set user.email in $CROMARC_ROOT first"
+foreign="$(git log --format='%h %ae %ce %s' "$pin..HEAD" | awk -v e="$email" '$2 != e || $3 != e')"
+[ -z "$foreign" ] || die "commits not by $email (author, committer):
+$foreign
+     Fix them: git rebase $pin --exec 'git commit --amend --no-edit --reset-author'"
+
+out="$CROMARC_ROOT/patches/hooks"
+mkdir -p "$out"
+rm -f "$out"/*.patch
+git format-patch -q --no-signature --zero-commit --no-stat -o "$out" "$pin..HEAD"
+log "patches/hooks: $(find "$out" -name '*.patch' | wc -l | tr -d ' ') patch(es)"

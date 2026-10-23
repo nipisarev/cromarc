@@ -84,6 +84,33 @@ require_arm64_host_tools() {
      (lipo -archs $DEPOT_TOOLS_DIR/.cipd_bin/luci-auth), first: rm -rf $DEPOT_TOOLS_DIR/.cipd_bin"
 }
 
+# Hook commits made in the Chromium tree end up, via patches/hooks, in this public
+# repository: give that tree this repository's identity, never the global one (on this
+# machine it is a work address).
+use_cromarc_identity() {
+  local name email
+  email="$(git -C "$CROMARC_ROOT" config user.email)" || die "set user.email in $CROMARC_ROOT first"
+  name="$(git -C "$CROMARC_ROOT" config user.name)" || die "set user.name in $CROMARC_ROOT first"
+  git -C "$CHROMIUM_SRC" config user.email "$email"
+  git -C "$CHROMIUM_SRC" config user.name "$name"
+}
+
+require_clean_chromium_tree() {
+  local changes
+  changes="$(git -C "$CHROMIUM_SRC" status --porcelain --untracked-files=no)"
+  [ -z "$changes" ] || die "uncommitted changes in $CHROMIUM_SRC:
+$changes
+     Commit them on cromarc-work and run tooling/export-patches, or discard them."
+}
+
+# src/ is mirrored into the Chromium tree as //cromarc; git there ignores it.
+mirror_cromarc_sources() {
+  mkdir -p "$CHROMIUM_SRC/cromarc"
+  rsync -a --delete "$CROMARC_ROOT/src/" "$CHROMIUM_SRC/cromarc/"
+  grep -qx '/cromarc/' "$CHROMIUM_SRC/.git/info/exclude" 2>/dev/null ||
+    echo '/cromarc/' >> "$CHROMIUM_SRC/.git/info/exclude"
+}
+
 add_depot_tools_to_path() {
   [ -d "$DEPOT_TOOLS_DIR" ] || die "depot_tools not found at $DEPOT_TOOLS_DIR — run tooling/bootstrap"
   case ":$PATH:" in
