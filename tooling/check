@@ -1,0 +1,27 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Repository checks that need no Chromium checkout: shell syntax, shellcheck, tooling
+# unit tests. CI runs this same script.
+# Usage: tooling/check
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+scripts=(tooling/lib.sh tooling/bootstrap tooling/sync tooling/build tooling/check tooling/tests/*.sh)
+
+echo "==> bash -n"
+for f in "${scripts[@]}"; do bash -n "$f"; done
+
+echo "==> shellcheck"
+if command -v shellcheck >/dev/null; then
+  shellcheck -x "${scripts[@]}"
+else
+  echo "shellcheck not installed (brew install shellcheck); skipped" >&2
+  [ -z "${CI:-}" ] || exit 1
+fi
+
+echo "==> tests"
+for t in tooling/tests/test_*.sh; do "$t"; done

@@ -1,0 +1,24 @@
+# Day-to-day development build for Apple Silicon. Copied verbatim into out/release/args.gn
+# by tooling/build. Based on Stedding tooling/args/release.gn @ 8a15306 (BSD-3-Clause).
+
+target_os = "mac"
+target_cpu = "arm64"
+
+# Optimised, single binary, no symbols: fastest full build on one machine.
+is_debug = false
+is_component_build = false
+symbol_level = 0
+blink_symbol_level = 0
+v8_symbol_level = 0
+
+# Google's remote build execution is not available outside Google.
+use_remoteexec = false
+
+# Field trials come from Google's variations server, which we never contact; the
+# testing config would turn on experiments nobody chose.
+disable_fieldtrial_testing_config = true
+
+# H.264/AAC playback (YouTube, Slack video, most sites). Patent licensing matters only
+# for distribution; revisit before publishing binaries.
+proprietary_codecs = true
+ffmpeg_branding = "Chrome"

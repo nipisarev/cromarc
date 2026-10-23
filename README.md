@@ -9,7 +9,18 @@ An Arc/Zen-style browser built on vanilla Chromium, where every space is a full 
 
 ## Status
 
-Design phase. There is no code or build yet.
+Early development. The tooling builds vanilla Chromium at the pinned version; no Cromarc features yet.
+
+## Building (macOS, Apple Silicon)
+
+Needs full Xcode and about 100 GB free disk. The Chromium tree lives outside this repository, in `~/chromium`.
+
+```bash
+tooling/bootstrap        # depot_tools in ~/depot_tools
+tooling/sync             # Chromium at the tag in CHROMIUM_VERSION
+tooling/build release    # out/release/Chromium.app
+tooling/check            # shellcheck + tooling tests
+```
 
 Issues and pull requests are closed for now.
 
@@ -18,6 +29,7 @@ Issues and pull requests are closed for now.
 - [Chromium](https://www.chromium.org/) (BSD-3-Clause)
 - [Zen Browser](https://github.com/zen-browser/desktop) (MPL-2.0): reference for spaces, sidebar and tab behavior
 - [Brave](https://github.com/brave/brave-core) (MPL-2.0): approach to maintaining a Chromium fork
+- [Stedding](https://github.com/ysalitrynskyi/stedding-browser) (BSD-3-Clause): build tooling the scripts in `tooling/` are adapted from ([license](third_party/stedding/LICENSE))
 
 ## License
 

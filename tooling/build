@@ -1,0 +1,103 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Adapted from Stedding tooling/build-chromium @ 8a15306, BSD-3-Clause:
+# see third_party/stedding/LICENSE.
+#
+# gn gen + autoninja for a configuration in tooling/args/. The build's full output goes
+# to out/<config>/build.log; this script prints one progress line a minute.
+#
+# Usage: tooling/build [config] [targets...]     (defaults: release chrome)
+#   CROMARC_BUILD_MIN_FREE_GB  free-disk floor, default 20
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+require_macos_arm64 "$@"
+add_depot_tools_to_path
+
+config="${1:-release}"
+shift || true
+targets=("$@")
+[ "${#targets[@]}" -eq 0 ] && targets=(chrome)
+
+args_file="$CROMARC_ROOT/tooling/args/$config.gn"
+[ -f "$args_file" ] || die "no gn args for config '$config' (expected $args_file)"
+[ -d "$CHROMIUM_SRC/.git" ] || die "no checkout at $CHROMIUM_SRC — run tooling/sync"
+require_no_ancestor_node_modules "$CHROMIUM_ROOT"
+require_free_gb "$CHROMIUM_ROOT" "${CROMARC_BUILD_MIN_FREE_GB:-20}"
+
+cd "$CHROMIUM_SRC" || die "cannot enter $CHROMIUM_SRC"
+
+# Build only a tree whose provenance is clear: the pin, or our patches on top of it.
+head_commit="$(git rev-parse HEAD)"
+tag_commit="$(git rev-parse "refs/tags/$CHROMIUM_TAG^{commit}" 2>/dev/null || echo unknown)"
+if [ "$head_commit" = "$tag_commit" ]; then
+  log "tree:    vanilla, at the pin"
+elif [ "$tag_commit" != unknown ] && [ "$(git merge-base "$head_commit" "$tag_commit")" = "$tag_commit" ]; then
+  log "tree:    $(git rev-parse --abbrev-ref HEAD), $(git rev-list --count "$tag_commit..$head_commit") commit(s) on top of the pin"
+else
+  die "src is at $head_commit, neither the pin $CHROMIUM_TAG ($tag_commit) nor a descendant of it.
+     Vanilla tree that drifted: tooling/sync. Patches here: rebase onto the pin first."
+fi
+
+out_dir="out/$config"
+abs_out="$CHROMIUM_SRC/$out_dir"
+mkdir -p "$abs_out"
+
+lock="$abs_out/.cromarc-build.lock.d"
+if ! mkdir "$lock" 2>/dev/null; then
+  other="$(cat "$lock/pid" 2>/dev/null || true)"
+  if [ -n "$other" ] && kill -0 "$other" 2>/dev/null; then
+    die "a build is already running in $abs_out (pid $other)"
+  fi
+  warn "removing a stale lock from pid ${other:-unknown}"
+  rm -rf "$lock"
+  mkdir "$lock"
+fi
+echo $$ > "$lock/pid"
+trap 'rm -rf "$lock"' EXIT INT TERM
+
+cp "$args_file" "$abs_out/args.gn"
+log "config:  $config ($args_file)"
+log "targets: ${targets[*]}"
+log "gn gen $out_dir"
+gn gen "$out_dir"
+
+# siso reads source mtimes once near the start; edits after that are not in the binary.
+tree_fingerprint() { { git status --porcelain; git rev-parse HEAD; } | shasum | cut -d' ' -f1; }
+before="$(tree_fingerprint)"
+
+build_log="$abs_out/build.log"
+start=$(date +%s)
+log "autoninja -C $out_dir ${targets[*]}  (log: $build_log)"
+autoninja -C "$out_dir" "${targets[@]}" > "$build_log" 2>&1 &
+build_pid=$!
+
+marker="$abs_out/.cromarc-build-start"
+touch "$marker"
+while kill -0 "$build_pid" 2>/dev/null; do
+  sleep 60
+  kill -0 "$build_pid" 2>/dev/null || break
+  objects="$({ find "$abs_out/obj" -name '*.o' -newer "$marker" 2>/dev/null || true; } | wc -l | tr -d ' ')"
+  log "progress: $(( ($(date +%s) - start) / 60 )) min, $objects objects, $(free_gb "$CHROMIUM_ROOT") GB free"
+done
+
+status=0
+wait "$build_pid" || status=$?
+elapsed=$(( $(date +%s) - start ))
+if [ "$status" -ne 0 ]; then
+  tail -40 "$build_log" >&2
+  die "autoninja failed (exit $status) after $(( elapsed / 60 )) min; full log: $build_log"
+fi
+
+[ "$(tree_fingerprint)" = "$before" ] || warn "the source tree changed during the build; build again before trusting the binary"
+
+log "built in $(( elapsed / 3600 ))h $(( (elapsed % 3600) / 60 ))m"
+app="$(find_app_bundle "$abs_out" || true)"
+if [ -n "$app" ]; then
+  log "app:  $app ($(du -sh "$app" | cut -f1))"
+  log "run:  open '$app'"
+fi

@@ -1,0 +1,46 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Adapted from Stedding tooling/bootstrap-depot-tools @ 8a15306, BSD-3-Clause:
+# see third_party/stedding/LICENSE.
+#
+# Checks the host toolchain, then installs or updates depot_tools. Idempotent.
+# Usage: tooling/bootstrap
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+require_macos_arm64 "$@"
+
+command -v git >/dev/null     || die "git not found"
+command -v python3 >/dev/null || die "python3 not found"
+
+xcode_path="$(xcode-select -p 2>/dev/null || true)"
+case "$xcode_path" in
+  *.app/Contents/Developer*) ;;
+  *) die "xcode-select points at '$xcode_path'. Chromium needs full Xcode:
+       sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer" ;;
+esac
+/usr/bin/xcrun --find clang >/dev/null 2>&1 || die "xcrun cannot find clang. Usually one of:
+       sudo xcodebuild -license accept
+       sudo xcodebuild -runFirstLaunch"
+
+log "Xcode:  $(xcodebuild -version | head -1) ($xcode_path)"
+log "macOS:  $(sw_vers -productVersion) $(uname -m)"
+log "python: $(python3 --version 2>&1)"
+log "git:    $(git --version)"
+
+if [ -d "$DEPOT_TOOLS_DIR/.git" ]; then
+  log "updating depot_tools at $DEPOT_TOOLS_DIR"
+  git -C "$DEPOT_TOOLS_DIR" fetch --depth 1 origin main
+  git -C "$DEPOT_TOOLS_DIR" reset --hard FETCH_HEAD
+else
+  log "cloning depot_tools into $DEPOT_TOOLS_DIR"
+  git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DEPOT_TOOLS_DIR"
+fi
+add_depot_tools_to_path
+
+log "depot_tools: $(git -C "$DEPOT_TOOLS_DIR" rev-parse --short HEAD) ($(git -C "$DEPOT_TOOLS_DIR" log -1 --format=%cs))"
+log "next: tooling/sync"
