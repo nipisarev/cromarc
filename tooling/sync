@@ -73,6 +73,7 @@ log "gclient sync (dependencies for $CHROMIUM_TAG)"
 sync_args=(--force --reset --delete_unversioned_trees --with_tags)
 [ "$run_hooks" -eq 0 ] && sync_args+=(--nohooks)
 gclient sync "${sync_args[@]}"
+[ "$run_hooks" -eq 1 ] && require_arm64_host_tools "$CHROMIUM_SRC"
 
 log "checkout complete: $CHROMIUM_SRC @ $CHROMIUM_TAG ($actual)"
 log "sizes: src=$(du -sh "$CHROMIUM_SRC" 2>/dev/null | cut -f1) cache=$(du -sh "$GIT_CACHE_PATH" 2>/dev/null | cut -f1), free $(free_gb "$CHROMIUM_ROOT") GB"

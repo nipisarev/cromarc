@@ -61,6 +61,29 @@ require_metal_toolchain() {
        xcodebuild -downloadComponent MetalToolchain"
 }
 
+# gclient picks host tools by the arch it runs under. Started under Rosetta (gclient is
+# `#!/usr/bin/env bash`, so an x86_64 bash first in PATH is enough) it fetches x86_64 ones:
+# the whole build then runs translated and gn sets host_cpu = "x64".
+CHROMIUM_HOST_TOOLS=(buildtools/mac/gn third_party/siso/cipd/siso
+  "third_party/llvm-build/Release+Asserts/bin/clang" third_party/rust-toolchain/bin/rustc)
+
+require_arm64_host_tools() {
+  local src="$1" tool archs bad=""
+  for tool in "${CHROMIUM_HOST_TOOLS[@]}"; do
+    archs="$(lipo -archs "$src/$tool" 2>/dev/null)" || archs="missing"
+    case " $archs " in
+      *" arm64 "*) ;;
+      *) bad="$bad
+       $tool: $archs" ;;
+    esac
+  done
+  [ -z "$bad" ] && return 0
+  die "host tools in $src are not arm64:$bad
+     gclient ran under Rosetta. From a native shell, re-run: tooling/sync
+     depot_tools keeps its own CIPD tools regardless of arch; if they are x86_64 too
+     (lipo -archs $DEPOT_TOOLS_DIR/.cipd_bin/luci-auth), first: rm -rf $DEPOT_TOOLS_DIR/.cipd_bin"
+}
+
 add_depot_tools_to_path() {
   [ -d "$DEPOT_TOOLS_DIR" ] || die "depot_tools not found at $DEPOT_TOOLS_DIR — run tooling/bootstrap"
   case ":$PATH:" in

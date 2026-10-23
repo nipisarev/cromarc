@@ -153,7 +153,52 @@ test_build_env_drops_toolchain_overrides() {
   expect "build env: GOROOT and GOFLAGS from the user's shell do not reach the build" "got: $out" $?
 }
 
+# fake_src ARCH_OF_CLANG — a tree with the host tools gclient fetches; clang gets the given arch.
+fake_src() {
+  local src tool arch
+  src="$(mktemp -d)"
+  for tool in buildtools/mac/gn third_party/siso/cipd/siso \
+      "third_party/llvm-build/Release+Asserts/bin/clang" third_party/rust-toolchain/bin/rustc; do
+    arch=arm64
+    case "$tool" in */clang) arch="$1" ;; esac
+    mkdir -p "$src/$(dirname "$tool")"
+    printf 'int main(void){return 0;}\n' | /usr/bin/cc -arch "$arch" -x c - -o "$src/$tool"
+  done
+  echo "$src"
+}
+
+test_arm64_host_tools_pass() {
+  local src status
+  src="$(fake_src arm64)"
+  in_lib "require_arm64_host_tools '$src'" >/dev/null; status=$?
+  rm -rf "$src"
+  [ "$status" -eq 0 ]
+  expect "host tools: an all-arm64 checkout passes" "status=$status" $?
+}
+
+test_x86_host_tool_dies() {
+  local src out status
+  src="$(fake_src x86_64)"
+  out="$(in_lib "require_arm64_host_tools '$src'")"; status=$?
+  rm -rf "$src"
+  [[ "$status" -eq 1 && "$out" == *"bin/clang: x86_64"* && "$out" != *"gn:"* && "$out" == *"tooling/sync"* ]]
+  expect "host tools: an x86_64 one is named with the remedy" "status=$status out=$out" $?
+}
+
+test_missing_host_tool_dies() {
+  local src out status
+  src="$(fake_src arm64)"
+  rm "$src/third_party/siso/cipd/siso"
+  out="$(in_lib "require_arm64_host_tools '$src'")"; status=$?
+  rm -rf "$src"
+  [[ "$status" -eq 1 && "$out" == *"siso: missing"* ]]
+  expect "host tools: a missing one is named" "status=$status out=$out" $?
+}
+
 echo "tooling/lib.sh"
+test_arm64_host_tools_pass
+test_x86_host_tool_dies
+test_missing_host_tool_dies
 test_build_env_drops_toolchain_overrides
 test_metal_toolchain_missing_dies
 test_metal_toolchain_present_passes
