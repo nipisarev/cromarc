@@ -1,0 +1,50 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+source_set("tree") {
+  sources = [
+    "tree.cc",
+    "tree.h",
+  ]
+  public_deps = [
+    "//base",
+    "//components/bookmarks/browser",
+  ]
+  deps = [
+    "//components/bookmarks/common",
+    "//url",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "tree_unittest.cc" ]
+  deps = [
+    ":tree",
+    "//base/test:test_support",
+    "//components/bookmarks/test",
+    "//testing/gtest",
+    "//url",
+  ]
+}
+
+# The per-profile service (KeyedService) around Tree.
+source_set("service") {
+  sources = [
+    "tree_service.cc",
+    "tree_service.h",
+    "tree_service_factory.cc",
+    "tree_service_factory.h",
+  ]
+  public_deps = [
+    ":tree",
+    "//chrome/browser:browser_public_dependencies",
+    "//components/keyed_service/core",
+    "//components/tabs:public",
+  ]
+  deps = [
+    "//chrome/browser/bookmarks",
+    "//chrome/browser/profiles:profile",
+  ]
+}

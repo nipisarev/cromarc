@@ -7,47 +7,259 @@
  * #scheme=relative
  * #css_wrapper_metadata_end */
 
+/* Sizes follow Zen's vertical tabs (zen:tabs/zen-tabs/vertical-tabs.css):
+ * 8px row radius, 6px toolbox padding, 14px indent per folder level. */
 :host {
-  color: var(--color-sys-on-surface);
+  --row-height: 34px;
+  --row-radius: 8px;
+  --indent: 14px;
+  --hover: var(--color-sys-state-hover-on-subtle, rgba(128, 128, 128, .15));
+  --active: var(--color-sys-tonal-container, rgba(128, 128, 128, .28));
+  --text: var(--color-sys-on-surface, CanvasText);
+  --text-dim: var(--color-sys-on-surface-subtle, GrayText);
+  --accent: var(--color-sys-primary, Highlight);
+
+  color: var(--text);
   display: block;
   font-size: 13px;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   user-select: none;
 }
 
-#tabs {
+#sidebar {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 6px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 4px 6px 12px;
 }
 
-.tab {
+/* Essentials: up to 12 tiles, icon only (design, section 2). */
+#essentials {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  margin-bottom: 8px;
+  min-height: 8px;
+}
+
+.essential {
   align-items: center;
-  border-radius: 8px;
+  aspect-ratio: 1;
+  background: var(--hover);
+  border-radius: 10px;
   display: flex;
+  justify-content: center;
+  max-height: 52px;
+}
+
+.essential:hover {
+  background: var(--active);
+}
+
+.essential[active] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.essential[state='asleep'] .favicon {
+  opacity: .5;
+}
+
+.row {
+  align-items: center;
+  border-radius: var(--row-radius);
+  box-sizing: border-box;
+  display: flex;
+  flex-shrink: 0;
   gap: 8px;
-  height: 32px;
-  padding: 0 8px;
+  height: var(--row-height);
+  padding-inline: calc(8px + var(--depth, 0) * var(--indent)) 6px;
+  position: relative;
 }
 
-.tab:hover {
-  background: var(--color-sys-state-hover-on-subtle);
+.row:hover {
+  background: var(--hover);
 }
 
-.tab[active] {
-  background: var(--color-sys-tonal-container);
+.row[active] {
+  background: var(--active);
 }
 
 .favicon {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 16px;
   flex-shrink: 0;
   height: 16px;
   width: 16px;
 }
 
 .title {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.rename {
+  background: Canvas;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--text);
+  flex: 1;
+  font: inherit;
+  min-width: 0;
+  padding: 2px 4px;
+}
+
+/* Pinned item states: asleep is dimmed, away shows ↩ (design, section 1). */
+.pinned[state='asleep'] .favicon,
+.pinned[state='asleep'] .title {
+  opacity: .5;
+}
+
+.pinned[state='away'] .title {
+  font-style: italic;
+}
+
+button {
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-dim);
+  display: flex;
+  flex-shrink: 0;
+  font-size: 14px;
+  height: 22px;
+  justify-content: center;
+  padding: 0;
+  width: 22px;
+}
+
+button:hover {
+  background: var(--active);
+  color: var(--text);
+}
+
+.row .close {
+  visibility: hidden;
+}
+
+.row:hover .close {
+  visibility: visible;
+}
+
+/* Folders. */
+.chevron {
+  border-block: 4px solid transparent;
+  border-inline-start: 5px solid var(--text-dim);
+  flex-shrink: 0;
+  height: 0;
+  margin-inline: 2px -2px;
+  transition: transform 120ms ease;
+  width: 0;
+}
+
+.folder:not([collapsed]) .chevron {
+  transform: rotate(90deg);
+}
+
+.folder-icon {
+  background: var(--text-dim);
+  border-radius: 2px 4px 3px 3px;
+  flex-shrink: 0;
+  height: 11px;
+  opacity: .7;
+  position: relative;
+  width: 15px;
+}
+
+.folder-icon::before {
+  background: inherit;
+  border-radius: 2px 2px 0 0;
+  content: '';
+  height: 3px;
+  left: 0;
+  position: absolute;
+  top: -2px;
+  width: 7px;
+}
+
+/* Drop indicators while dragging. */
+.drop-before::before,
+.drop-after::after {
+  background: var(--accent);
+  border-radius: 1px;
+  content: '';
+  height: 2px;
+  left: calc(8px + var(--depth, 0) * var(--indent));
+  position: absolute;
+  right: 6px;
+}
+
+.drop-before::before {
+  top: -1px;
+}
+
+.drop-after::after {
+  bottom: -1px;
+}
+
+.drop-inside {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+#tree-end {
+  flex-shrink: 0;
+  height: 10px;
+}
+
+.separator {
+  border-top: 1px solid var(--hover);
+  flex-shrink: 0;
+  margin: 6px 8px;
+}
+
+.new-tab {
+  color: var(--text-dim);
+}
+
+.plus {
+  font-size: 15px;
+  text-align: center;
+  width: 16px;
+}
+
+#today {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 40px;
+}
+
+/* Context menu. */
+#menu-backdrop {
+  inset: 0;
+  position: fixed;
+}
+
+#menu {
+  background: var(--color-sys-surface, Canvas);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
+  min-width: 180px;
+  padding: 4px;
+  position: fixed;
+}
+
+.menu-item {
+  border-radius: 5px;
+  padding: 6px 10px;
+}
+
+.menu-item:hover {
+  background: var(--active);
 }

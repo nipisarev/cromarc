@@ -1,0 +1,220 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
+
+#include <utility>
+
+#include "base/functional/bind.h"
+#include "base/strings/utf_string_conversions.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/common/webui_url_constants.h"
+#include "components/bookmarks/browser/bookmark_node.h"
+#include "components/browser_apis/tab_strip/types/node_id.h"
+#include "components/tabs/public/tab_interface.h"
+#include "content/public/browser/navigation_controller.h"
+#include "content/public/browser/web_contents.h"
+#include "content/public/common/referrer.h"
+#include "cromarc/browser/tree/tree.h"
+#include "cromarc/browser/tree/tree_service.h"
+#include "ui/base/base_window.h"
+#include "ui/base/page_transition_types.h"
+#include "ui/base/window_open_disposition.h"
+#include "url/gurl.h"
+
+namespace cromarc {
+
+namespace {
+
+tabs::TabInterface* TabFromNodeId(const tabs_api::NodeId& id) {
+  std::optional<tabs::TabHandle> handle = id.ToTabHandle();
+  return handle ? handle->Get() : nullptr;
+}
+
+void SetPinned(tabs::TabInterface* tab, bool pinned) {
+  TabStripModel* model = tab->GetBrowserWindowInterface()->GetTabStripModel();
+  const int index = model->GetIndexOfTab(tab);
+  if (index != TabStripModel::kNoTab && model->IsTabPinned(index) != pinned) {
+    model->SetTabPinned(index, pinned);
+  }
+}
+
+}  // namespace
+
+SidebarPageHandler::SidebarPageHandler(
+    mojo::PendingReceiver<mojom::PageHandler> receiver,
+    mojo::PendingRemote<mojom::Page> page,
+    BrowserWindowInterface* browser,
+    TreeService* tree_service)
+    : receiver_(this, std::move(receiver)),
+      page_(std::move(page)),
+      browser_(browser),
+      tree_service_(tree_service),
+      tree_subscription_(tree_service_->RegisterOnChanged(
+          base::BindRepeating(&SidebarPageHandler::OnTreeChanged,
+                              base::Unretained(this)))) {}
+
+SidebarPageHandler::~SidebarPageHandler() = default;
+
+std::vector<mojom::TreeNodePtr> SidebarPageHandler::BuildChildren(
+    const bookmarks::BookmarkNode* folder) {
+  std::vector<mojom::TreeNodePtr> nodes;
+  for (const auto& child : folder->children()) {
+    auto node = mojom::TreeNode::New();
+    node->id = Tree::IdOf(child.get());
+    node->title = base::UTF16ToUTF8(child->GetTitle());
+    node->is_folder = child->is_folder();
+    if (child->is_folder()) {
+      node->collapsed = Tree::IsCollapsed(child.get());
+      node->children = BuildChildren(child.get());
+    } else {
+      node->essential = Tree::IsEssential(child.get());
+      node->home_url = child->url();
+      if (tabs::TabInterface* tab = tree_service_->GetLiveTab(node->id)) {
+        node->tab = tabs_api::NodeId::FromTabHandle(tab->GetHandle());
+      }
+    }
+    nodes.push_back(std::move(node));
+  }
+  return nodes;
+}
+
+void SidebarPageHandler::GetTree(GetTreeCallback callback) {
+  if (!tree_service_->loaded()) {
+    std::move(callback).Run({});
+    return;
+  }
+  std::move(callback).Run(BuildChildren(tree_service_->tree().Root()));
+}
+
+void SidebarPageHandler::OnTreeChanged() {
+  if (tree_service_->loaded()) {
+    page_->OnTreeChanged(BuildChildren(tree_service_->tree().Root()));
+  }
+}
+
+void SidebarPageHandler::OpenItem(const std::string& id) {
+  const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
+  if (!node || !node->is_url()) {
+    return;
+  }
+  if (tabs::TabInterface* tab = tree_service_->GetLiveTab(id)) {
+    BrowserWindowInterface* owner = tab->GetBrowserWindowInterface();
+    TabStripModel* model = owner->GetTabStripModel();
+    model->ActivateTabAt(model->GetIndexOfTab(tab));
+    if (owner != browser_) {
+      owner->GetWindow()->Activate();
+    }
+    return;
+  }
+  // Asleep: its home URL, as a new pinned tab of this window.
+  browser_->OpenGURL(node->url(), WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  TabStripModel* model = browser_->GetTabStripModel();
+  tabs::TabInterface* tab = model->GetTabAtIndex(model->active_index());
+  if (!tab) {
+    return;
+  }
+  SetPinned(tab, true);
+  tree_service_->Link(id, tab);
+}
+
+void SidebarPageHandler::CreateFolder(const std::string& parent_id,
+                                      uint32_t index,
+                                      const std::string& title,
+                                      CreateFolderCallback callback) {
+  const bookmarks::BookmarkNode* folder = tree_service_->tree().CreateFolder(
+      parent_id, index, base::UTF8ToUTF16(title));
+  std::move(callback).Run(folder ? Tree::IdOf(folder) : std::string());
+}
+
+void SidebarPageHandler::PinTab(const tabs_api::NodeId& tab_id,
+                                const std::string& parent_id,
+                                uint32_t index,
+                                bool essential) {
+  tabs::TabInterface* tab = TabFromNodeId(tab_id);
+  if (!tab || tree_service_->GetItemForTab(tab)) {
+    return;
+  }
+  content::WebContents* contents = tab->GetContents();
+  Tree& tree = tree_service_->tree();
+  const bookmarks::BookmarkNode* node = tree.AddPinned(
+      parent_id, index, contents->GetTitle(), contents->GetLastCommittedURL());
+  if (!node) {
+    return;
+  }
+  const std::string id = Tree::IdOf(node);
+  if (essential) {
+    tree.SetEssential(id, true);
+  }
+  SetPinned(tab, true);
+  tree_service_->Link(id, tab);
+}
+
+void SidebarPageHandler::MoveItem(const std::string& id,
+                                  const std::string& parent_id,
+                                  uint32_t index) {
+  tree_service_->tree().Move(id, parent_id, index);
+}
+
+void SidebarPageHandler::RenameItem(const std::string& id,
+                                    const std::string& title) {
+  tree_service_->tree().Rename(id, base::UTF8ToUTF16(title));
+}
+
+void SidebarPageHandler::ReleaseLiveTabs(const bookmarks::BookmarkNode* node) {
+  if (node->is_url()) {
+    const std::string id = Tree::IdOf(node);
+    if (tabs::TabInterface* tab = tree_service_->GetLiveTab(id)) {
+      SetPinned(tab, false);
+      tree_service_->Unlink(id);
+    }
+    return;
+  }
+  for (const auto& child : node->children()) {
+    ReleaseLiveTabs(child.get());
+  }
+}
+
+void SidebarPageHandler::RemoveItem(const std::string& id) {
+  const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
+  if (!node) {
+    return;
+  }
+  ReleaseLiveTabs(node);
+  tree_service_->tree().Remove(id);
+}
+
+void SidebarPageHandler::ResetItem(const std::string& id) {
+  const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
+  tabs::TabInterface* tab = tree_service_->GetLiveTab(id);
+  if (!node || !node->is_url() || !tab) {
+    return;
+  }
+  tab->GetContents()->GetController().LoadURL(
+      node->url(), content::Referrer(), ui::PAGE_TRANSITION_AUTO_BOOKMARK,
+      std::string());
+}
+
+void SidebarPageHandler::SetHomeToCurrent(const std::string& id) {
+  if (tabs::TabInterface* tab = tree_service_->GetLiveTab(id)) {
+    tree_service_->tree().SetHomeUrl(
+        id, tab->GetContents()->GetLastCommittedURL());
+  }
+}
+
+void SidebarPageHandler::SetCollapsed(const std::string& id, bool collapsed) {
+  tree_service_->tree().SetCollapsed(id, collapsed);
+}
+
+void SidebarPageHandler::SetEssential(const std::string& id, bool essential) {
+  tree_service_->tree().SetEssential(id, essential);
+}
+
+void SidebarPageHandler::NewTab() {
+  browser_->OpenGURL(GURL(chrome::kChromeUINewTabURL),
+                     WindowOpenDisposition::NEW_FOREGROUND_TAB);
+}
+
+}  // namespace cromarc

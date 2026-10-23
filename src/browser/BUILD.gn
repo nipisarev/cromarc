@@ -1,0 +1,18 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+assert(!is_android)
+
+source_set("keyed_services") {
+  sources = [ "keyed_services.h" ]
+}
+
+source_set("keyed_services_impl") {
+  sources = [ "keyed_services.cc" ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    ":keyed_services",
+    "//cromarc/browser/tree:service",
+  ]
+}

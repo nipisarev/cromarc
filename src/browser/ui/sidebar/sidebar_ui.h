@@ -5,18 +5,21 @@
 #ifndef CROMARC_BROWSER_UI_SIDEBAR_SIDEBAR_UI_H_
 #define CROMARC_BROWSER_UI_SIDEBAR_SIDEBAR_UI_H_
 
+#include <memory>
 #include <string_view>
 
 #include "chrome/browser/ui/webui/top_chrome/top_chrome_web_ui_controller.h"
 #include "chrome/browser/ui/webui/top_chrome/top_chrome_webui_config.h"
 #include "components/browser_apis/tab_strip/tab_strip_api.mojom-forward.h"
+#include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
+#include "mojo/public/cpp/bindings/receiver.h"
 
 namespace cromarc {
 
+class SidebarPageHandler;
 class SidebarUI;
 
-// Hook H4 registers this in chrome/browser/ui/webui/chrome_web_ui_configs.cc.
 class SidebarUIConfig : public DefaultTopChromeWebUIConfig<SidebarUI> {
  public:
   SidebarUIConfig();
@@ -24,7 +27,8 @@ class SidebarUIConfig : public DefaultTopChromeWebUIConfig<SidebarUI> {
 
 // chrome://cromarc-sidebar.top-chrome: the tab list of the browser window
 // whose SidebarView hosts it.
-class SidebarUI : public TopChromeWebUIController {
+class SidebarUI : public TopChromeWebUIController,
+                  public mojom::PageHandlerFactory {
  public:
   explicit SidebarUI(content::WebUI* web_ui);
   SidebarUI(const SidebarUI&) = delete;
@@ -33,12 +37,21 @@ class SidebarUI : public TopChromeWebUIController {
 
   static constexpr std::string_view GetWebUIName() { return "CromarcSidebar"; }
 
-  // Hook H4 adds this binder in
-  // chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc.
   void BindInterface(
       mojo::PendingReceiver<tabs_api::mojom::TabStripService> receiver);
+  void BindInterface(
+      mojo::PendingReceiver<mojom::PageHandlerFactory> receiver);
+
+  // mojom::PageHandlerFactory:
+  void CreatePageHandler(
+      mojo::PendingRemote<mojom::Page> page,
+      mojo::PendingReceiver<mojom::PageHandler> handler) override;
 
  private:
+  std::unique_ptr<SidebarPageHandler> page_handler_;
+  mojo::Receiver<mojom::PageHandlerFactory> page_handler_factory_receiver_{
+      this};
+
   WEB_UI_CONTROLLER_TYPE_DECL();
 };
 

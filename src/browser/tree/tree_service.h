@@ -1,0 +1,66 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#ifndef CROMARC_BROWSER_TREE_TREE_SERVICE_H_
+#define CROMARC_BROWSER_TREE_TREE_SERVICE_H_
+
+#include <map>
+#include <optional>
+#include <string>
+
+#include "base/callback_list.h"
+#include "base/memory/raw_ptr.h"
+#include "components/keyed_service/core/keyed_service.h"
+#include "components/tabs/public/tab_interface.h"
+#include "cromarc/browser/tree/tree.h"
+
+class Profile;
+
+namespace bookmarks {
+class BookmarkModel;
+}  // namespace bookmarks
+
+namespace cromarc {
+
+// One per regular profile (= space): the tree of folders and pinned items, and
+// which live tab belongs to which pinned item. A pinned item without a live tab
+// is asleep; opening it loads its home URL. Links are not persisted: on
+// startup every pinned item is asleep (design, component 3).
+class TreeService : public KeyedService {
+ public:
+  // Null for profiles without a tree (incognito, guest, system).
+  static TreeService* Get(Profile* profile);
+
+  explicit TreeService(bookmarks::BookmarkModel* model);
+  TreeService(const TreeService&) = delete;
+  TreeService& operator=(const TreeService&) = delete;
+  ~TreeService() override;
+
+  bool loaded() const;
+  Tree& tree() { return tree_; }
+
+  // The live tab of a pinned item, or null when it sleeps.
+  tabs::TabInterface* GetLiveTab(const std::string& item_id);
+  // The pinned item `tab` belongs to, if any.
+  std::optional<std::string> GetItemForTab(const tabs::TabInterface* tab);
+  void Link(const std::string& item_id, tabs::TabInterface* tab);
+  void Unlink(const std::string& item_id);
+
+  // Runs when the tree or a link changes.
+  base::CallbackListSubscription RegisterOnChanged(
+      base::RepeatingClosure callback);
+
+ private:
+  void NotifyChanged();
+
+  Tree tree_;
+  std::map<std::string, tabs::TabHandle> links_;
+  base::RepeatingClosureList on_changed_;
+  base::CallbackListSubscription tree_subscription_;
+  raw_ptr<bookmarks::BookmarkModel> model_;
+};
+
+}  // namespace cromarc
+
+#endif  // CROMARC_BROWSER_TREE_TREE_SERVICE_H_

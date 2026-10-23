@@ -1,44 +1,43 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nikolay Pisarev <nipisarev@gmail.com>
 Date: Sat, 24 Oct 2026 00:15:36 +0200
-Subject: [PATCH 4/5] Cromarc H4: register chrome://cromarc-sidebar.top-chrome
+Subject: [PATCH 4/5] Cromarc H4: register Cromarc WebUIs and their interfaces
 
-Adds the sidebar WebUI config and lets that page bind TabStripService for
-the window that hosts it.
+RegisterChromeWebUIConfigs() and the desktop WebUI interface broker call
+into //cromarc, which registers chrome://cromarc-* pages and binds their
+Mojo interfaces (TabStripService for the sidebar's window, Cromarc's own).
 
 diff --git a/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc b/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
-index 378e1a6f0c8b4..c5e2d08405ddf 100644
+index 378e1a6f0c8b4..028026ad50ce9 100644
 --- a/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
 +++ b/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
 @@ -188,6 +188,8 @@
  #include "chrome/browser/ui/webui/feature_showcase/feature_showcase_ui.h"
  #endif
  
-+#include "cromarc/browser/ui/sidebar/sidebar_ui.h"  // Cromarc
++#include "cromarc/browser/ui/webui_registration.h"  // Cromarc
 +
  namespace chrome::internal {
  
  using content::RegisterWebUIControllerInterfaceBinder;
-@@ -632,6 +634,10 @@ void PopulateChromeWebUIFrameInterfaceBrokersTrustedPartsDesktop(
+@@ -632,6 +634,8 @@ void PopulateChromeWebUIFrameInterfaceBrokersTrustedPartsDesktop(
                 CustomizeColorSchemeModeHandlerFactory>()
        .Add<help_bubble::mojom::HelpBubbleHandlerFactory>();
  
-+  // Cromarc
-+  registry.ForWebUI<cromarc::SidebarUI>()
-+      .Add<tabs_api::mojom::TabStripService>();
++  cromarc::PopulateWebUIInterfaceBrokers(registry);  // Cromarc
 +
    if (webui_browser::IsWebUIBrowserEnabled()) {
      registry.ForWebUI<WebUIBrowserUI>()
          .Add<webui_browser::mojom::PageHandlerFactory>()
 diff --git a/chrome/browser/ui/webui/chrome_web_ui_configs.cc b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
-index 139fecebd5645..c5e3201881d1c 100644
+index 139fecebd5645..2a289bf730843 100644
 --- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
 @@ -245,6 +245,8 @@
  #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
          // BUILDFLAG(IS_CHROMEOS)
  
-+#include "cromarc/browser/ui/sidebar/sidebar_ui.h"  // Cromarc
++#include "cromarc/browser/ui/webui_registration.h"  // Cromarc
 +
  void RegisterChromeWebUIConfigs() {
    // Don't add calls to `AddWebUIConfig()` for Ash-specific WebUIs here. Add
@@ -47,7 +46,7 @@ index 139fecebd5645..c5e3201881d1c 100644
    map.AddWebUIConfig(std::make_unique<NewTabUIConfig>());
    map.AddWebUIConfig(std::make_unique<OmniboxEverywhereUIConfig>());
    map.AddWebUIConfig(std::make_unique<OmniboxPopupUIConfig>());
-+  map.AddWebUIConfig(std::make_unique<cromarc::SidebarUIConfig>());  // Cromarc
++  cromarc::RegisterWebUIConfigs(map);  // Cromarc
    map.AddWebUIConfig(std::make_unique<OrganizerPanelUIConfig>());
    map.AddWebUIConfig(
        std::make_unique<on_device_internals::OnDeviceInternalsUIConfig>());

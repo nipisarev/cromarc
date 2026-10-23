@@ -1,0 +1,36 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import("//testing/test.gni")
+
+assert(!is_android)
+
+# Everything Cromarc links into Chrome. Hook H0 makes //chrome/browser/ui depend
+# on this group, so a new module only needs a line here, not a patch upstream.
+group("cromarc") {
+  public_deps = [
+    ":headers",
+    "//cromarc/browser:keyed_services_impl",
+    "//cromarc/browser/tree:service",
+    "//cromarc/browser/ui:webui_registration_impl",
+    "//cromarc/browser/ui/sidebar:impl",
+  ]
+}
+
+# Headers for the upstream files the hooks touch (no implementation, so no
+# dependency cycle with //chrome/browser/ui).
+group("headers") {
+  public_deps = [
+    "//cromarc/browser:keyed_services",
+    "//cromarc/browser/ui:webui_registration",
+    "//cromarc/browser/ui/sidebar",
+  ]
+}
+
+test("cromarc_unittests") {
+  deps = [
+    "//components/test:run_all_unittests",
+    "//cromarc/browser/tree:unit_tests",
+  ]
+}

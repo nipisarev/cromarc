@@ -1,0 +1,21 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+assert(!is_android)
+
+source_set("webui_registration") {
+  sources = [ "webui_registration.h" ]
+}
+
+source_set("webui_registration_impl") {
+  sources = [ "webui_registration.cc" ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    ":webui_registration",
+    "//components/browser_apis/tab_strip:mojom",
+    "//content/public/browser",
+    "//cromarc/browser/ui/sidebar",
+    "//cromarc/browser/ui/sidebar:mojo_bindings",
+  ]
+}

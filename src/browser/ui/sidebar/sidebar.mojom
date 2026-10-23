@@ -1,0 +1,60 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+module cromarc.mojom;
+
+import "components/browser_apis/tab_strip/tab_strip_api_types.mojom";
+import "url/mojom/url.mojom";
+
+// One node of the space's tree: a folder or a pinned item.
+struct TreeNode {
+  // Bookmark UUID. "" in calls means the tree root.
+  string id;
+  string title;
+  bool is_folder;
+  // Folders only.
+  bool collapsed;
+  // Pinned items only.
+  bool essential;
+  url.mojom.Url home_url;
+  // The live tab of a pinned item; null while it sleeps.
+  tabs_api.mojom.NodeId? tab;
+  array<TreeNode> children;
+};
+
+interface PageHandlerFactory {
+  CreatePageHandler(pending_remote<Page> page,
+                    pending_receiver<PageHandler> handler);
+};
+
+// Tree operations of the sidebar of one window. Live tabs themselves (list,
+// activate, close) go through TabStripService.
+interface PageHandler {
+  GetTree() => (array<TreeNode> nodes);
+
+  // Focuses the live tab of a pinned item, or opens its home URL in this
+  // window as a pinned tab.
+  OpenItem(string id);
+  CreateFolder(string parent_id, uint32 index, string title) => (string id);
+  // Pins a live tab: a pinned item with the tab's URL as home URL.
+  PinTab(tabs_api.mojom.NodeId tab, string parent_id, uint32 index,
+         bool essential);
+  MoveItem(string id, string parent_id, uint32 index);
+  RenameItem(string id, string title);
+  // A folder goes with its content; a pinned item's live tab stays open as an
+  // ordinary (Today) tab.
+  RemoveItem(string id);
+  // The live tab goes back to the home URL.
+  ResetItem(string id);
+  // The live tab's current URL becomes the home URL.
+  SetHomeToCurrent(string id);
+  SetCollapsed(string id, bool collapsed);
+  SetEssential(string id, bool essential);
+  // "+ New Tab" (the command bar replaces it in part 4).
+  NewTab();
+};
+
+interface Page {
+  OnTreeChanged(array<TreeNode> nodes);
+};

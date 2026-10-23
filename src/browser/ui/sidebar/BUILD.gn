@@ -2,7 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import("//mojo/public/tools/bindings/mojom.gni")
+
 assert(!is_android)
+
+mojom("mojo_bindings") {
+  sources = [ "sidebar.mojom" ]
+  webui_module_path = "/"
+  public_deps = [
+    "//components/browser_apis/tab_strip:mojom",
+    "//url/mojom:url_mojom_gurl",
+  ]
+}
 
 # Headers, for the upstream files the hooks touch. Split from :impl the way
 # Chromium splits //chrome/browser/ui/webui/* so that //chrome/browser/ui can
@@ -14,6 +25,7 @@ source_set("sidebar") {
     "sidebar_view.h",
   ]
   public_deps = [
+    ":mojo_bindings",
     "//chrome/browser/ui/webui/top_chrome",
     "//components/browser_apis/tab_strip:mojom",
     "//content/public/browser",
@@ -27,6 +39,8 @@ source_set("sidebar") {
 source_set("impl") {
   sources = [
     "cromarc_sidebar.cc",
+    "sidebar_page_handler.cc",
+    "sidebar_page_handler.h",
     "sidebar_ui.cc",
     "sidebar_view.cc",
   ]
@@ -36,7 +50,11 @@ source_set("impl") {
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui/browser_window",
     "//chrome/browser/ui/tabs/tab_strip_api",
+    "//chrome/browser/ui/webui:favicon_source",
     "//chrome/browser/ui/webui:webui_util",
+    "//components/bookmarks/browser",
+    "//components/favicon_base",
+    "//cromarc/browser/tree:service",
     "//components/browser_apis/tab_strip/resources:resources",
     "//cromarc/webui/sidebar:resources",
     "//skia",
