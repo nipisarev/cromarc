@@ -221,7 +221,10 @@
   font-size: x-small;
   max-height: 0;
   opacity: 0;
+  overflow: hidden;
   pointer-events: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transform: translateY(-4px);
   transition: opacity .1s ease-in-out, max-height .1s ease-in-out;
 }
@@ -642,7 +645,9 @@ button[hidden] {
   background: var(--color-sys-surface, Canvas);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
-  min-width: 180px;
+  box-sizing: border-box;
+  max-width: calc(100vw - 8px);
+  min-width: min(180px, calc(100vw - 8px));
   padding: 4px;
   position: fixed;
 }

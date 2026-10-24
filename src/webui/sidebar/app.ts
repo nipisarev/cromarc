@@ -976,6 +976,25 @@ export class SidebarAppElement extends CrLitElement {
       input?.focus();
       input?.select();
     }
+    if (changed.has('menu_' as keyof SidebarAppElement) && this.menu_) {
+      this.fitMenu_();
+    }
+  }
+
+  // The sidebar is narrow: a menu opened near its edge moves back inside.
+  private fitMenu_() {
+    const menu = this.shadowRoot.querySelector<HTMLElement>('#menu');
+    if (!menu) {
+      return;
+    }
+    const margin = 4;
+    const {width, height} = menu.getBoundingClientRect();
+    const x = Math.max(
+        margin, Math.min(this.menu_!.x, window.innerWidth - width - margin));
+    const y = Math.max(
+        margin, Math.min(this.menu_!.y, window.innerHeight - height - margin));
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
   }
 
   // Drag and drop (Arc): a Today tab dropped into the tree is pinned there, a
