@@ -18,6 +18,7 @@ group("cromarc") {
     "//cromarc/browser/tree:service",
     "//cromarc/browser/ui:browser_commands_impl",
     "//cromarc/browser/ui:webui_registration_impl",
+    "//cromarc/browser/ui/arc_import:impl",
     "//cromarc/browser/ui/command_bar:impl",
     "//cromarc/browser/ui/sidebar:impl",
   ]
@@ -38,6 +39,7 @@ group("headers") {
 test("cromarc_unittests") {
   deps = [
     "//components/test:run_all_unittests",
+    "//cromarc/browser/arc_import:unit_tests",
     "//cromarc/browser/archive:unit_tests",
     "//cromarc/browser/lifecycle:unit_tests",
     "//cromarc/browser/spaces:unit_tests",

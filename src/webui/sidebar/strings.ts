@@ -6,6 +6,7 @@
 export const strings = {
   newTab: 'Новая вкладка',
   newFolder: 'Новая папка',
+  importFromArc: 'Перенести из Arc…',
   today: 'Today',
   rename: 'Переименовать',
   remove: 'Удалить',

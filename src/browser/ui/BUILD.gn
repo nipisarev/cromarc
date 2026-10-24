@@ -29,6 +29,7 @@ source_set("webui_registration_impl") {
     ":webui_registration",
     "//components/browser_apis/tab_strip:mojom",
     "//content/public/browser",
+    "//cromarc/browser/ui/arc_import",
     "//cromarc/browser/ui/command_bar",
     "//cromarc/browser/ui/sidebar",
     "//cromarc/browser/ui/sidebar:mojo_bindings",

@@ -536,7 +536,15 @@ export class SidebarAppElement extends CrLitElement {
     this.menu_ = {
       x: e.clientX,
       y: e.clientY,
-      items: [{label: strings.newFolder, action: () => this.createFolder_('')}],
+      items: [
+        {label: strings.newFolder, action: () => this.createFolder_('')},
+        {
+          label: strings.importFromArc,
+          action: () => this.proxy_.tabStrip
+                            .createTabAt(null, 'chrome://cromarc-import/')
+                            .catch(() => {}),
+        },
+      ],
     };
   }
 

@@ -1,0 +1,44 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+module cromarc.arc_import.mojom;
+
+// One space of the user's Arc sidebar.
+struct ArcSpace {
+  string arc_id;
+  string title;
+  string icon;
+  int32 folders;
+  int32 pinned;
+  // Essentials of the Arc profile the space is bound to.
+  int32 essentials;
+};
+
+// A Cromarc space the Arc spaces can go into.
+struct Target {
+  string id;
+  string name;
+  string icon;
+  bool current;
+};
+
+struct Choice {
+  string arc_id;
+  // A Target id, kNewSpace, or "" to leave the Arc space out.
+  string target;
+};
+
+const string kNewSpace = "new";
+
+interface PageHandlerFactory {
+  CreatePageHandler(pending_receiver<PageHandler> handler);
+};
+
+interface PageHandler {
+  // `found` is false when Arc's StorableSidebar.json is missing or unreadable.
+  GetArcSidebar() => (bool found, array<ArcSpace> spaces,
+                      array<Target> targets);
+  // Imports folders, pinned tabs and essentials; a summary for the page.
+  Import(array<Choice> choices) => (string summary);
+};
