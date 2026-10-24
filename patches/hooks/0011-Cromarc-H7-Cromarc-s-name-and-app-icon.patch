@@ -23,6 +23,23 @@ index d98c86e5dace9..59641d968c9f7 100644
      outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
    }
  
+diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
+index 3de8ca69c9248..e11afb38759ad 100644
+--- a/chrome/app/chromium_strings.grd
++++ b/chrome/app/chromium_strings.grd
+@@ -294,10 +294,10 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+         </then>
+         <else>
+           <message name="IDS_PRODUCT_NAME" desc="The Chrome application name" translateable="false">
+-            Chromium
++            Cromarc
+           </message>
+           <message name="IDS_SHORT_PRODUCT_NAME" desc="The Chrome application short name." translateable="false">
+-            Chromium
++            Cromarc
+           </message>
+         </else>
+       </if>
 diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
 index f8363d5b294fe..470b6722111b7 100644
 --- a/chrome/app/theme/chromium/BRANDING
