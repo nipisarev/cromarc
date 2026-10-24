@@ -11,8 +11,8 @@ import {SPACE_ICONS} from './space_icons.js';
 import {iconValue} from './space_icon.js';
 
 // Zen's emoji picker (zen:common/emojis/ZenEmojiPicker.mjs): emojis searched
-// by tag, a page of Zen's icons, and "none". Fires `icon-picked` with the
-// value: an emoji, "icon:<name>" or "".
+// by tag, a page of Zen's icons, and "none" (the bin). Fires `icon-picked`
+// with the value: an emoji, "icon:<name>" or "".
 export class IconPickerElement extends CrLitElement {
   static get is() {
     return 'cromarc-icon-picker';
@@ -28,7 +28,7 @@ export class IconPickerElement extends CrLitElement {
 
   static override get properties() {
     return {
-      page_: {type: String},
+      page_: {type: String, reflect: true, attribute: 'page'},
       query_: {type: String},
       icons_: {type: Array},
     };
@@ -48,17 +48,27 @@ export class IconPickerElement extends CrLitElement {
     return `url(sidebar/icons/${name}.svg)`;
   }
 
+  override firstUpdated() {
+    this.shadowRoot.querySelector<HTMLInputElement>('#search')!.focus(
+        {preventScroll: true});
+  }
+
   protected onSearchInput_(e: Event) {
     this.query_ = (e.target as HTMLInputElement).value;
-    this.page_ = 'emojis';
   }
 
   protected onEmojisPageClick_() {
-    this.page_ = 'emojis';
+    this.showPage_('emojis');
   }
 
   protected onIconsPageClick_() {
-    this.page_ = 'icons';
+    this.showPage_('icons');
+  }
+
+  // Zen slides the pages to the chosen one (ZenEmojiPicker #changePage);
+  // the panes move with CSS (icon_picker.css).
+  private showPage_(page: 'emojis'|'icons') {
+    this.page_ = page;
   }
 
   protected onEmojiClick_(e: Event) {

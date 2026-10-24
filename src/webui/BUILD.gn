@@ -24,6 +24,7 @@ build_webui("build") {
     "sidebar/ui_icons/close.svg",
     "sidebar/ui_icons/library-sprite.svg",
     "sidebar/ui_icons/menu.svg",
+    "sidebar/ui_icons/trash.svg",
     "welcome/welcome.html",
   ] + cromarc_space_icons
 

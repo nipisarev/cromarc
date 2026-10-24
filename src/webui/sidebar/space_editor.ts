@@ -21,7 +21,7 @@ export interface SpaceEdit {
 // Zen's space creation form (zen:spaces/ZenSpaceCreation.mjs,
 // create-workspace-form.css), shown in the sidebar over the strip; also the
 // form for changing a space's name and icon. Fires `space-edit-done` with a
-// SpaceEdit, or `space-edit-cancel` (Esc, as in Zen).
+// SpaceEdit, `space-edit-cancel` (Esc, as in Zen) or `space-edit-theme`.
 export class SpaceEditorElement extends CrLitElement {
   static get is() {
     return 'cromarc-space-editor';
@@ -61,10 +61,6 @@ export class SpaceEditorElement extends CrLitElement {
 
   protected iconMask_(): string {
     return iconMask(this.icon);
-  }
-
-  protected iconText_(): string {
-    return iconMask(this.icon) ? '' : this.icon;
   }
 
   protected onIconClick_() {
@@ -113,6 +109,11 @@ export class SpaceEditorElement extends CrLitElement {
 
   protected onCancelClick_() {
     this.fire('space-edit-cancel');
+  }
+
+  // Zen's "Edit theme" in the form (zen-workspaces-change-theme).
+  protected onThemeClick_() {
+    this.fire('space-edit-theme');
   }
 }
 

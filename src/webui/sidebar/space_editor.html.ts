@@ -10,36 +10,48 @@ export function getHtml(this: SpaceEditorElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
 <div id="form" @keydown="${this.onFormKeydown_}">
-  <div class="title">${this.creating ? 'Создать space' : 'Изменить space'}</div>
-  ${this.creating ? html`
-    <p class="label">Spaces упорядочивают вкладки и сессии.</p>` : nothing}
-  <div class="name-wrapper">
-    <button id="icon" title="Иконка" @click="${this.onIconClick_}">
-      <span class="svg" style="mask-image: ${this.iconMask_()}"
-          ?hidden="${!this.iconMask_()}"></span>
-      <span class="text">${this.iconText_()}</span>
-    </button>
-    <input id="name" placeholder="Название space" spellcheck="false"
-        .value="${this.name}" @input="${this.onNameInput_}">
+  <div class="header">
+    <h1 class="title">${this.creating ? 'Создать пространство' :
+                                        'Изменить пространство'}</h1>
+    ${this.creating ? html`
+      <p class="label">
+        Пространства используются для организации ваших вкладок и сеансов.
+      </p>` : nothing}
   </div>
-  ${this.pickerOpen ? html`
-    <cromarc-icon-picker @icon-picked="${this.onIconPicked_}">
-    </cromarc-icon-picker>` : nothing}
-  <div class="buttons">
-    <button id="done" class="primary" @click="${this.onDoneClick_}">
-      ${this.creating ? 'Создать' : 'Сохранить'}
-    </button>
-    <button id="cancel" @click="${this.onCancelClick_}">Отмена</button>
+  <div class="fields">
+    <div class="name-wrapper">
+      <button id="icon" title="Изменить значок" @click="${this.onIconClick_}">
+        ${this.iconMask_() ? html`
+          <span class="svg" style="mask-image: ${this.iconMask_()}"></span>` :
+          html`<span class="text">${this.icon}</span>`}
+      </button>
+      <input id="name" placeholder="Название пространства" spellcheck="false"
+          .value="${this.name}" @input="${this.onNameInput_}">
+      ${this.pickerOpen ? html`
+        <cromarc-icon-picker @icon-picked="${this.onIconPicked_}">
+        </cromarc-icon-picker>` : nothing}
+    </div>
+    ${!this.creating ? html`
+      <button id="theme" class="field-button" @click="${this.onThemeClick_}">
+        Изменить тему
+      </button>` : nothing}
   </div>
   ${this.creating && this.remoteSpaces.length ? html`
     <div id="remote">
       <div class="label">Есть в iCloud Drive — подключить с этого Mac:</div>
       ${this.remoteSpaces.map(space => html`
-        <button class="remote-space" data-uuid="${space.uuid}"
+        <button class="remote-space field-button" data-uuid="${space.uuid}"
             @click="${this.onConnectClick_}">
           <span>${this.remoteIcon_(space)}</span> ${space.name}
         </button>`)}
     </div>` : nothing}
+  <div class="buttons">
+    <button id="done" class="primary" ?disabled="${!this.name.trim()}"
+        @click="${this.onDoneClick_}">
+      ${this.creating ? 'Создать пространство' : 'Сохранить'}
+    </button>
+    <button id="cancel" @click="${this.onCancelClick_}">Отмена</button>
+  </div>
 </div>
 <!--_html_template_end_-->`;
   // clang-format on

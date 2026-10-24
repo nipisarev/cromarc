@@ -708,6 +708,15 @@ export class SidebarAppElement extends CrLitElement {
     }
   }
 
+  // The form's "Edit theme": the theme editor takes the form's place.
+  protected onSpaceEditTheme_() {
+    const space = this.spaces_.find(s => s.id === this.editor_?.id);
+    this.editor_ = null;
+    if (space) {
+      this.themeEditor_ = {space, theme: themeFromJson(space.theme)};
+    }
+  }
+
   protected onSpaceEditCancel_() {
     this.editor_ = null;
   }

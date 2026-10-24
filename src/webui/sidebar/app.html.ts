@@ -10,7 +10,7 @@ import {essentialsLayout} from './sidebar_model.js';
 export function getHtml(this: SidebarAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
-<div id="viewport">
+<div id="viewport" ?editing="${!!this.editor_}">
   ${this.stripSpaces_.map((space, index) => html`
   <div class="strip" style="${this.stripStyle_(index)}">
   ${space.current ? html`
@@ -247,7 +247,8 @@ ${this.editor_ ? html`
       .remoteSpaces="${this.remoteSpaces_}"
       @space-connect="${this.onSpaceConnect_}"
       @space-edit-done="${this.onSpaceEditDone_}"
-      @space-edit-cancel="${this.onSpaceEditCancel_}">
+      @space-edit-cancel="${this.onSpaceEditCancel_}"
+      @space-edit-theme="${this.onSpaceEditTheme_}">
   </cromarc-space-editor>` : nothing}
 ${this.themeEditor_ ? html`
   <cromarc-theme-editor id="theme-editor" .theme="${this.themeEditor_.theme}"

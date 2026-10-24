@@ -807,9 +807,13 @@ button[hidden],
   background: var(--hover);
 }
 
-/* The space form takes the strip's place (zen:spaces/ZenSpaceCreation.mjs). */
+/* The space form takes the strip's place, on the sidebar's own background
+ * (zen:spaces/ZenSpaceCreation.mjs hides the space while it shows). */
+#viewport[editing] {
+  visibility: hidden;
+}
+
 #space-editor {
-  background: var(--color-sys-surface, Canvas);
   bottom: 44px;
   inset-inline: 0;
   position: absolute;
