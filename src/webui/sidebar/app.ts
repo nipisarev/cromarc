@@ -5,7 +5,8 @@
 import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
-import type {TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
+import {SwipeType} from '../sidebar.mojom-webui.js';
+import type {Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_api/tab_strip_api_events.mojom-webui.js';
 import {TabStripObservation} from '/tab_strip_api/tab_strip_observation.js';
@@ -15,6 +16,7 @@ import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
 import {BrowserProxy} from './browser_proxy.js';
 import {buildSidebar, dropTarget} from './sidebar_model.js';
+import {circularDiff, isAnimatedStrip, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
 import {strings} from './strings.js';
 import {TabListModel} from './tab_list_model.js';
@@ -41,6 +43,12 @@ export interface DropIndicator {
   position: DropPosition;
 }
 
+// Another space's strip content, built from its snapshot.
+export interface SnapshotView {
+  view: SidebarView;
+  today: Array<{title: string, url: string, favicon: string}>;
+}
+
 export class SidebarAppElement extends CrLitElement {
   static get is() {
     return 'cromarc-sidebar-app';
@@ -65,6 +73,10 @@ export class SidebarAppElement extends CrLitElement {
       strings: {type: Object},
       minutesLeft_: {type: Object},
       cleared_: {type: Array},
+      spaces_: {type: Array},
+      snapshots_: {type: Object},
+      stripX_: {type: Array},
+      tint_: {type: String},
     };
   }
 
@@ -80,8 +92,19 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor minutesLeft_: Map<string, number> = new Map();
   // URLs closed by the last Clear while its undo toast shows.
   protected accessor cleared_: string[] = [];
+  // Spaces in order; each has a strip (design, component 4).
+  protected accessor spaces_: Space[] = [];
+  protected accessor snapshots_: Map<string, SnapshotView> = new Map();
+  // Horizontal position of every strip, in % of the sidebar width.
+  protected accessor stripX_: number[] = [];
+  // Background tint: the space's colour, blended while switching.
+  protected accessor tint_: string = 'transparent';
   private deferred_: Set<string> = new Set();
   private clearedTimer_ = 0;
+  private swipe_: SwipeState|null = null;
+  private swipeOffset_ = 0;
+  private animationFrame_ = 0;
+  private tintRgb_: number[] = [0, 0, 0];
 
   protected accessor strings: typeof strings = strings;
   private readonly proxy_ = BrowserProxy.getInstance();
@@ -98,6 +121,12 @@ export class SidebarAppElement extends CrLitElement {
         (tabs: TabLifecycle[]) => this.setLifecycles_(tabs));
     this.proxy_.handler.getTabLifecycles().then(
         ({tabs}) => this.setLifecycles_(tabs));
+    const router = this.proxy_.callbackRouter;
+    router.onSpacesChanged.addListener(
+        (spaces: Space[]) => this.setSpaces_(spaces));
+    router.onSwitchRequested.addListener((id: string) => this.switchTo_(id));
+    router.onSwipe.addListener((swipe: Swipe) => this.onSwipe_(swipe));
+    this.proxy_.handler.getSpaces().then(({spaces}) => this.setSpaces_(spaces));
     this.connectTabs_();
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
@@ -113,6 +142,196 @@ export class SidebarAppElement extends CrLitElement {
         changed.has('minutesLeft_' as keyof SidebarAppElement)) {
       this.view_ = buildSidebar(this.tree_, this.tabs_, this.deferred_);
     }
+  }
+
+  // Spaces.
+
+  protected get currentIndex_(): number {
+    return Math.max(0, this.spaces_.findIndex(s => s.current));
+  }
+
+  private setSpaces_(spaces: Space[]) {
+    this.spaces_ = spaces;
+    this.snapshots_ = new Map();
+    this.rest_();
+  }
+
+  // Every strip in its place for this window's own space.
+  private rest_() {
+    cancelAnimationFrame(this.animationFrame_);
+    const current = this.currentIndex_;
+    const count = this.spaces_.length;
+    this.stripX_ = this.spaces_.map(
+        (_, i) => circularDiff(i, current, count) * 100);
+    this.setTint_(this.colorOf_(current), this.colorOf_(current), 0);
+  }
+
+  private colorOf_(index: number): number[] {
+    const argb = this.spaces_[index]?.color ?? 0;
+    return [(argb >>> 16) & 255, (argb >>> 8) & 255, argb & 255];
+  }
+
+  // Zen fades the background between the two spaces' themes as the strips
+  // move (--zen-background-opacity = 1 - |offset| / 200).
+  private setTint_(from: number[], to: number[], progress: number) {
+    this.tintRgb_ = from.map((v, i) => v + (to[i]! - v) * progress);
+    this.tint_ = `rgba(${this.tintRgb_.map(Math.round).join(', ')}, 0.16)`;
+  }
+
+  // The other spaces' content, for their strips while switching.
+  private async loadSnapshots_() {
+    const snapshots = new Map(this.snapshots_);
+    for (const space of this.spaces_) {
+      if (space.current || snapshots.has(space.id)) {
+        continue;
+      }
+      const {snapshot} = await this.proxy_.handler.getSpaceSnapshot(space.id);
+      snapshots.set(space.id, this.snapshotView_(snapshot));
+    }
+    this.snapshots_ = snapshots;
+  }
+
+  private snapshotView_(snapshot: SpaceSnapshot|null): SnapshotView {
+    if (!snapshot) {
+      return {view: buildSidebar([], []), today: []};
+    }
+    return {
+      view: buildSidebar(snapshot.tree, []),
+      today: snapshot.today.map(t => ({title: t.title, url: t.url, favicon: t.favicon})),
+    };
+  }
+
+  // Trackpad swipe over the sidebar (zen:spaces/ZenSpacesSwipe.mjs).
+  private onSwipe_(swipe: Swipe) {
+    const count = this.spaces_.length;
+    if (count < 2) {
+      return;
+    }
+    const current = this.currentIndex_;
+    switch (swipe.type) {
+      case SwipeType.kStart:
+        cancelAnimationFrame(this.animationFrame_);
+        this.swipe_ = new SwipeState();
+        this.swipeOffset_ = 0;
+        this.loadSnapshots_();
+        break;
+      case SwipeType.kUpdate: {
+        if (!this.swipe_) {
+          return;
+        }
+        // Strips follow the fingers: towards the next space they move left.
+        this.swipeOffset_ = -this.swipe_.update(swipe.amount, this.offsetWidth);
+        const offset = this.swipeOffset_;
+        this.stripX_ = this.spaces_.map(
+            (_, i) => circularDiff(i, current, count) * 100 + offset / 2);
+        this.setTint_(
+            this.colorOf_(current),
+            this.colorOf_(neighbourIndex(current, count, offset)),
+            Math.min(1, Math.abs(offset) / 200));
+        break;
+      }
+      case SwipeType.kEnd: {
+        this.swipe_ = null;
+        if (swipe.direction === 0) {
+          this.animateTo_(current);
+          return;
+        }
+        const target = (current + swipe.direction + count) % count;
+        this.animateTo_(target).then(() => this.finishSwitch_(target));
+        break;
+      }
+    }
+  }
+
+  // Hotkeys, the wheel and the switcher: the same animation without fingers.
+  private async switchTo_(id: string) {
+    const target = this.spaces_.findIndex(s => s.id === id);
+    if (target < 0 || target === this.currentIndex_) {
+      return;
+    }
+    await this.loadSnapshots_();
+    await this.animateTo_(target);
+    this.finishSwitch_(target);
+  }
+
+  // Zen's #animateTabs: a spring without bounce over 250 ms; only the strips
+  // on the way between the two spaces move.
+  private animateTo_(target: number): Promise<void> {
+    cancelAnimationFrame(this.animationFrame_);
+    const count = this.spaces_.length;
+    const current = this.currentIndex_;
+    const from = [...this.stripX_];
+    const to = this.spaces_.map((_, i) => circularDiff(i, target, count) * 100);
+    const moving = this.spaces_.map(
+        (_, i) => target === current || isAnimatedStrip(i, current, target, count));
+    const progress = spring(0, 1, SWITCH_DURATION);
+    const tintFrom = [...this.tintRgb_];
+    const tintTo = this.colorOf_(target);
+    const start = performance.now();
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => {
+        if (done) {
+          return;
+        }
+        done = true;
+        cancelAnimationFrame(this.animationFrame_);
+        this.stripX_ = to;
+        this.setTint_(tintFrom, tintTo, 1);
+        resolve();
+      };
+      const step = (now: number) => {
+        const t = (now - start) / 1000;
+        if (t >= SWITCH_DURATION + 0.05) {
+          finish();
+          return;
+        }
+        const p = progress(t);
+        this.stripX_ = from.map((x, i) => moving[i] ? x + (to[i]! - x) * p : to[i]!);
+        this.setTint_(tintFrom, tintTo, p);
+        this.animationFrame_ = requestAnimationFrame(step);
+      };
+      this.animationFrame_ = requestAnimationFrame(step);
+      // Zen's safety net (issue 9334): frames may stop, e.g. in a hidden or
+      // occluded window; the switch still completes.
+      setTimeout(finish, (SWITCH_DURATION + 0.05) * 1000);
+    });
+  }
+
+  private finishSwitch_(target: number) {
+    const space = this.spaces_[target];
+    if (!space) {
+      return;
+    }
+    // The target space's window takes this one's place; this window is hidden
+    // and waits at rest for the next time it is shown.
+    this.proxy_.handler.switchToSpace(space.id);
+    setTimeout(() => this.rest_(), 300);
+  }
+
+  protected onSpaceClick_(e: Event) {
+    const id = (e.currentTarget as HTMLElement).dataset['space'];
+    if (id) {
+      this.switchTo_(id);
+    }
+  }
+
+  // Before the space list arrives, one strip: this window's own.
+  protected get stripSpaces_(): Space[] {
+    return this.spaces_.length ? this.spaces_ :
+        [{id: '', name: '', icon: '', color: 0, current: true}];
+  }
+
+  protected stripStyle_(index: number): string {
+    return `transform: translateX(${this.stripX_[index] ?? 0}%)`;
+  }
+
+  protected snapshotOf_(id: string): SnapshotView {
+    return this.snapshots_.get(id) ?? {view: buildSidebar([], []), today: []};
+  }
+
+  protected snapshotFavicon_(url: string, favicon: string): string {
+    return favicon ? `url("${favicon}")` : getFaviconForPageURL(url, false);
   }
 
   private setLifecycles_(tabs: TabLifecycle[]) {

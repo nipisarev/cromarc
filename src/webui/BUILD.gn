@@ -25,6 +25,7 @@ build_webui("build") {
     "sidebar/app.ts",
     "sidebar/browser_proxy.ts",
     "sidebar/sidebar_model.ts",
+    "sidebar/spaces.ts",
     "sidebar/strings.ts",
     "sidebar/tab_list_model.ts",
   ]

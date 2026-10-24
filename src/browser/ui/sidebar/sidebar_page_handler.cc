@@ -12,7 +12,9 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/common/webui_url_constants.h"
+#include "chrome/browser/profiles/profile.h"
 #include "components/bookmarks/browser/bookmark_node.h"
+#include "components/favicon/content/content_favicon_driver.h"
 #include "components/browser_apis/tab_strip/types/node_id.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
@@ -22,8 +24,10 @@
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/tree/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
-#include "cromarc/browser/ui/command_bar/cromarc_command_bar.h"
+#include "cromarc/browser/ui/browser_commands.h"
 #include "ui/base/base_window.h"
+#include "ui/base/webui/web_ui_util.h"
+#include "ui/gfx/image/image.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
@@ -43,6 +47,40 @@ void SetPinned(tabs::TabInterface* tab, bool pinned) {
   if (index != TabStripModel::kNoTab && model->IsTabPinned(index) != pinned) {
     model->SetTabPinned(index, pinned);
   }
+}
+
+std::vector<mojom::TreeNodePtr> BuildChildren(
+    TreeService* tree_service,
+    const bookmarks::BookmarkNode* folder) {
+  std::vector<mojom::TreeNodePtr> nodes;
+  for (const auto& child : folder->children()) {
+    auto node = mojom::TreeNode::New();
+    node->id = Tree::IdOf(child.get());
+    node->title = base::UTF16ToUTF8(child->GetTitle());
+    node->is_folder = child->is_folder();
+    if (child->is_folder()) {
+      node->collapsed = Tree::IsCollapsed(child.get());
+      node->children = BuildChildren(tree_service, child.get());
+    } else {
+      node->essential = Tree::IsEssential(child.get());
+      node->home_url = child->url();
+      if (tabs::TabInterface* tab = tree_service->GetLiveTab(node->id)) {
+        node->tab = tabs_api::NodeId::FromTabHandle(tab->GetHandle());
+      }
+    }
+    nodes.push_back(std::move(node));
+  }
+  return nodes;
+}
+
+std::string FaviconDataUrl(content::WebContents* contents) {
+  auto* driver = favicon::ContentFaviconDriver::FromWebContents(contents);
+  if (!driver) {
+    return std::string();
+  }
+  const gfx::Image image = driver->GetFavicon();
+  return image.IsEmpty() ? std::string()
+                         : webui::GetBitmapDataUrl(*image.ToSkBitmap());
 }
 
 }  // namespace
@@ -65,31 +103,12 @@ SidebarPageHandler::SidebarPageHandler(
                               base::Unretained(this)))),
       lifecycle_subscription_(lifecycle_service_->RegisterOnChanged(
           base::BindRepeating(&SidebarPageHandler::OnLifecyclesChanged,
-                              base::Unretained(this)))) {}
+                              base::Unretained(this)))) {
+  SpaceController::Get()->AddSidebar(browser_, this);
+}
 
-SidebarPageHandler::~SidebarPageHandler() = default;
-
-std::vector<mojom::TreeNodePtr> SidebarPageHandler::BuildChildren(
-    const bookmarks::BookmarkNode* folder) {
-  std::vector<mojom::TreeNodePtr> nodes;
-  for (const auto& child : folder->children()) {
-    auto node = mojom::TreeNode::New();
-    node->id = Tree::IdOf(child.get());
-    node->title = base::UTF16ToUTF8(child->GetTitle());
-    node->is_folder = child->is_folder();
-    if (child->is_folder()) {
-      node->collapsed = Tree::IsCollapsed(child.get());
-      node->children = BuildChildren(child.get());
-    } else {
-      node->essential = Tree::IsEssential(child.get());
-      node->home_url = child->url();
-      if (tabs::TabInterface* tab = tree_service_->GetLiveTab(node->id)) {
-        node->tab = tabs_api::NodeId::FromTabHandle(tab->GetHandle());
-      }
-    }
-    nodes.push_back(std::move(node));
-  }
-  return nodes;
+SidebarPageHandler::~SidebarPageHandler() {
+  SpaceController::Get()->RemoveSidebar(browser_);
 }
 
 void SidebarPageHandler::GetTree(GetTreeCallback callback) {
@@ -97,12 +116,12 @@ void SidebarPageHandler::GetTree(GetTreeCallback callback) {
     std::move(callback).Run({});
     return;
   }
-  std::move(callback).Run(BuildChildren(tree_service_->tree().Root()));
+  std::move(callback).Run(BuildChildren(tree_service_, tree_service_->tree().Root()));
 }
 
 void SidebarPageHandler::OnTreeChanged() {
   if (tree_service_->loaded()) {
-    page_->OnTreeChanged(BuildChildren(tree_service_->tree().Root()));
+    page_->OnTreeChanged(BuildChildren(tree_service_, tree_service_->tree().Root()));
   }
 }
 
@@ -271,6 +290,85 @@ void SidebarPageHandler::ReopenTabs(const std::vector<GURL>& urls) {
   for (const GURL& url : urls) {
     browser_->OpenGURL(url, WindowOpenDisposition::NEW_BACKGROUND_TAB);
   }
+}
+
+std::vector<mojom::SpacePtr> SidebarPageHandler::BuildSpaces() {
+  const std::string current = SpaceController::IdOf(browser_->GetProfile());
+  std::vector<mojom::SpacePtr> result;
+  for (const SpaceController::Space& space :
+       SpaceController::Get()->GetSpaces()) {
+    auto s = mojom::Space::New();
+    s->id = space.id;
+    s->name = base::UTF16ToUTF8(space.name);
+    s->icon = space.icon;
+    s->color = space.color;
+    s->current = space.id == current;
+    result.push_back(std::move(s));
+  }
+  return result;
+}
+
+void SidebarPageHandler::GetSpaces(GetSpacesCallback callback) {
+  std::move(callback).Run(BuildSpaces());
+}
+
+void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
+                                          GetSpaceSnapshotCallback callback) {
+  Profile* profile = SpaceController::Get()->GetLoadedProfile(id);
+  TreeService* tree_service = profile ? TreeService::Get(profile) : nullptr;
+  if (!tree_service || !tree_service->loaded()) {
+    std::move(callback).Run(nullptr);
+    return;
+  }
+  auto snapshot = mojom::SpaceSnapshot::New();
+  snapshot->tree = BuildChildren(tree_service, tree_service->tree().Root());
+  if (BrowserWindowInterface* window = SpaceController::GetWindowFor(profile)) {
+    TabStripModel* model = window->GetTabStripModel();
+    // Today, newest first, as the sidebar shows it.
+    for (int i = model->count() - 1; i >= 0; --i) {
+      tabs::TabInterface* tab = model->GetTabAtIndex(i);
+      if (tree_service->GetItemForTab(tab)) {
+        continue;
+      }
+      content::WebContents* contents = tab->GetContents();
+      auto snapshot_tab = mojom::SnapshotTab::New();
+      snapshot_tab->title = base::UTF16ToUTF8(contents->GetTitle());
+      snapshot_tab->url = contents->GetLastCommittedURL();
+      snapshot_tab->favicon = FaviconDataUrl(contents);
+      snapshot->today.push_back(std::move(snapshot_tab));
+    }
+  }
+  std::move(callback).Run(std::move(snapshot));
+}
+
+void SidebarPageHandler::SwitchToSpace(const std::string& id) {
+  SpaceController::Get()->SwitchTo(browser_, id);
+}
+
+void SidebarPageHandler::OnSpacesChanged() {
+  page_->OnSpacesChanged(BuildSpaces());
+}
+
+void SidebarPageHandler::OnSwitchRequested(const std::string& space_id) {
+  page_->OnSwitchRequested(space_id);
+}
+
+void SidebarPageHandler::OnSwipe(const SwipeTracker::Event& event) {
+  auto swipe = mojom::Swipe::New();
+  switch (event.type) {
+    case SwipeTracker::EventType::kStart:
+      swipe->type = mojom::SwipeType::kStart;
+      break;
+    case SwipeTracker::EventType::kUpdate:
+      swipe->type = mojom::SwipeType::kUpdate;
+      break;
+    case SwipeTracker::EventType::kEnd:
+      swipe->type = mojom::SwipeType::kEnd;
+      break;
+  }
+  swipe->amount = event.amount;
+  swipe->direction = event.direction;
+  page_->OnSwipe(std::move(swipe));
 }
 
 }  // namespace cromarc

@@ -10,6 +10,7 @@
 
 #include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
+#include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -34,7 +35,8 @@ class LifecycleService;
 class TreeService;
 
 // Tree operations for the sidebar of `browser`.
-class SidebarPageHandler : public mojom::PageHandler {
+class SidebarPageHandler : public mojom::PageHandler,
+                           public SpaceController::Sidebar {
  public:
   SidebarPageHandler(mojo::PendingReceiver<mojom::PageHandler> receiver,
                      mojo::PendingRemote<mojom::Page> page,
@@ -71,10 +73,18 @@ class SidebarPageHandler : public mojom::PageHandler {
   void KeepTab(const tabs_api::NodeId& tab) override;
   void ClearToday(ClearTodayCallback callback) override;
   void ReopenTabs(const std::vector<GURL>& urls) override;
+  void GetSpaces(GetSpacesCallback callback) override;
+  void GetSpaceSnapshot(const std::string& id,
+                        GetSpaceSnapshotCallback callback) override;
+  void SwitchToSpace(const std::string& id) override;
+
+  // SpaceController::Sidebar:
+  void OnSpacesChanged() override;
+  void OnSwitchRequested(const std::string& space_id) override;
+  void OnSwipe(const SwipeTracker::Event& event) override;
 
  private:
-  std::vector<mojom::TreeNodePtr> BuildChildren(
-      const bookmarks::BookmarkNode* folder);
+  std::vector<mojom::SpacePtr> BuildSpaces();
   // Returns pinned items' live tabs inside `node` (itself included) to Today.
   void ReleaseLiveTabs(const bookmarks::BookmarkNode* node);
   // Archives the pinned items of a folder that is being removed.

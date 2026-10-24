@@ -32,6 +32,47 @@ struct TabLifecycle {
   int32 minutes_left;
 };
 
+// A space (= profile) as the switcher and the strips show it.
+struct Space {
+  // Profile directory base name.
+  string id;
+  string name;
+  // Emoji or letter.
+  string icon;
+  // ARGB.
+  uint32 color;
+  // The space of this sidebar's window.
+  bool current;
+};
+
+struct SnapshotTab {
+  string title;
+  url.mojom.Url url;
+  // data: URL, or "" (the page then asks chrome://favicon2).
+  string favicon;
+};
+
+// Another space's sidebar content, for its strip while switching.
+struct SpaceSnapshot {
+  array<TreeNode> tree;
+  array<SnapshotTab> today;
+};
+
+enum SwipeType {
+  kStart,
+  kUpdate,
+  kEnd,
+};
+
+// From the trackpad tracker (CromarcSwipeTracker): kUpdate carries the
+// cumulative amount, positive towards the next space; kEnd the direction,
+// 1 next, -1 previous, 0 cancelled.
+struct Swipe {
+  SwipeType type;
+  double amount;
+  int32 direction;
+};
+
 interface PageHandlerFactory {
   CreatePageHandler(pending_remote<Page> page,
                     pending_receiver<PageHandler> handler);
@@ -70,9 +111,19 @@ interface PageHandler {
   ClearToday() => (array<url.mojom.Url> closed);
   // Undo of Clear: reopens these URLs as Today tabs.
   ReopenTabs(array<url.mojom.Url> urls);
+
+  GetSpaces() => (array<Space> spaces);
+  // Null when the space's profile is not loaded.
+  GetSpaceSnapshot(string id) => (SpaceSnapshot? snapshot);
+  // End of the switch animation: the space's window takes this one's place.
+  SwitchToSpace(string id);
 };
 
 interface Page {
   OnTreeChanged(array<TreeNode> nodes);
   OnTabLifecyclesChanged(array<TabLifecycle> tabs);
+  OnSpacesChanged(array<Space> spaces);
+  // A hotkey or the wheel asked for `id`: animate, then SwitchToSpace().
+  OnSwitchRequested(string id);
+  OnSwipe(Swipe swipe);
 };

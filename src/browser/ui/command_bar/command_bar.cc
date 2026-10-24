@@ -19,6 +19,7 @@
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/referrer.h"
 #include "cromarc/browser/ui/command_bar/command_bar_page_handler.h"
+#include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/command_bar/cromarc_command_bar.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/base_window.h"

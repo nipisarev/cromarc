@@ -14,7 +14,9 @@ group("cromarc") {
     "//cromarc/browser:keyed_services_impl",
     "//cromarc/browser/archive:service",
     "//cromarc/browser/lifecycle:service",
+    "//cromarc/browser/spaces",
     "//cromarc/browser/tree:service",
+    "//cromarc/browser/ui:browser_commands_impl",
     "//cromarc/browser/ui:webui_registration_impl",
     "//cromarc/browser/ui/command_bar:impl",
     "//cromarc/browser/ui/sidebar:impl",
@@ -26,6 +28,7 @@ group("cromarc") {
 group("headers") {
   public_deps = [
     "//cromarc/browser:keyed_services",
+    "//cromarc/browser/ui:browser_commands",
     "//cromarc/browser/ui:webui_registration",
     "//cromarc/browser/ui/command_bar",
     "//cromarc/browser/ui/sidebar",
@@ -37,6 +40,7 @@ test("cromarc_unittests") {
     "//components/test:run_all_unittests",
     "//cromarc/browser/archive:unit_tests",
     "//cromarc/browser/lifecycle:unit_tests",
+    "//cromarc/browser/spaces:unit_tests",
     "//cromarc/browser/tree:unit_tests",
   ]
 }

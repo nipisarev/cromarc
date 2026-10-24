@@ -1,0 +1,46 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+source_set("swipe_tracker") {
+  sources = [
+    "swipe_tracker.cc",
+    "swipe_tracker.h",
+  ]
+  public_deps = [ "//base" ]
+}
+
+# The space controller (browser-process singleton) and per-space prefs.
+source_set("spaces") {
+  sources = [
+    "space_controller.cc",
+    "space_controller.h",
+    "space_prefs.cc",
+    "space_prefs.h",
+  ]
+  public_deps = [
+    ":swipe_tracker",
+    "//chrome/browser:browser_public_dependencies",
+    "//components/sessions",
+    "//skia",
+  ]
+  deps = [
+    "//base:i18n",
+    "//chrome/browser:browser_process",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/profiles:profile_manager",
+    "//chrome/browser/ui/browser_window",
+    "//components/pref_registry",
+    "//components/prefs",
+    "//url",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "swipe_tracker_unittest.cc" ]
+  deps = [
+    ":swipe_tracker",
+    "//testing/gtest",
+  ]
+}

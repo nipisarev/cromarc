@@ -6,6 +6,7 @@
 
 #include "cromarc/browser/archive/archive_service_factory.h"
 #include "cromarc/browser/lifecycle/lifecycle_service_factory.h"
+#include "cromarc/browser/spaces/space_prefs.h"
 #include "cromarc/browser/tree/tree_service_factory.h"
 
 namespace cromarc {
@@ -13,6 +14,7 @@ namespace cromarc {
 void EnsureKeyedServiceFactoriesBuilt() {
   ArchiveServiceFactory::GetInstance();
   LifecycleServiceFactory::GetInstance();
+  SpacePrefsFactory::GetInstance();
   TreeServiceFactory::GetInstance();
 }
 

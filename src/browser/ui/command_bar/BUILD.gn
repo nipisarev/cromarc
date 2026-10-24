@@ -37,6 +37,7 @@ source_set("impl") {
   deps = [
     ":command_bar",
     "//base:i18n",
+    "//cromarc/browser/ui:browser_commands",
     "//chrome/browser/autocomplete",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui/browser_window",

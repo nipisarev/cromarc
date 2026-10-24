@@ -4,6 +4,20 @@
 
 assert(!is_android)
 
+# Hook H6's entry points.
+source_set("browser_commands") {
+  sources = [ "browser_commands.h" ]
+}
+
+source_set("browser_commands_impl") {
+  sources = [ "browser_commands.cc" ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    ":browser_commands",
+    "//cromarc/browser/spaces",
+  ]
+}
+
 source_set("webui_registration") {
   sources = [ "webui_registration.h" ]
 }

@@ -20,14 +20,28 @@
   --accent: var(--color-sys-primary, Highlight);
 
   color: var(--text);
-  display: block;
+  display: flex;
+  flex-direction: column;
   font-size: 13px;
   height: 100%;
   overflow: hidden;
   user-select: none;
 }
 
-#sidebar {
+/* Space strips side by side, moved with transforms (design, component 4). */
+#viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.strip {
+  inset: 0;
+  position: absolute;
+  will-change: transform;
+}
+
+.sidebar {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -37,7 +51,7 @@
 }
 
 /* Essentials: up to 12 tiles, icon only (design, section 2). */
-#essentials {
+.essentials {
   display: grid;
   gap: 6px;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
@@ -238,6 +252,54 @@ button:hover {
   flex: 1;
   flex-direction: column;
   min-height: 40px;
+}
+
+/* Space header above the tree (zen:spaces/ZenSpace.mjs). */
+.space-header {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  font-weight: 600;
+  gap: 8px;
+  height: 30px;
+  padding-inline: 8px;
+}
+
+.space-header:has(.space-name:empty) {
+  display: none;
+}
+
+.space-icon {
+  text-align: center;
+  width: 16px;
+}
+
+/* Space switcher at the bottom (design, UI section 5). */
+#switcher {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  height: 36px;
+  padding-inline: 8px;
+}
+
+#switcher:empty {
+  display: none;
+}
+
+.space-button {
+  font-size: 15px;
+  height: 28px;
+  width: 28px;
+}
+
+.space-button[current] {
+  background: var(--active);
+}
+
+.snapshot .row:hover {
+  background: none;
 }
 
 /* Section headers: Needs attention, Today. */

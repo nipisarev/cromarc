@@ -5,7 +5,9 @@
 #ifndef CROMARC_BROWSER_UI_SIDEBAR_SIDEBAR_VIEW_H_
 #define CROMARC_BROWSER_UI_SIDEBAR_SIDEBAR_VIEW_H_
 
+#include "base/memory/raw_ptr.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/gfx/native_ui_types.h"
 #include "ui/views/controls/webview/unhandled_keyboard_event_handler.h"
 #include "ui/views/controls/webview/webview.h"
 
@@ -24,6 +26,15 @@ class SidebarView : public views::WebView {
   SidebarView& operator=(const SidebarView&) = delete;
   ~SidebarView() override;
 
+  // The sidebar of `window` under `screen_point`, if any (for the space
+  // switching input monitor).
+  static SidebarView* FindAt(gfx::NativeWindow window,
+                             const gfx::Point& screen_point);
+  // The browser window `window` belongs to, if it has a sidebar.
+  static BrowserWindowInterface* BrowserFor(gfx::NativeWindow window);
+
+  BrowserWindowInterface* browser() const { return browser_; }
+
   // content::WebContentsDelegate (through views::WebView):
   // Browser shortcuts (Cmd+T, Cmd+W, ...) keep working while the sidebar has
   // focus.
@@ -31,6 +42,7 @@ class SidebarView : public views::WebView {
                            const input::NativeWebKeyboardEvent& event) override;
 
  private:
+  raw_ptr<BrowserWindowInterface> browser_;
   views::UnhandledKeyboardEventHandler unhandled_keyboard_event_handler_;
 };
 
