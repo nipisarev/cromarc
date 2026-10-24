@@ -16,6 +16,7 @@
 #include "components/sessions/core/session_id.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/spaces/swipe_tracker.h"
+#include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/gfx/mac/coordinate_conversion.h"
 #include "ui/gfx/native_ui_types.h"
@@ -75,6 +76,14 @@ NSEvent* HandleKeyDown(NSEvent* event) {
       spaces->RequestSwitchToIndex(browser, 9);
       return nil;
     }
+  }
+  // Compact mode: Cmd+S as Arc's "hide sidebar" (the menu's Save Page As
+  // stays), Ctrl+Alt+C as Zen's.
+  if ((flags == NSEventModifierFlagCommand && event.keyCode == kVK_ANSI_S) ||
+      (flags == (NSEventModifierFlagControl | NSEventModifierFlagOption) &&
+       event.keyCode == kVK_ANSI_C)) {
+    CompactMode::Toggle(browser);
+    return nil;
   }
   if (flags == (NSEventModifierFlagCommand | NSEventModifierFlagOption)) {
     if (event.keyCode == kVK_LeftArrow) {
@@ -151,6 +160,15 @@ NSEvent* HandleScroll(NSEvent* event) {
   return nil;
 }
 
+NSEvent* HandleMouseMoved(NSEvent* event) {
+  if (SidebarView* sidebar =
+          SidebarView::ForWindow(gfx::NativeWindow(event.window))) {
+    sidebar->compact_mode()->OnMouseMoved(
+        gfx::ScreenPointFromNSPoint([NSEvent mouseLocation]));
+  }
+  return event;
+}
+
 }  // namespace
 
 void InstallSpaceInputMonitor() {
@@ -166,6 +184,11 @@ void InstallSpaceInputMonitor() {
   [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel
                                         handler:^NSEvent*(NSEvent* event) {
                                           return HandleScroll(event);
+                                        }];
+  // Compact mode's left edge.
+  [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved
+                                        handler:^NSEvent*(NSEvent* event) {
+                                          return HandleMouseMoved(event);
                                         }];
 }
 

@@ -25,6 +25,7 @@
 #include "cromarc/browser/tree/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/browser_commands.h"
+#include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "ui/base/base_window.h"
 #include "ui/base/webui/web_ui_util.h"
 #include "ui/gfx/image/image.h"
@@ -244,6 +245,10 @@ void SidebarPageHandler::SetCollapsed(const std::string& id, bool collapsed) {
 
 void SidebarPageHandler::SetEssential(const std::string& id, bool essential) {
   tree_service_->tree().SetEssential(id, essential);
+}
+
+void SidebarPageHandler::ToggleCompactMode() {
+  CompactMode::Toggle(browser_);
 }
 
 void SidebarPageHandler::NewTab() {

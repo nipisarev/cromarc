@@ -38,6 +38,8 @@ source_set("sidebar") {
 
 source_set("impl") {
   sources = [
+    "compact_mode.cc",
+    "compact_mode.h",
     "cromarc_sidebar.cc",
     "sidebar_page_handler.cc",
     "sidebar_page_handler.h",

@@ -539,6 +539,10 @@ export class SidebarAppElement extends CrLitElement {
       items: [
         {label: strings.newFolder, action: () => this.createFolder_('')},
         {
+          label: strings.hideSidebar,
+          action: () => this.proxy_.handler.toggleCompactMode(),
+        },
+        {
           label: strings.importFromArc,
           action: () => this.proxy_.tabStrip
                             .createTabAt(null, 'chrome://cromarc-import/')

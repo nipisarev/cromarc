@@ -69,6 +69,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   void SetCollapsed(const std::string& id, bool collapsed) override;
   void SetEssential(const std::string& id, bool essential) override;
   void NewTab() override;
+  void ToggleCompactMode() override;
   void GetTabLifecycles(GetTabLifecyclesCallback callback) override;
   void KeepTab(const tabs_api::NodeId& tab) override;
   void ClearToday(ClearTodayCallback callback) override;

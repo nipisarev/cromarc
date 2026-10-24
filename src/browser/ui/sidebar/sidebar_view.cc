@@ -18,6 +18,7 @@
 #include "content/public/common/referrer.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
+#include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/space_input.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -55,10 +56,26 @@ SidebarView* SidebarView::FindAt(gfx::NativeWindow window,
 
 // static
 BrowserWindowInterface* SidebarView::BrowserFor(gfx::NativeWindow window) {
+  SidebarView* sidebar = ForWindow(window);
+  return sidebar ? sidebar->browser() : nullptr;
+}
+
+// static
+SidebarView* SidebarView::ForWindow(gfx::NativeWindow window) {
   for (SidebarView* sidebar : Sidebars()) {
     views::Widget* widget = sidebar->GetWidget();
     if (widget && widget->GetNativeWindow() == window) {
-      return sidebar->browser();
+      return sidebar;
+    }
+  }
+  return nullptr;
+}
+
+// static
+SidebarView* SidebarView::ForBrowser(BrowserWindowInterface* browser) {
+  for (SidebarView* sidebar : Sidebars()) {
+    if (sidebar->browser() == browser) {
+      return sidebar;
     }
   }
   return nullptr;
@@ -67,6 +84,7 @@ BrowserWindowInterface* SidebarView::BrowserFor(gfx::NativeWindow window) {
 SidebarView::SidebarView(BrowserWindowInterface* browser)
     : views::WebView(browser->GetProfile()), browser_(browser) {
   Sidebars().insert(this);
+  compact_mode_ = std::make_unique<CompactMode>(this);
   InstallSpaceInputMonitor();
   SpaceController::Get()->OnWindowCreated(browser);
   // Takes all the height left in the region's content area. The bottom button

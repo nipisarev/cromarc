@@ -103,6 +103,8 @@ interface PageHandler {
   SetEssential(string id, bool essential);
   // "+ New Tab".
   NewTab();
+  // Cmd+S from the menu: compact mode on or off.
+  ToggleCompactMode();
 
   GetTabLifecycles() => (array<TabLifecycle> tabs);
   // "Keep" on a deferred tab: its clock restarts.
