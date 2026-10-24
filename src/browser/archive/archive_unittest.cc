@@ -105,6 +105,14 @@ TEST_F(ArchiveTest, RemoveDeletesOneRow) {
   EXPECT_EQ(Titles(archive_->Search(u"", 10)), (std::vector<std::string>{"B"}));
 }
 
+TEST_F(ArchiveTest, RemoveUrlDeletesThatUrlsRow) {
+  ASSERT_TRUE(archive_->Add(Entry("https://a", "A", now_)));
+  ASSERT_TRUE(archive_->Add(Entry("https://b", "B", now_)));
+  ASSERT_TRUE(archive_->RemoveUrl(GURL("https://a")));
+  EXPECT_FALSE(archive_->RemoveUrl(GURL("https://a")));
+  EXPECT_EQ(Titles(archive_->Search(u"", 10)), (std::vector<std::string>{"B"}));
+}
+
 TEST_F(ArchiveTest, RowsSurviveReopening) {
   ASSERT_TRUE(archive_->Add(Entry("https://a", "A", now_)));
   archive_.reset();

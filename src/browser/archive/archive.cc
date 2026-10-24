@@ -132,6 +132,12 @@ bool Archive::Remove(int64_t id) {
   return s.Run() && db_.GetLastChangeCount() == 1;
 }
 
+bool Archive::RemoveUrl(const GURL& url) {
+  sql::Statement s(db_.GetUniqueStatement("DELETE FROM archive WHERE url=?"));
+  s.BindString(0, url.spec());
+  return s.Run() && db_.GetLastChangeCount() == 1;
+}
+
 void Archive::Expire(base::Time now,
                      base::TimeDelta max_age,
                      size_t max_rows) {

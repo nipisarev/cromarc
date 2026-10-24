@@ -301,6 +301,8 @@ void SidebarPageHandler::ClearToday(ClearTodayCallback callback) {
 void SidebarPageHandler::ReopenTabs(const std::vector<GURL>& urls) {
   for (const GURL& url : urls) {
     browser_->OpenGURL(url, WindowOpenDisposition::NEW_BACKGROUND_TAB);
+    // Open again, so not archived: as restoring from the Library.
+    archive_service_->RemoveUrl(url);
   }
 }
 

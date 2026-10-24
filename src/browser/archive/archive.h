@@ -49,6 +49,7 @@ class Archive {
   // newest first. An empty query lists the newest rows.
   std::vector<ArchiveEntry> Search(const std::u16string& query, size_t limit);
   bool Remove(int64_t id);
+  bool RemoveUrl(const GURL& url);
   void Expire(base::Time now,
               base::TimeDelta max_age = kMaxAge,
               size_t max_rows = kMaxRows);

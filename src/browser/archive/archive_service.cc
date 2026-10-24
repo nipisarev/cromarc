@@ -104,4 +104,8 @@ void ArchiveService::Remove(int64_t id) {
   archive_.AsyncCall(base::IgnoreResult(&Archive::Remove)).WithArgs(id);
 }
 
+void ArchiveService::RemoveUrl(const GURL& url) {
+  archive_.AsyncCall(base::IgnoreResult(&Archive::RemoveUrl)).WithArgs(url);
+}
+
 }  // namespace cromarc

@@ -49,6 +49,7 @@ class ArchiveService : public KeyedService {
               size_t limit,
               SearchCallback callback);
   void Remove(int64_t id);
+  void RemoveUrl(const GURL& url);
 
  private:
   const raw_ptr<PrefService> prefs_;
