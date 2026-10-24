@@ -28,7 +28,8 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"
-#include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: as above
 #include "chrome/browser/ui/profiles/profile_colors_util.h"
@@ -75,6 +76,17 @@ std::string FirstLetter(const std::u16string& name) {
 bool IsVisible(BrowserWindowInterface* browser) {
   const ui::BaseWindow* window = browser->GetWindow();
   return window && window->IsVisible() && !window->IsMinimized();
+}
+
+bool IsFullscreen(BrowserWindowInterface* browser) {
+  return browser && browser->GetWindow()->IsFullscreen();
+}
+
+// The frame a space window takes: a fullscreen window's is the one it leaves
+// fullscreen to.
+gfx::Rect FrameOf(BrowserWindowInterface* browser) {
+  return IsFullscreen(browser) ? browser->GetWindow()->GetRestoredBounds()
+                               : browser->GetWindow()->GetBounds();
 }
 
 // The parts of a space theme Chrome's own theme takes.
@@ -260,7 +272,7 @@ void SpaceController::CreateHiddenWindow(Profile* profile) {
   for (BrowserWindowInterface* browser : GetAllBrowserWindowInterfaces()) {
     if (browser->GetType() == BrowserWindowInterface::TYPE_NORMAL &&
         IsVisible(browser)) {
-      bounds = browser->GetWindow()->GetBounds();
+      bounds = FrameOf(browser);
       break;
     }
   }
@@ -277,8 +289,13 @@ void SpaceController::CreateHiddenWindow(Profile* profile) {
 
 void SpaceController::RequestSwitchTo(BrowserWindowInterface* from,
                                       const std::string& id) {
+  // Into or out of native fullscreen the switch is macOS's Space animation;
+  // the sidebar's would run before it for nothing.
+  Profile* target = GetLoadedProfile(id);
+  const bool fullscreen =
+      IsFullscreen(from) || IsFullscreen(target ? GetWindowFor(target) : nullptr);
   auto it = sidebars_.find(from);
-  if (it != sidebars_.end()) {
+  if (it != sidebars_.end() && !fullscreen) {
     it->second->OnSwitchRequested(id);
   } else {
     SwitchTo(from, id);
@@ -334,16 +351,31 @@ void SpaceController::SwitchToLoaded(SessionID from_id, Profile* target) {
   if (!from) {
     return;
   }
-  const gfx::Rect bounds = from->GetWindow()->GetBounds();
+  const gfx::Rect bounds = FrameOf(from);
   BrowserWindowInterface* to = EnsureWindow(target, bounds);
   if (!to) {
+    return;
+  }
+  target->GetPrefs()->SetTime(kSpaceLastActivePref, base::Time::Now());
+  // Native fullscreen (design, "Fullscreen и дисплеи"): every fullscreen
+  // space window keeps a macOS Space of its own, and nothing is hidden in
+  // one, so each transition runs on the window in front.
+  if (IsFullscreen(to)) {
+    to->GetWindow()->Activate();
+    if (!IsFullscreen(from)) {
+      from->GetWindow()->Hide();
+    }
     return;
   }
   to->GetWindow()->SetBounds(bounds);
   to->GetWindow()->Show();
   to->GetWindow()->Activate();
+  if (IsFullscreen(from)) {
+    // Out of the fullscreen Space to the desktop, then into one of its own.
+    chrome::ToggleFullscreenMode(to);
+    return;
+  }
   from->GetWindow()->Hide();
-  target->GetPrefs()->SetTime(kSpaceLastActivePref, base::Time::Now());
 }
 
 BrowserWindowInterface* SpaceController::EnsureWindow(Profile* profile,

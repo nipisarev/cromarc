@@ -126,10 +126,15 @@ NSEvent* HandleScroll(NSEvent* event) {
       }
       return event;
     }
-    // Only gestures that begin over the sidebar can switch spaces.
+    // Only gestures that begin over the sidebar can switch spaces, and not in
+    // native fullscreen: there the switch is macOS's Space animation, which a
+    // swipe cannot drive.
     if (event.phase == NSEventPhaseBegan) {
-      swipe.browser_id = sidebar ? sidebar->browser()->GetSessionID()
-                                 : SessionID::InvalidValue();
+      const bool fullscreen =
+          (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
+      swipe.browser_id = sidebar && !fullscreen
+                             ? sidebar->browser()->GetSessionID()
+                             : SessionID::InvalidValue();
     }
   }
   BrowserWindowInterface* browser =
