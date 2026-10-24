@@ -86,6 +86,7 @@ export class SidebarAppElement extends CrLitElement {
       menu_: {type: Object},
       renaming_: {type: String},
       drop_: {type: Object},
+      dropZone_: {type: String},
       strings: {type: Object},
       minutesLeft_: {type: Object},
       cleared_: {type: Array},
@@ -114,6 +115,8 @@ export class SidebarAppElement extends CrLitElement {
   // Id of the item whose title is being edited.
   protected accessor renaming_: string = '';
   protected accessor drop_: DropIndicator|null = null;
+  // The space header or the end of the tree under a drag.
+  protected accessor dropZone_: ''|'header'|'end' = '';
   // Today tabs close to the archive: tab id → minutes left.
   protected accessor minutesLeft_: Map<string, number> = new Map();
   // URLs closed by the last Clear while its undo toast shows.
@@ -971,6 +974,36 @@ export class SidebarAppElement extends CrLitElement {
   protected onDragend_() {
     this.drag_ = null;
     this.drop_ = null;
+    this.dropZone_ = '';
+  }
+
+  protected onZoneDragleave_(e: DragEvent) {
+    if (!(e.currentTarget as Node).contains(e.relatedTarget as Node | null)) {
+      this.dropZone_ = '';
+    }
+  }
+
+  // Dropped on the space header: pinned, or moved, to the top of the tree.
+  protected onHeaderDragover_(e: DragEvent) {
+    if (this.drag_) {
+      e.preventDefault();
+      this.dropZone_ = 'header';
+    }
+  }
+
+  protected onHeaderDrop_(e: DragEvent) {
+    e.preventDefault();
+    const drag = this.drag_;
+    this.onDragend_();
+    if (!drag) {
+      return;
+    }
+    if (drag.kind === 'tab') {
+      this.proxy_.handler.pinTab(drag.id, '', 0, false);
+    } else {
+      this.proxy_.handler.setEssential(drag.id, false);
+      this.proxy_.handler.moveItem(drag.id, '', 0);
+    }
   }
 
   protected onRowDragover_(e: DragEvent) {
@@ -1028,6 +1061,7 @@ export class SidebarAppElement extends CrLitElement {
   protected onTreeEndDragover_(e: DragEvent) {
     if (this.drag_) {
       e.preventDefault();
+      this.dropZone_ = 'end';
     }
   }
 

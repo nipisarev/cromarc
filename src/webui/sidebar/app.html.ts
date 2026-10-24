@@ -31,7 +31,10 @@ export function getHtml(this: SidebarAppElement) {
             </span>
           </div>`)}
       </div>
-      <div class="space-header">
+      <div class="space-header ${this.dropZone_ === 'header' ? 'over' : ''}"
+          @dragover="${this.onHeaderDragover_}"
+          @dragleave="${this.onZoneDragleave_}"
+          @drop="${this.onHeaderDrop_}">
         <span class="space-icon">
           <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}"
               ?hidden="${!this.iconMask_(space.icon)}"></span>
@@ -85,10 +88,14 @@ export function getHtml(this: SidebarAppElement) {
                   data-tab="${row.tab.id}" @click="${this.onCloseTabClick_}">×
               </button>` : nothing}
           </div>`)}
-        <div id="tree-end" @dragover="${this.onTreeEndDragover_}"
+        <div id="tree-end" class="${this.dropZone_ === 'end' ? 'over' : ''}"
+            @dragover="${this.onTreeEndDragover_}"
+            @dragleave="${this.onZoneDragleave_}"
             @drop="${this.onTreeEndDrop_}"></div>
       </div>
-      <div class="separator"></div>
+      <div class="separator" @dragover="${this.onTreeEndDragover_}"
+          @dragleave="${this.onZoneDragleave_}"
+          @drop="${this.onTreeEndDrop_}"></div>
       ${this.view_.attention.length ? html`
         <div class="section-header attention">⚠ ${this.strings.needsAttention}</div>
         ${this.view_.attention.map(tab => html`
@@ -108,7 +115,9 @@ export function getHtml(this: SidebarAppElement) {
             <button class="text" @click="${this.onKeepClick_}">${
                 this.strings.keep}</button>
           </div>`)}` : nothing}
-      <div class="section-header">
+      <div class="section-header" @dragover="${this.onTreeEndDragover_}"
+          @dragleave="${this.onZoneDragleave_}"
+          @drop="${this.onTreeEndDrop_}">
         <span>${this.strings.today}</span>
         <button class="text" ?hidden="${this.view_.today.length === 0}"
             @click="${this.onClearClick_}">${this.strings.clear}</button>

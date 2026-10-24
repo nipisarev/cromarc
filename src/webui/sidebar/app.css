@@ -247,6 +247,18 @@ button:hover {
   height: 10px;
 }
 
+/* Where a drop on the separator or the Today header lands: after the last
+   pinned item (zen:drag-and-drop/ZenDragAndDrop.js, the separator). */
+#tree-end.over {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+/* zen:tabs/zen-tabs/vertical-tabs.css #zen-dragover-background. */
+.space-header.over {
+  background: var(--accent);
+  border-radius: var(--row-radius);
+}
+
 .separator {
   border-top: 1px solid var(--hover);
   flex-shrink: 0;
