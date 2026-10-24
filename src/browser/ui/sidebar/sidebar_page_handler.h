@@ -65,6 +65,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   void RenameItem(const std::string& id, const std::string& title) override;
   void RemoveItem(const std::string& id) override;
   void ResetItem(const std::string& id) override;
+  void SeparateItem(const std::string& id) override;
   void SetHomeToCurrent(const std::string& id) override;
   void SetCollapsed(const std::string& id, bool collapsed) override;
   void SetEssential(const std::string& id, bool essential) override;

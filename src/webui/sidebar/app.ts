@@ -87,6 +87,7 @@ export class SidebarAppElement extends CrLitElement {
       renaming_: {type: String},
       drop_: {type: Object},
       dropZone_: {type: String},
+      resetAccel_: {type: Boolean},
       strings: {type: Object},
       minutesLeft_: {type: Object},
       cleared_: {type: Array},
@@ -117,6 +118,8 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor drop_: DropIndicator|null = null;
   // The space header or the end of the tree under a drag.
   protected accessor dropZone_: ''|'header'|'end' = '';
+  // Cmd is held over a reset button: its sublabel offers to separate.
+  protected accessor resetAccel_: boolean = false;
   // Today tabs close to the archive: tab id → minutes left.
   protected accessor minutesLeft_: Map<string, number> = new Map();
   // URLs closed by the last Clear while its undo toast shows.
@@ -773,12 +776,24 @@ export class SidebarAppElement extends CrLitElement {
     }
   }
 
-  protected onResetClick_(e: Event) {
+  // Zen's reset button (ZenPinnedTabManager _onTabResetPinButton): resets and
+  // selects the tab; with Cmd the page first moves to an ordinary tab.
+  protected onResetClick_(e: MouseEvent) {
     e.stopPropagation();
     const id = this.idOf_(e);
-    if (id) {
-      this.proxy_.handler.resetItem(id);
+    if (!id) {
+      return;
     }
+    if (e.metaKey) {
+      this.proxy_.handler.separateItem(id);
+    } else {
+      this.proxy_.handler.resetItem(id);
+      this.proxy_.handler.openItem(id);
+    }
+  }
+
+  protected onResetMousemove_(e: MouseEvent) {
+    this.resetAccel_ = e.metaKey;
   }
 
   protected onNewTabClick_() {
@@ -829,8 +844,16 @@ export class SidebarAppElement extends CrLitElement {
           {label: strings.remove, action: () => h.removeItem(row.id)});
     } else {
       if (row.state === 'away') {
-        items.push({label: strings.reset, action: () => h.resetItem(row.id)},
-                   {label: strings.makeHome, action: () => h.setHomeToCurrent(row.id)});
+        items.push(
+            {
+              label: row.essential ? strings.resetEssential :
+                                     strings.resetPinned,
+              action: () => h.resetItem(row.id),
+            },
+            {
+              label: strings.replaceWithCurrent,
+              action: () => h.setHomeToCurrent(row.id),
+            });
       }
       items.push(
           {

@@ -144,14 +144,92 @@
   padding: 2px 4px;
 }
 
-/* Pinned item states: asleep is dimmed, away shows ↩ (design, section 1). */
+/* Pinned item states: asleep is dimmed (design, section 1). */
 .pinned[state='asleep'] .favicon,
 .pinned[state='asleep'] .title {
   opacity: .5;
 }
 
-.pinned[state='away'] .title {
-  font-style: italic;
+.pinned .label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Away from the home URL, as Zen's [zen-pinned-changed] tab
+   (zen:tabs/zen-tabs/vertical-tabs.css .tab-reset-pin-button): the icon
+   becomes a reset button with a slash after it; hovering it shows the pinned
+   page's icon and "Back to pinned url" under the title. */
+.reset-pin {
+  align-self: stretch;
+  border-radius: var(--row-radius) 0 0 var(--row-radius);
+  height: auto;
+  margin-inline-start: -6px;
+  padding-inline: 6px 8px;
+  position: relative;
+  width: auto;
+}
+
+.reset-pin::after {
+  /* Zen: light-dark(rgba(66, 61, 61, .3), rgba(255, 255, 255, .3)). */
+  background: color-mix(in srgb, var(--text) 30%, transparent);
+  border-radius: 2px;
+  content: '';
+  height: 16px;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: rotate(15deg) translateY(-50%);
+  width: 2.5px;
+}
+
+.reset-pin .favicon {
+  border-radius: 4px;
+  opacity: 0;
+}
+
+.reset-pin:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.reset-pin:hover:active {
+  background: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.reset-pin:hover::after {
+  opacity: 0;
+}
+
+.reset-pin:hover .favicon {
+  opacity: 1;
+}
+
+.pinned[state='away'] .favicon.current {
+  left: calc(8px + var(--depth, 0) * var(--indent));
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.reset-pin:hover ~ .favicon.current {
+  opacity: 0;
+}
+
+.sublabel {
+  font-size: x-small;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity .1s ease-in-out, max-height .1s ease-in-out;
+}
+
+.reset-pin:hover ~ .label .sublabel {
+  line-height: 1.2;
+  max-height: 10px;
+  opacity: .6;
 }
 
 button {

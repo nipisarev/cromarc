@@ -126,8 +126,11 @@ interface PageHandler {
   // A folder goes with its content; a pinned item's live tab stays open as an
   // ordinary (Today) tab.
   RemoveItem(string id);
-  // The live tab goes back to the home URL.
+  // The live tab goes back to the home URL, with only it in its history.
   ResetItem(string id);
+  // Zen's Cmd+click on the reset button: the live tab's page moves to an
+  // ordinary tab and the pinned tab resets.
+  SeparateItem(string id);
   // The live tab's current URL becomes the home URL.
   SetHomeToCurrent(string id);
   SetCollapsed(string id, bool collapsed);

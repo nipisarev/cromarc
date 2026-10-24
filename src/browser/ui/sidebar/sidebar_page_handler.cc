@@ -10,6 +10,7 @@
 #include "base/functional/bind.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
+#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
@@ -24,7 +25,6 @@
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
-#include "content/public/common/referrer.h"
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/routing/space_routing.h"
@@ -234,9 +234,33 @@ void SidebarPageHandler::ResetItem(const std::string& id) {
   if (!node || !node->is_url() || !tab) {
     return;
   }
-  tab->GetContents()->GetController().LoadURL(
-      node->url(), content::Referrer(), ui::PAGE_TRANSITION_AUTO_BOOKMARK,
-      std::string());
+  // As Zen's reset (ZenPinnedTabManager #resetTabToStoredState): only the
+  // pinned entry stays in the tab's history.
+  content::NavigationController::LoadURLParams params(node->url());
+  params.transition_type = ui::PAGE_TRANSITION_AUTO_BOOKMARK;
+  params.should_clear_history_list = true;
+  tab->GetContents()->GetController().LoadURLWithParams(params);
+}
+
+void SidebarPageHandler::SeparateItem(const std::string& id) {
+  tabs::TabInterface* tab = tree_service_->GetLiveTab(id);
+  if (!tab) {
+    return;
+  }
+  BrowserWindowInterface* browser = tab->GetBrowserWindowInterface();
+  TabStripModel* model = browser->GetTabStripModel();
+  // The copy keeps the page and its history as an ordinary tab, loaded at
+  // once as Zen's duplicateTab(tab, true).
+  if (content::WebContents* copy =
+          chrome::DuplicateTabAt(browser, model->GetIndexOfTab(tab))) {
+    if (tabs::TabInterface* copy_tab =
+            tabs::TabInterface::GetFromContents(copy)) {
+      SetPinned(copy_tab, false);
+    }
+    copy->GetController().LoadIfNecessary();
+  }
+  ResetItem(id);
+  model->ActivateTabAt(model->GetIndexOfTab(tab));
 }
 
 void SidebarPageHandler::SetHomeToCurrent(const std::string& id) {

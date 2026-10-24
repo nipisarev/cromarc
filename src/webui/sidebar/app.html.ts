@@ -71,18 +71,29 @@ export function getHtml(this: SidebarAppElement) {
               @contextmenu="${this.onItemContextmenu_}"
               @dragstart="${this.onDragstart_}" @dragend="${this.onDragend_}"
               @dragover="${this.onRowDragover_}" @drop="${this.onRowDrop_}">
-            <span class="favicon"
+            ${row.state === 'away' ? html`
+              <button class="reset-pin" title="${this.strings.resetPinButton}"
+                  @click="${this.onResetClick_}"
+                  @mousemove="${this.onResetMousemove_}">
+                <span class="favicon"
+                    style="background-image: ${this.faviconFor_(row.homeUrl, null)}">
+                </span>
+              </button>` : nothing}
+            <span class="favicon current"
                 style="background-image: ${this.faviconFor_(row.homeUrl, row.tab)}">
             </span>
             ${this.renaming_ === row.id ? html`
               <input class="rename" .value="${row.title}"
                   @keydown="${this.onRenameKeydown_}"
                   @blur="${this.onRenameBlur_}" @click="${this.onRenameClick_}">` :
-              html`<span class="title" @dblclick="${this.onTitleDblclick_}">${
-                  row.title}</span>`}
-            ${row.state === 'away' ? html`
-              <button class="reset" title="${this.strings.backToHome}"
-                  @click="${this.onResetClick_}">↩</button>` : nothing}
+              html`<span class="label">
+                <span class="title" @dblclick="${this.onTitleDblclick_}">${
+                    row.title}</span>
+                ${row.state === 'away' ? html`<span class="sublabel">${
+                    this.resetAccel_ ? this.strings.separateFromPinned :
+                                       this.strings.backToPinned}</span>` :
+                    nothing}
+              </span>`}
             ${row.tab ? html`
               <button class="close" title="${this.strings.close}"
                   data-tab="${row.tab.id}" @click="${this.onCloseTabClick_}">×
