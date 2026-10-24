@@ -293,22 +293,76 @@ void SpaceController::SwitchToLoaded(SessionID from_id, Profile* target) {
     return;
   }
   const gfx::Rect bounds = from->GetWindow()->GetBounds();
-  BrowserWindowInterface* to = GetWindowFor(target);
+  BrowserWindowInterface* to = EnsureWindow(target, bounds);
   if (!to) {
-    BrowserWindowCreateParams params(*target, /*from_user_gesture=*/true);
-    params.initial_bounds = bounds;
-    to = CreateBrowserWindow(std::move(params));
-    if (!to) {
-      return;
-    }
-    to->OpenGURL(GURL(chrome::kChromeUINewTabURL),
-                 WindowOpenDisposition::NEW_FOREGROUND_TAB);
+    return;
   }
   to->GetWindow()->SetBounds(bounds);
   to->GetWindow()->Show();
   to->GetWindow()->Activate();
   from->GetWindow()->Hide();
   target->GetPrefs()->SetTime(kSpaceLastActivePref, base::Time::Now());
+}
+
+BrowserWindowInterface* SpaceController::EnsureWindow(Profile* profile,
+                                                      const gfx::Rect& bounds) {
+  if (BrowserWindowInterface* window = GetWindowFor(profile)) {
+    return window;
+  }
+  BrowserWindowCreateParams params(*profile, /*from_user_gesture=*/true);
+  params.initial_bounds = bounds;
+  BrowserWindowInterface* window = CreateBrowserWindow(std::move(params));
+  if (window) {
+    window->OpenGURL(GURL(chrome::kChromeUINewTabURL),
+                     WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  }
+  return window;
+}
+
+void SpaceController::ShowSpace(
+    const std::string& id,
+    base::OnceCallback<void(BrowserWindowInterface*)> then) {
+  auto show = base::BindOnce(&SpaceController::ShowLoadedSpace,
+                             weak_factory_.GetWeakPtr(), std::move(then));
+  if (Profile* target = GetLoadedProfile(id)) {
+    std::move(show).Run(target);
+    return;
+  }
+  g_browser_process->profile_manager()->LoadProfileByPath(
+      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id),
+      /*incognito=*/false, std::move(show));
+}
+
+void SpaceController::ShowLoadedSpace(
+    base::OnceCallback<void(BrowserWindowInterface*)> then,
+    Profile* target) {
+  if (!target) {
+    std::move(then).Run(nullptr);
+    return;
+  }
+  BrowserWindowInterface* visible = GetVisibleSpaceWindow();
+  if (visible && visible->GetProfile() != target) {
+    SwitchToLoaded(visible->GetSessionID(), target);
+  } else if (BrowserWindowInterface* window =
+                 visible ? visible : EnsureWindow(target, gfx::Rect())) {
+    window->GetWindow()->Show();
+    window->GetWindow()->Activate();
+    target->GetPrefs()->SetTime(kSpaceLastActivePref, base::Time::Now());
+  }
+  std::move(then).Run(GetWindowFor(target));
+}
+
+BrowserWindowInterface* SpaceController::GetVisibleSpaceWindow() {
+  BrowserWindowInterface* found = nullptr;
+  ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
+      [&](BrowserWindowInterface* browser) {
+        if (sidebars_.contains(browser) && browser->GetWindow()->IsVisible()) {
+          found = browser;
+          return false;
+        }
+        return true;
+      });
+  return found;
 }
 
 void SpaceController::OnSwipe(BrowserWindowInterface* browser,

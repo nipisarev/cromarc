@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nikolay Pisarev <nipisarev@gmail.com>
 Date: Sat, 24 Oct 2026 00:14:16 +0200
-Subject: [PATCH 1/7] Cromarc H0: build //cromarc into Chrome
+Subject: [PATCH] Cromarc H0: build //cromarc into Chrome
 
 //chrome/browser/ui links the //cromarc group (new Cromarc modules are added
 there, not here), the WebUI configs see //cromarc:headers, //cromarc WebUIs

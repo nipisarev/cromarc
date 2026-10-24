@@ -1,13 +1,9 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nikolay Pisarev <nipisarev@gmail.com>
 Date: Sat, 24 Oct 2026 01:56:33 +0200
-Subject: [PATCH 7/7] Cromarc H6: Cmd+T, Cmd+L and Cmd+W go through Cromarc
+Subject: [PATCH] Cromarc H6: Cmd+T, Cmd+L, Cmd+W and Cmd+O go through Cromarc
  first
 
-IDC_NEW_TAB and IDC_FOCUS_LOCATION open the Cromarc command bar, and
-IDC_CLOSE_TAB on the last tab of a space window keeps the window with a new
-tab, as in Arc. Windows Cromarc does not handle (apps, popups, off the
-record) keep Chrome's behaviour.
 
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 index 04e9137cf57dd..fc91df078912c 100644
@@ -22,7 +18,7 @@ index 04e9137cf57dd..fc91df078912c 100644
        ":browser_actions",
        ":browser_commands",
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 921461b9e9bd0..b46acca4bea62 100644
+index 921461b9e9bd0..757a6c8b2931e 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
 @@ -200,6 +200,8 @@
@@ -64,3 +60,13 @@ index 921461b9e9bd0..b46acca4bea62 100644
        if (!window()->IsLocationBarVisible()) {
          break;
        }
+@@ -1134,6 +1145,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
+ 
+     // Show various bits of UI
+     case IDC_OPEN_FILE:
++      if (cromarc::OpenLittleInSpace(browser_)) {  // Cromarc
++        break;
++      }
+       BrowserSelectFileDialogController::From(browser_)->OpenFile();
+       break;
+     case IDC_CREATE_SHORTCUT:

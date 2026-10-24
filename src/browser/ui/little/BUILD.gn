@@ -1,0 +1,31 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+assert(!is_android)
+
+source_set("little") {
+  sources = [
+    "little_bar.cc",
+    "little_bar.h",
+    "little_window.cc",
+    "little_window.h",
+  ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    "//base",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui/browser_window",
+    "//components/sessions",
+    "//components/tabs:public",
+    "//components/vector_icons",
+    "//content/public/browser",
+    "//cromarc/browser/archive:service",
+    "//cromarc/browser/spaces",
+    "//ui/base",
+    "//ui/display",
+    "//ui/menus",
+    "//ui/views",
+    "//url",
+  ]
+}

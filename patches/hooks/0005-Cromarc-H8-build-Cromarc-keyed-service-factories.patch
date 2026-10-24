@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nikolay Pisarev <nipisarev@gmail.com>
 Date: Sat, 24 Oct 2026 01:16:25 +0200
-Subject: [PATCH 5/7] Cromarc H8: build Cromarc keyed service factories
+Subject: [PATCH] Cromarc H8: build Cromarc keyed service factories
 
 Chromium wants every keyed service factory built before the first profile;
 EnsureBrowserContextKeyedServiceFactoriesBuilt() lets //cromarc build its

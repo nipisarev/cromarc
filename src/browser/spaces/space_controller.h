@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/callback_list.h"
+#include "base/functional/callback.h"
 #include "base/files/file_path.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
@@ -20,6 +21,7 @@
 #include "components/sessions/core/session_id.h"
 #include "cromarc/browser/spaces/swipe_tracker.h"
 #include "third_party/skia/include/core/SkColor.h"
+#include "ui/gfx/geometry/rect.h"
 
 class BrowserWindowInterface;
 class Profile;
@@ -83,6 +85,13 @@ class SpaceController : public ProfileAttributesStorageObserver {
   // `from`'s frame and comes forward; `from` is ordered out.
   void SwitchTo(BrowserWindowInterface* from, const std::string& id);
 
+  // Brings space `id` forward as a switch from the visible space window does
+  // (loading its profile and creating its window if needed), then runs
+  // `then` with that window, or null when the profile failed to load. For
+  // Little windows' "Open in".
+  void ShowSpace(const std::string& id,
+                 base::OnceCallback<void(BrowserWindowInterface*)> then);
+
   void OnSwipe(BrowserWindowInterface* browser, const SwipeTracker::Event& event);
 
   // A space window got its sidebar. Right after startup, session restore can
@@ -112,6 +121,13 @@ class SpaceController : public ProfileAttributesStorageObserver {
   // spaces too: they are one window to the user.
   void OnSpaceWindowClosed(BrowserWindowInterface* browser);
   void SwitchToLoaded(SessionID from_id, Profile* target);
+  void ShowLoadedSpace(base::OnceCallback<void(BrowserWindowInterface*)> then,
+                       Profile* target);
+  // The space window on screen: the most recently active one with a sidebar.
+  BrowserWindowInterface* GetVisibleSpaceWindow();
+  // `profile`'s space window, created with `bounds` when it has none.
+  BrowserWindowInterface* EnsureWindow(Profile* profile,
+                                       const gfx::Rect& bounds);
 
   std::map<BrowserWindowInterface*, raw_ptr<Sidebar>> sidebars_;
   std::map<BrowserWindowInterface*, base::CallbackListSubscription>

@@ -35,5 +35,5 @@ $foreign
 out="$CROMARC_ROOT/patches/hooks"
 mkdir -p "$out"
 rm -f "$out"/*.patch
-git format-patch -q --no-signature --zero-commit --no-stat -o "$out" "$pin..HEAD"
+git format-patch -q --no-numbered --no-signature --zero-commit --no-stat -o "$out" "$pin..HEAD"
 log "patches/hooks: $(find "$out" -name '*.patch' | wc -l | tr -d ' ') patch(es)"
