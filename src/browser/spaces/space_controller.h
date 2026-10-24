@@ -18,6 +18,7 @@
 #include "base/scoped_observation.h"
 #include "base/time/time.h"
 #include "chrome/browser/profiles/profile_attributes_storage_observer.h"
+#include "chrome/browser/profiles/profile_manager_observer.h"
 #include "components/sessions/core/session_id.h"
 #include "cromarc/browser/spaces/swipe_tracker.h"
 #include "third_party/skia/include/core/SkColor.h"
@@ -26,6 +27,7 @@
 class BrowserWindowInterface;
 class Profile;
 class ProfileAttributesStorage;
+class ProfileManager;
 
 namespace cromarc {
 
@@ -33,7 +35,8 @@ namespace cromarc {
 // them, and each space has one main window. Switching keeps one window on
 // screen: at the end of the sidebar's animation the target space's window
 // takes the frame of the current one, which is ordered out (component 4).
-class SpaceController : public ProfileAttributesStorageObserver {
+class SpaceController : public ProfileAttributesStorageObserver,
+                        public ProfileManagerObserver {
  public:
   struct Space {
     // Profile directory base name ("Default", "Profile 1").
@@ -137,6 +140,11 @@ class SpaceController : public ProfileAttributesStorageObserver {
   void OnProfileNameChanged(const base::FilePath& profile_path,
                             const std::u16string& old_profile_name) override;
 
+  // ProfileManagerObserver:
+  using ProfileManagerObserver::OnProfileAdded;
+  // The storage goes with the profile manager; this singleton outlives both.
+  void OnProfileManagerDestroying() override;
+
  private:
   friend base::NoDestructor<SpaceController>;
 
@@ -174,6 +182,8 @@ class SpaceController : public ProfileAttributesStorageObserver {
   base::ScopedObservation<ProfileAttributesStorage,
                           ProfileAttributesStorageObserver>
       storage_observation_{this};
+  base::ScopedObservation<ProfileManager, ProfileManagerObserver>
+      profile_manager_observation_{this};
   base::WeakPtrFactory<SpaceController> weak_factory_{this};
 };
 

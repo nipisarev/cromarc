@@ -125,9 +125,15 @@ SpaceController* SpaceController::Get() {
 
 SpaceController::SpaceController() {
   storage_observation_.Observe(&Storage());
+  profile_manager_observation_.Observe(g_browser_process->profile_manager());
 }
 
 SpaceController::~SpaceController() = default;
+
+void SpaceController::OnProfileManagerDestroying() {
+  storage_observation_.Reset();
+  profile_manager_observation_.Reset();
+}
 
 // static
 std::string SpaceController::IdOf(Profile* profile) {
