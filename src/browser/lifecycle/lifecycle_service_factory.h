@@ -31,6 +31,8 @@ class LifecycleServiceFactory : public ProfileKeyedServiceFactory {
   ~LifecycleServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
+  void RegisterProfilePrefs(
+      user_prefs::PrefRegistrySyncable* registry) override;
   std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
       content::BrowserContext* context) const override;
   // The engine runs from profile start, sidebar open or not.

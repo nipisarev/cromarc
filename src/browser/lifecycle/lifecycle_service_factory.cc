@@ -4,7 +4,10 @@
 
 #include "cromarc/browser/lifecycle/lifecycle_service_factory.h"
 
+#include "chrome/browser/prefs/session_startup_pref.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/common/pref_names.h"
+#include "components/pref_registry/pref_registry_syncable.h"
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/archive/archive_service_factory.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
@@ -34,6 +37,16 @@ LifecycleServiceFactory::LifecycleServiceFactory()
 }
 
 LifecycleServiceFactory::~LifecycleServiceFactory() = default;
+
+// Today tabs live 12 h, restarts included, as in Arc: the browser continues
+// where it left off unless the user picks otherwise in Settings. Chromium's
+// own prefs are registered before keyed services' (pref_service_builder_utils).
+void LifecycleServiceFactory::RegisterProfilePrefs(
+    user_prefs::PrefRegistrySyncable* registry) {
+  registry->SetDefaultPrefValue(
+      prefs::kRestoreOnStartup,
+      base::Value(SessionStartupPref::kPrefValueLast));
+}
 
 std::unique_ptr<KeyedService>
 LifecycleServiceFactory::BuildServiceInstanceForBrowserContext(
