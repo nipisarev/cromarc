@@ -14,10 +14,7 @@
 
 namespace cromarc {
 
-namespace {
-
-// URLs compare without the fragment and a trailing slash, as the sidebar does.
-std::string Key(const GURL& url) {
+std::string UrlKey(const GURL& url) {
   GURL::Replacements replacements;
   replacements.ClearRef();
   std::string spec = url.ReplaceComponents(replacements).spec();
@@ -27,13 +24,15 @@ std::string Key(const GURL& url) {
   return spec;
 }
 
+namespace {
+
 void CollectUrls(const bookmarks::BookmarkNode* folder,
                  std::set<std::string>& urls) {
   for (const auto& child : folder->children()) {
     if (child->is_folder()) {
       CollectUrls(child.get(), urls);
     } else {
-      urls.insert(Key(child->url()));
+      urls.insert(UrlKey(child->url()));
     }
   }
 }
@@ -107,7 +106,7 @@ class Importer {
 
   const bookmarks::BookmarkNode* AddPinned(const ArcNode& node,
                                            const std::string& parent) {
-    if (!pinned_urls_.insert(Key(node.url)).second) {
+    if (!pinned_urls_.insert(UrlKey(node.url)).second) {
       ++counts_.skipped;
       return nullptr;
     }

@@ -12,7 +12,8 @@ import {getHtml} from './app.html.js';
 import {defaultTargets} from './choices.js';
 
 // Arc's sidebar into Cromarc spaces (design, UI section 12, step 3): each
-// Arc space goes to an existing space, a new one, or nowhere.
+// Arc space goes to an existing space, a new one, or nowhere. Arc's own data
+// comes first; its export file is for when that is gone.
 export class ArcImportAppElement extends CrLitElement {
   static get is() {
     return 'cromarc-arc-import-app';
@@ -30,6 +31,8 @@ export class ArcImportAppElement extends CrLitElement {
     return {
       loading_: {type: Boolean},
       found_: {type: Boolean},
+      fromExport_: {type: Boolean},
+      exportFailed_: {type: Boolean},
       spaces_: {type: Array},
       targets_: {type: Array},
       choices_: {type: Object},
@@ -41,6 +44,9 @@ export class ArcImportAppElement extends CrLitElement {
 
   protected accessor loading_: boolean = true;
   protected accessor found_: boolean = false;
+  // The spaces come from Arc's export file, not from Arc's data.
+  protected accessor fromExport_: boolean = false;
+  protected accessor exportFailed_: boolean = false;
   protected accessor spaces_: ArcSpace[] = [];
   protected accessor targets_: Target[] = [];
   protected accessor choices_: Record<string, string> = {};
@@ -55,16 +61,35 @@ export class ArcImportAppElement extends CrLitElement {
     PageHandlerFactory.getRemote().createPageHandler(
         this.handler_.$.bindNewPipeAndPassReceiver());
     const {found, spaces, targets} = await this.handler_.getArcSidebar();
+    this.show_(found, spaces, targets);
+    this.loading_ = false;
+  }
+
+  private show_(found: boolean, spaces: ArcSpace[], targets: Target[]) {
     this.found_ = found;
     this.spaces_ = spaces;
     this.targets_ = targets;
     this.choices_ = defaultTargets(spaces, targets, NEW_SPACE);
-    this.loading_ = false;
+    this.summary_ = '';
+  }
+
+  protected async onChooseExportClick_() {
+    this.exportFailed_ = false;
+    const {found, spaces, targets} = await this.handler_.chooseExportFile();
+    if (!found) {
+      this.exportFailed_ = true;
+      return;
+    }
+    this.fromExport_ = true;
+    this.show_(found, spaces, targets);
   }
 
   protected countsOf_(space: ArcSpace): string {
-    return `${space.folders} папок · ${space.pinned} pinned · ` +
-        `${space.essentials} essentials`;
+    const counts = [`${space.folders} папок`, `${space.pinned} закреплённых`];
+    if (!this.fromExport_) {
+      counts.push(`${space.essentials} важных`, `${space.today} в Today`);
+    }
+    return counts.join(' · ');
   }
 
   protected iconOf_(space: ArcSpace): string {

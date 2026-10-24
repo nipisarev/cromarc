@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "base/callback_list.h"
+#include "base/files/file_path.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
@@ -18,26 +19,35 @@
 #include "cromarc/browser/ui/arc_import/arc_import.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver.h"
+#include "ui/shell_dialogs/select_file_dialog.h"
 
 class Profile;
+
+namespace content {
+class WebContents;
+}  // namespace content
 
 namespace cromarc {
 
 class TreeService;
 
-// chrome://cromarc-import: reads Arc's sidebar and brings the Arc spaces the
-// user picks into Cromarc spaces, existing or new (design, UI section 12).
-class ArcImportPageHandler : public arc_import::mojom::PageHandler {
+// chrome://cromarc-import: reads Arc's sidebar, or the file Arc's Export Data
+// writes, and brings the Arc spaces the user picks into Cromarc spaces,
+// existing or new (design, UI section 12).
+class ArcImportPageHandler : public arc_import::mojom::PageHandler,
+                             public ui::SelectFileDialog::Listener {
  public:
   ArcImportPageHandler(
       mojo::PendingReceiver<arc_import::mojom::PageHandler> receiver,
-      Profile* profile);
+      Profile* profile,
+      content::WebContents* web_contents);
   ArcImportPageHandler(const ArcImportPageHandler&) = delete;
   ArcImportPageHandler& operator=(const ArcImportPageHandler&) = delete;
   ~ArcImportPageHandler() override;
 
   // arc_import::mojom::PageHandler:
   void GetArcSidebar(GetArcSidebarCallback callback) override;
+  void ChooseExportFile(ChooseExportFileCallback callback) override;
   void Import(std::vector<arc_import::mojom::ChoicePtr> choices,
               ImportCallback callback) override;
 
@@ -55,6 +65,12 @@ class ArcImportPageHandler : public arc_import::mojom::PageHandler {
     base::CallbackListSubscription subscription;
   };
 
+  // ui::SelectFileDialog::Listener:
+  void FileSelected(const ui::SelectedFileInfo& file, int index) override;
+  void FileSelectionCanceled() override;
+
+  void ReadExportFile(const base::FilePath& path);
+  // Keeps `sidebar` for Import() and answers the page with its spaces.
   void OnSidebarRead(GetArcSidebarCallback callback,
                      std::optional<ArcSidebar> sidebar);
   void OnNewSpaceCreated(ArcSpace space,
@@ -72,6 +88,9 @@ class ArcImportPageHandler : public arc_import::mojom::PageHandler {
 
   mojo::Receiver<arc_import::mojom::PageHandler> receiver_;
   raw_ptr<Profile> profile_;
+  raw_ptr<content::WebContents> web_contents_;
+  scoped_refptr<ui::SelectFileDialog> select_file_dialog_;
+  ChooseExportFileCallback export_callback_;
   std::optional<ArcSidebar> sidebar_;
   std::map<int, Wait> waits_;
   int next_wait_id_ = 0;

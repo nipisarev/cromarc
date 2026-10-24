@@ -5,6 +5,7 @@
 #ifndef CROMARC_BROWSER_ARC_IMPORT_ARC_IMPORT_H_
 #define CROMARC_BROWSER_ARC_IMPORT_ARC_IMPORT_H_
 
+#include <string>
 #include <vector>
 
 #include "cromarc/browser/arc_import/arc_sidebar.h"
@@ -17,9 +18,14 @@ struct ImportCounts {
   int folders = 0;
   int pinned = 0;
   int essentials = 0;
-  // Already pinned in the tree (same home URL), left out.
+  // Today tabs opened.
+  int today = 0;
+  // Already pinned in the tree or open (same URL), left out.
   int skipped = 0;
 };
+
+// URLs compare without the fragment and a trailing slash, as the sidebar does.
+std::string UrlKey(const GURL& url);
 
 // Brings Arc spaces chosen for one Cromarc space into its tree: essentials
 // first (up to the limit, the rest as pinned items), then each Arc space's

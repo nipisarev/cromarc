@@ -47,8 +47,11 @@ struct ArcSpace {
   std::optional<SkColor> color;
   // The Arc profile directory the space is bound to; "" for Arc's default.
   std::string arc_profile;
-  // Folders and pinned tabs; Arc's Today tabs are not imported.
+  // Folders and pinned tabs.
   std::vector<ArcNode> pinned;
+  // Today's tabs, the top one first; split views and folders come as their
+  // tabs.
+  std::vector<ArcNode> today;
 };
 
 struct ArcSidebar {
@@ -68,6 +71,19 @@ struct ArcSidebar {
 // component 8; the format as Stedding's importer, patches 0026 and 0080,
 // read it). Null for anything else.
 std::optional<ArcSidebar> ParseArcSidebar(std::string_view json);
+
+// Reads the file Arc's Settings → Advanced → Export Data writes (2026), for
+// when Arc's own data is gone:
+//   # Space
+//   ## Favorites
+//   - https://…
+//   ## Folder
+//   ### Folder inside
+//   - https://…
+// Only URLs survive in it, and Favorites mixes Arc's essentials, the pinned
+// tabs outside folders and Today's tabs: they all come as pinned tabs at the
+// root of the space, untitled. Null for anything else.
+std::optional<ArcSidebar> ParseArcExport(std::string_view markdown);
 
 }  // namespace cromarc
 

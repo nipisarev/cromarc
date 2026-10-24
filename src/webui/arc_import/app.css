@@ -80,6 +80,24 @@ select {
   padding: 6px 20px;
 }
 
+#choose-export {
+  font: inherit;
+  padding: 6px 20px;
+}
+
+#choose-export.link {
+  background: none;
+  border: none;
+  color: var(--color-sys-primary, #0b57d0);
+  cursor: pointer;
+  padding: 0;
+}
+
+#export-failed {
+  color: var(--color-sys-error, #b3261e);
+  margin-inline-start: 8px;
+}
+
 #summary {
   background: var(--color-sys-neutral-container, #f1f3f4);
   border-radius: 8px;

@@ -9,6 +9,10 @@
 
 #include "base/json/json_reader.h"
 #include "base/memory/raw_ptr.h"
+#include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions.h"
+#include "base/strings/string_split.h"
+#include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/values.h"
 
@@ -159,6 +163,17 @@ class Builder {
   std::map<std::string, raw_ptr<const base::DictValue>> items_;
 };
 
+// The tabs of `nodes`, those in folders too, in order.
+void AddTabs(std::vector<ArcNode> nodes, std::vector<ArcNode>& tabs) {
+  for (ArcNode& node : nodes) {
+    if (node.is_folder) {
+      AddTabs(std::move(node.children), tabs);
+    } else {
+      tabs.push_back(std::move(node));
+    }
+  }
+}
+
 }  // namespace
 
 std::optional<ArcSidebar> ParseArcSidebar(std::string_view json) {
@@ -218,6 +233,8 @@ std::optional<ArcSidebar> ParseArcSidebar(std::string_view json) {
         }
         if (next_is_pinned) {
           space.pinned = builder.ChildrenOf(text);
+        } else {
+          AddTabs(builder.ChildrenOf(text), space.today);
         }
         next_is_pinned = false;
       }
@@ -243,6 +260,55 @@ std::optional<ArcSidebar> ParseArcSidebar(std::string_view json) {
       }
       profile.reset();
     }
+  }
+  return result;
+}
+
+std::optional<ArcSidebar> ParseArcExport(std::string_view markdown) {
+  ArcSidebar result;
+  // Where the next tab goes: the space's root, then each folder open at the
+  // headings below it (## is a folder at the root).
+  std::vector<std::vector<ArcNode>*> path;
+  bool has_tabs = false;
+  for (std::string_view line : base::SplitStringPiece(
+           markdown, "\n", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)) {
+    const size_t level = line.find_first_not_of('#');
+    if (level > 0 && level != std::string_view::npos && line[level] == ' ') {
+      const std::string title(
+          base::TrimWhitespaceASCII(line.substr(level), base::TRIM_ALL));
+      if (level == 1) {
+        ArcSpace& space = result.spaces.emplace_back();
+        space.arc_id = base::StrCat(
+            {"export-", base::NumberToString(result.spaces.size())});
+        space.title = title;
+        path = {&space.pinned};
+        continue;
+      }
+      if (path.empty()) {
+        continue;
+      }
+      path.resize(std::min(level - 1, path.size()));
+      if (level == 2 && title == "Favorites") {
+        continue;
+      }
+      ArcNode& folder = path.back()->emplace_back();
+      folder.is_folder = true;
+      folder.title = base::UTF8ToUTF16(title);
+      path.push_back(&folder.children);
+      continue;
+    }
+    if (path.empty() || !line.starts_with("- ")) {
+      continue;
+    }
+    GURL url(base::TrimWhitespaceASCII(line.substr(2), base::TRIM_ALL));
+    if (!url.is_valid()) {
+      continue;
+    }
+    path.back()->emplace_back().url = std::move(url);
+    has_tabs = true;
+  }
+  if (!has_tabs) {
+    return std::nullopt;
   }
   return result;
 }

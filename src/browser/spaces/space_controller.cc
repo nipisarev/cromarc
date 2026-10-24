@@ -254,7 +254,7 @@ void SpaceController::PrepareWarmWindows() {
   ProfileManager* manager = g_browser_process->profile_manager();
   for (const Space& space : GetSpaces()) {
     if (Profile* profile = manager->GetProfileByPath(space.path)) {
-      CreateHiddenWindow(profile);
+      EnsureHiddenWindow(profile);
       continue;
     }
     manager->LoadProfileByPath(
@@ -262,16 +262,16 @@ void SpaceController::PrepareWarmWindows() {
         base::BindOnce(
             [](base::WeakPtr<SpaceController> self, Profile* profile) {
               if (self && profile) {
-                self->CreateHiddenWindow(profile);
+                self->EnsureHiddenWindow(profile);
               }
             },
             weak_factory_.GetWeakPtr()));
   }
 }
 
-void SpaceController::CreateHiddenWindow(Profile* profile) {
-  if (GetWindowFor(profile)) {
-    return;
+BrowserWindowInterface* SpaceController::EnsureHiddenWindow(Profile* profile) {
+  if (BrowserWindowInterface* window = GetWindowFor(profile)) {
+    return window;
   }
   // Same frame as the visible space window, so the swap shows no jump.
   gfx::Rect bounds;
@@ -286,11 +286,12 @@ void SpaceController::CreateHiddenWindow(Profile* profile) {
   params.initial_bounds = bounds;
   BrowserWindowInterface* browser = CreateBrowserWindow(std::move(params));
   if (!browser) {
-    return;
+    return nullptr;
   }
   chrome::AddTabAt(browser, GURL(chrome::kChromeUINewTabURL), -1,
                    /*foreground=*/true, /*group=*/std::nullopt,
                    /*pinned=*/false, NavigateParams::WindowAction::kNoAction);
+  return browser;
 }
 
 void SpaceController::RequestSwitchTo(BrowserWindowInterface* from,

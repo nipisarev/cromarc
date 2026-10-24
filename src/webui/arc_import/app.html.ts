@@ -11,14 +11,30 @@ export function getHtml(this: ArcImportAppElement) {
   return html`<!--_html_template_start_-->
 <main>
   <h1>Перенести из Arc</h1>
-  <p class="hint" ?hidden="${this.loading_ || !this.found_}">
-    Папки, pinned-вкладки и essentials. Вкладки Today не переносятся.
-    Можно запускать снова: уже перенесённое не дублируется.
+  <p class="hint" ?hidden="${this.loading_ || !this.found_ || this.fromExport_}">
+    Папки, закреплённые и важные вкладки, вкладки Today (откроются,
+    не загружаясь). Можно запускать снова: уже перенесённое не дублируется.
+  </p>
+  <p class="hint" ?hidden="${!this.fromExport_}">
+    Из файла экспорта Arc: в нём только ссылки. Favorites закрепятся в корне
+    space, названия вкладок появятся, когда вы их откроете.
   </p>
   <p ?hidden="${!this.loading_}">Читаю сайдбар Arc…</p>
   <p id="missing" ?hidden="${this.loading_ || this.found_}">
-    Не нашёл сайдбар Arc
-    (~/Library/Application Support/Arc/StorableSidebar.json).
+    Не нашёл данные Arc
+    (~/Library/Application Support/Arc/StorableSidebar.json). Если Arc уже
+    удалён, перенесите из его файла экспорта: Arc → Settings → Advanced →
+    Export Data.
+  </p>
+  <p ?hidden="${this.loading_}">
+    <button id="choose-export" class="${this.found_ ? 'link' : ''}"
+        ?disabled="${this.importing_}" @click="${this.onChooseExportClick_}">
+      ${this.found_ ? 'Или из файла экспорта Arc…' :
+                      'Выбрать файл экспорта…'}
+    </button>
+    <span id="export-failed" ?hidden="${!this.exportFailed_}">
+      Файл не выбран или это не экспорт Arc.
+    </span>
   </p>
   <div id="spaces" ?hidden="${!this.found_}">
     ${this.spaces_.map(space => html`

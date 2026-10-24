@@ -33,12 +33,15 @@ source_set("impl") {
     "//base",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/themes",
+    "//chrome/browser/ui/select_file_policy",
     "//components/prefs",
+    "//components/sessions",
     "//content/public/browser",
     "//cromarc/browser/arc_import",
     "//cromarc/browser/spaces",
     "//cromarc/browser/tree:service",
     "//cromarc/webui:resources",
+    "//ui/shell_dialogs",
     "//ui/webui",
   ]
 }

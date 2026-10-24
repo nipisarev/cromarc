@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {buildSidebar, cellAt, dropTarget, essentialSlot, essentialsLayout, isAwayFromHome} from '../sidebar_model.ts';
+import {buildSidebar, cellAt, dropTarget, essentialSlot, essentialsLayout, isAwayFromHome, pageTitleFor} from '../sidebar_model.ts';
 
 function tab(id: string, url: string, extra: Record<string, unknown> = {}) {
   return {
@@ -130,4 +130,22 @@ test('the cell under a point, kept inside the grid', () => {
   assert.equal(cellAt(cells, 10, 500), 2);
   assert.equal(cellAt(cells, 80, 80), -1);
   assert.equal(cellAt([], 0, 0), -1);
+});
+
+test('an untitled pinned item shows its host, then takes the page title', () => {
+  const at = (title: string, url: string) => buildSidebar(
+      [pinned('mail', 'https://www.mail.example/inbox', {title: '', tab: 'm'})],
+      [tab('m', url, {title})]).rows[0] as any;
+  const loading = at('www.mail.example/inbox', 'https://www.mail.example/inbox');
+  assert.equal(loading.title, 'mail.example');
+  assert.equal(loading.untitled, true);
+  assert.equal(pageTitleFor(loading, true), '');
+  const loaded = at('Inbox', 'https://www.mail.example/inbox');
+  assert.equal(pageTitleFor(loaded, true), 'Inbox');
+  assert.equal(pageTitleFor(loaded, false), '');
+  assert.equal(pageTitleFor(at('Elsewhere', 'https://other.example/'), true), '');
+  const titled = buildSidebar([pinned('doc', 'https://doc', {title: 'Doc', tab: 'd'})],
+      [tab('d', 'https://doc', {title: 'Page'})]).rows[0] as any;
+  assert.equal(titled.untitled, false);
+  assert.equal(pageTitleFor(titled, true), '');
 });

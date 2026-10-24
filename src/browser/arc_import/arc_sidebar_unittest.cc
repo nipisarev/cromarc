@@ -138,20 +138,90 @@ TEST(ArcSidebarTest, EssentialsBelongToArcProfiles) {
   EXPECT_EQ(sidebar->essentials["Profile 2"][0].title, u"Slack");
 }
 
-TEST(ArcSidebarTest, TodayTabsAreLeftOut) {
+TEST(ArcSidebarTest, TodayTabsComeApartFromThePinnedOnes) {
   std::optional<ArcSidebar> sidebar = ParseArcSidebar(kSidebar);
   ASSERT_TRUE(sidebar);
-  for (const ArcSpace& space : sidebar->spaces) {
-    for (const ArcNode& node : space.pinned) {
-      EXPECT_NE(node.title, u"Today");
-    }
+  ASSERT_EQ(sidebar->spaces[0].today.size(), 1u);
+  EXPECT_EQ(sidebar->spaces[0].today[0].title, u"Today");
+  EXPECT_EQ(sidebar->spaces[0].today[0].url, GURL("https://today.example"));
+  for (const ArcNode& node : sidebar->spaces[0].pinned) {
+    EXPECT_NE(node.title, u"Today");
   }
+  EXPECT_TRUE(sidebar->spaces[1].today.empty());
 }
 
 TEST(ArcSidebarTest, NotArcJsonIsRefused) {
   EXPECT_FALSE(ParseArcSidebar("{}"));
   EXPECT_FALSE(ParseArcSidebar("not json"));
   EXPECT_FALSE(ParseArcSidebar(R"({"sidebar": {"containers": []}})"));
+}
+
+// The shape of Arc's "Arc Data Export.md" (2026).
+constexpr char kExport[] = R"md(# Personal
+
+## Favorites
+- https://mail.example/inbox
+- https://calendar.example/
+
+## 🎧 Music
+- https://music.example/
+
+# Work
+
+## Favorites
+- https://slack.example/
+
+## Qase app
+### Stage
+- https://stage.example/
+### Production
+- https://app.example/
+## Git
+- https://github.com/t/app/pulls
+- not a url
+)md";
+
+TEST(ArcExportTest, SpacesAndFoldersFollowTheHeadings) {
+  std::optional<ArcSidebar> sidebar = ParseArcExport(kExport);
+  ASSERT_TRUE(sidebar);
+  ASSERT_EQ(sidebar->spaces.size(), 2u);
+  EXPECT_EQ(sidebar->spaces[0].title, "Personal");
+  EXPECT_EQ(sidebar->spaces[1].title, "Work");
+  EXPECT_NE(sidebar->spaces[0].arc_id, sidebar->spaces[1].arc_id);
+  const std::vector<ArcNode>& work = sidebar->spaces[1].pinned;
+  ASSERT_EQ(work.size(), 3u);
+  EXPECT_TRUE(work[1].is_folder);
+  EXPECT_EQ(work[1].title, u"Qase app");
+  ASSERT_EQ(work[1].children.size(), 2u);
+  EXPECT_EQ(work[1].children[0].title, u"Stage");
+  ASSERT_EQ(work[1].children[0].children.size(), 1u);
+  EXPECT_EQ(work[1].children[0].children[0].url, GURL("https://stage.example/"));
+  EXPECT_EQ(work[1].children[1].title, u"Production");
+  // A ## after ### is back at the root.
+  EXPECT_TRUE(work[2].is_folder);
+  EXPECT_EQ(work[2].title, u"Git");
+  ASSERT_EQ(work[2].children.size(), 1u);
+}
+
+TEST(ArcExportTest, FavoritesArePinnedAtTheRootUntitled) {
+  std::optional<ArcSidebar> sidebar = ParseArcExport(kExport);
+  ASSERT_TRUE(sidebar);
+  const std::vector<ArcNode>& personal = sidebar->spaces[0].pinned;
+  ASSERT_EQ(personal.size(), 3u);
+  EXPECT_FALSE(personal[0].is_folder);
+  EXPECT_EQ(personal[0].url, GURL("https://mail.example/inbox"));
+  EXPECT_TRUE(personal[0].title.empty());
+  EXPECT_EQ(personal[1].url, GURL("https://calendar.example/"));
+  EXPECT_TRUE(personal[2].is_folder);
+  EXPECT_EQ(personal[2].title, u"🎧 Music");
+  EXPECT_TRUE(sidebar->essentials.empty());
+  EXPECT_TRUE(sidebar->spaces[0].today.empty());
+}
+
+TEST(ArcExportTest, NotAnArcExportIsRefused) {
+  EXPECT_FALSE(ParseArcExport(""));
+  EXPECT_FALSE(ParseArcExport("# Notes\n\nSome text\n"));
+  EXPECT_FALSE(ParseArcExport("- https://orphan.example/\n"));
 }
 
 }  // namespace

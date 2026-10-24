@@ -40,7 +40,8 @@ void ArcImportUI::BindInterface(
 void ArcImportUI::CreatePageHandler(
     mojo::PendingReceiver<arc_import::mojom::PageHandler> handler) {
   page_handler_ = std::make_unique<ArcImportPageHandler>(
-      std::move(handler), Profile::FromWebUI(web_ui()));
+      std::move(handler), Profile::FromWebUI(web_ui()),
+      web_ui()->GetWebContents());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(ArcImportUI)

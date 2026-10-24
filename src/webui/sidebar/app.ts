@@ -8,6 +8,7 @@ import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 import {SwipeType} from '../sidebar.mojom-webui.js';
 import type {ICloudSpace, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
+import {TabNetworkState} from '/tab_strip_api/tabs.mojom-webui.js';
 import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_api/tab_strip_api_events.mojom-webui.js';
 import {TabStripObservation} from '/tab_strip_api/tab_strip_observation.js';
 import type {TabStripObserver} from '/tab_strip_api/tab_strip_observer.js';
@@ -19,7 +20,7 @@ import './theme_editor.js';
 import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
 import {BrowserProxy} from './browser_proxy.js';
-import {buildSidebar, cellAt, dropTarget, essentialSlot, MAX_ESSENTIALS} from './sidebar_model.js';
+import {buildSidebar, cellAt, dropTarget, essentialSlot, MAX_ESSENTIALS, pageTitleFor} from './sidebar_model.js';
 import type {SpaceEdit} from './space_editor.js';
 import {iconMask} from './space_icon.js';
 import {gradientOf, themeFromJson} from './theme_model.js';
@@ -178,6 +179,8 @@ export class SidebarAppElement extends CrLitElement {
   // Bumped on every TabStripService snapshot; older observers go quiet.
   private generation_ = 0;
   private drag_: DragSource|null = null;
+  // Untitled pinned items already given their page's title.
+  private readonly titled_: Set<string> = new Set();
   // The page's drag image (see #drag-ghost in app.css): its row and tile
   // forms, and which one shows.
   private ghostRow_: HTMLElement|null = null;
@@ -224,11 +227,26 @@ export class SidebarAppElement extends CrLitElement {
         changed.has('tree_' as keyof SidebarAppElement) ||
         changed.has('minutesLeft_' as keyof SidebarAppElement)) {
       this.view_ = buildSidebar(this.tree_, this.tabs_, this.deferred_);
+      this.fillTitles_();
     }
     if (this.drag_ &&
         changed.has('essentialsSlot_' as keyof SidebarAppElement)) {
       this.tileRects_ = new Map(
           [...this.tiles_()].map(([id, tile]) => [id, tile.getBoundingClientRect()]));
+    }
+  }
+
+  // Pinned items imported from Arc's export file come untitled: each keeps
+  // its page's title once it has loaded.
+  private fillTitles_() {
+    for (const row of [...this.view_.essentials, ...this.view_.rows]) {
+      const title = row.kind === 'pinned' ?
+          pageTitleFor(row, row.tab?.networkState === TabNetworkState.kNone) :
+          '';
+      if (title && !this.titled_.has(row.id)) {
+        this.titled_.add(row.id);
+        this.proxy_.handler.renameItem(row.id, title);
+      }
     }
   }
 

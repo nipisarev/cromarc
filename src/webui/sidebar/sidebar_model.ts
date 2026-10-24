@@ -27,6 +27,9 @@ export interface FolderRow extends RowBase {
 export interface PinnedRow extends RowBase {
   kind: 'pinned';
   homeUrl: string;
+  // Saved without a title (Arc's export file has none): `title` is the
+  // home URL's host until the page gives one.
+  untitled: boolean;
   essential: boolean;
   state: PinnedState;
   tab: Tab|null;
@@ -47,6 +50,14 @@ function normalize(url: string): string {
     const u = new URL(url);
     u.hash = '';
     return u.href.endsWith('/') ? u.href.slice(0, -1) : u.href;
+  } catch {
+    return url;
+  }
+}
+
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '') || url;
   } catch {
     return url;
   }
@@ -73,8 +84,9 @@ export function buildSidebar(
     const state: PinnedState =
         !tab ? 'asleep' : isAwayFromHome(node.homeUrl, tab.url) ? 'away' : 'live';
     return {
-      kind: 'pinned', id: node.id, title: node.title, depth, parentId, index,
-      homeUrl: node.homeUrl, essential: node.essential, state, tab,
+      kind: 'pinned', id: node.id, title: node.title || hostOf(node.homeUrl),
+      untitled: !node.title, depth, parentId, index, homeUrl: node.homeUrl,
+      essential: node.essential, state, tab,
     };
   };
 
@@ -179,4 +191,15 @@ export function cellAt(cells: Cell[], x: number, y: number): number {
   return cells.findIndex(
       c => px >= c.left && px < c.left + c.width && py >= c.top &&
           py < c.top + c.height);
+}
+
+// The title an untitled pinned item takes from its live tab: once the page
+// has `loaded` at home and has a title of its own, not its address.
+export function pageTitleFor(row: PinnedRow, loaded: boolean): string {
+  const tab = row.tab;
+  if (!row.untitled || row.state !== 'live' || !loaded || !tab?.title ||
+      tab.url.includes(tab.title)) {
+    return '';
+  }
+  return tab.title;
 }

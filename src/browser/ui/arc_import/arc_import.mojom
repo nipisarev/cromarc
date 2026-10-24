@@ -13,6 +13,7 @@ struct ArcSpace {
   int32 pinned;
   // Essentials of the Arc profile the space is bound to.
   int32 essentials;
+  int32 today;
 };
 
 // A Cromarc space the Arc spaces can go into.
@@ -39,6 +40,12 @@ interface PageHandler {
   // `found` is false when Arc's StorableSidebar.json is missing or unreadable.
   GetArcSidebar() => (bool found, array<ArcSpace> spaces,
                       array<Target> targets);
-  // Imports folders, pinned tabs and essentials; a summary for the page.
+  // The file Arc's Settings → Advanced → Export Data writes, picked in a
+  // native dialog, for when Arc's own data is gone; Import() then takes its
+  // spaces. `found` is false when the user cancels or it is not Arc's export.
+  ChooseExportFile() => (bool found, array<ArcSpace> spaces,
+                         array<Target> targets);
+  // Imports folders, pinned tabs and essentials, and opens Today's tabs
+  // without loading them; a summary for the page.
   Import(array<Choice> choices) => (string summary);
 };

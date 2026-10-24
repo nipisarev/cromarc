@@ -73,6 +73,9 @@ class SpaceController : public ProfileAttributesStorageObserver,
   Profile* GetLoadedProfile(const std::string& space_id);
   // The space's main window: its most recently active normal window.
   static BrowserWindowInterface* GetWindowFor(Profile* profile);
+  // The space's main window; a hidden one, as the warm windows, when it has
+  // none yet. Null when Chrome can't create it.
+  BrowserWindowInterface* EnsureHiddenWindow(Profile* profile);
 
   void AddSidebar(BrowserWindowInterface* browser, Sidebar* sidebar);
   void RemoveSidebar(BrowserWindowInterface* browser);
@@ -156,7 +159,6 @@ class SpaceController : public ProfileAttributesStorageObserver,
   // Warm switching: every space gets a hidden window after startup, so a
   // switch only has to swap windows (design, component 4).
   void PrepareWarmWindows();
-  void CreateHiddenWindow(Profile* profile);
   // Closing the visible space window closes the hidden ones of the other
   // spaces too: they are one window to the user.
   void OnSpaceWindowClosed(BrowserWindowInterface* browser);
