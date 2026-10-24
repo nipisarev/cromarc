@@ -1,0 +1,337 @@
+{
+ "version": 1,
+ "sidebar": {
+  "containers": [
+   {
+    "global": {}
+   },
+   {
+    "spaces": [
+     "s-personal",
+     {
+      "id": "s-personal",
+      "title": "Personal",
+      "customInfo": {
+       "iconType": {
+        "emoji_v2": "🏠"
+       },
+       "windowTheme": {
+        "primaryColorPalette": {
+         "midTone": {
+          "red": 1.0,
+          "green": 0.5,
+          "blue": 0.0,
+          "alpha": 1,
+          "colorSpace": "extendedSRGB"
+         }
+        }
+       }
+      },
+      "profile": {
+       "default": true
+      },
+      "containerIDs": [
+       "unpinned",
+       "c-u1",
+       "pinned",
+       "c-p1"
+      ]
+     },
+     "s-work",
+     {
+      "id": "s-work",
+      "title": "Work",
+      "customInfo": {
+       "iconType": {
+        "icon": "briefcase"
+       }
+      },
+      "profile": {
+       "custom": {
+        "_0": {
+         "machineID": "m-1",
+         "directoryBasename": "Profile 2"
+        }
+       }
+      },
+      "containerIDs": [
+       "pinned",
+       "c-p2",
+       "unpinned",
+       "c-u2"
+      ]
+     }
+    ],
+    "items": [
+     "c-p1",
+     {
+      "id": "c-p1",
+      "childrenIds": [
+       "git",
+       "t-mail"
+      ],
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {}
+        }
+       }
+      }
+     },
+     "git",
+     {
+      "id": "git",
+      "title": "Git",
+      "childrenIds": [
+       "t-app",
+       "acme"
+      ],
+      "data": {
+       "list": {}
+      }
+     },
+     "t-app",
+     {
+      "id": "t-app",
+      "title": "Acme App",
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://github.com/t/app/pulls",
+        "savedTitle": "Pull requests · t/app"
+       }
+      }
+     },
+     "acme",
+     {
+      "id": "acme",
+      "title": "Acme",
+      "childrenIds": [
+       "t-stage"
+      ],
+      "data": {
+       "list": {}
+      }
+     },
+     "t-stage",
+     {
+      "id": "t-stage",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://stage.example",
+        "savedTitle": "Stage"
+       }
+      }
+     },
+     "t-mail",
+     {
+      "id": "t-mail",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://mail.example",
+        "savedTitle": "Mail"
+       }
+      }
+     },
+     "c-u1",
+     {
+      "id": "c-u1",
+      "childrenIds": [
+       "t-one",
+       "t-two",
+       "t-dup"
+      ],
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {}
+        }
+       }
+      }
+     },
+     "t-today",
+     {
+      "id": "t-today",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://today.example",
+        "savedTitle": "Today"
+       }
+      }
+     },
+     "c-p2",
+     {
+      "id": "c-p2",
+      "childrenIds": [
+       "split"
+      ],
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {}
+        }
+       }
+      }
+     },
+     "split",
+     {
+      "id": "split",
+      "title": null,
+      "childrenIds": [
+       "t-left",
+       "t-right"
+      ],
+      "data": {
+       "splitView": {}
+      }
+     },
+     "t-left",
+     {
+      "id": "t-left",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://left.example",
+        "savedTitle": "Left"
+       }
+      }
+     },
+     "t-right",
+     {
+      "id": "t-right",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://right.example",
+        "savedTitle": "Right"
+       }
+      }
+     },
+     "c-u2",
+     {
+      "id": "c-u2",
+      "childrenIds": [],
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {}
+        }
+       }
+      }
+     },
+     "top-default",
+     {
+      "id": "top-default",
+      "childrenIds": [
+       "t-cal"
+      ],
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "topApps": {}
+        }
+       }
+      }
+     },
+     "t-cal",
+     {
+      "id": "t-cal",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://calendar.example",
+        "savedTitle": "Calendar"
+       }
+      }
+     },
+     "top-work",
+     {
+      "id": "top-work",
+      "childrenIds": [
+       "t-slack"
+      ],
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "topApps": {}
+        }
+       }
+      }
+     },
+     "t-slack",
+     {
+      "id": "t-slack",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://slack.example",
+        "savedTitle": "Slack"
+       }
+      }
+     },
+     "t-one",
+     {
+      "id": "t-one",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "data:text/html,<title>Loaded One</title>1",
+        "savedTitle": "Arc One"
+       }
+      }
+     },
+     "t-two",
+     {
+      "id": "t-two",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "data:text/html,<title>Loaded Two</title>2",
+        "savedTitle": "Arc Two"
+       }
+      }
+     },
+     "t-dup",
+     {
+      "id": "t-dup",
+      "title": null,
+      "childrenIds": [],
+      "data": {
+       "tab": {
+        "savedURL": "https://mail.example",
+        "savedTitle": "Mail again"
+       }
+      }
+     }
+    ],
+    "topAppsContainerIDs": [
+     {
+      "default": true
+     },
+     "top-default",
+     {
+      "custom": {
+       "_0": {
+        "machineID": "m-1",
+        "directoryBasename": "Profile 2"
+       }
+      }
+     },
+     "top-work"
+    ]
+   }
+  ]
+ }
+}

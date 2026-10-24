@@ -63,12 +63,12 @@ TEST_F(TreeTest, FoldersAndPinnedItemsNestAtTheirPositions) {
   const BookmarkNode* git = tree_.CreateFolder("", 0, u"Git");
   ASSERT_TRUE(git);
   const std::string git_id = Tree::IdOf(git);
-  ASSERT_TRUE(tree_.AddPinned(git_id, 0, u"Tiden APP", GURL("https://github.com/a/pulls")));
-  ASSERT_TRUE(tree_.AddPinned(git_id, 0, u"Tiden CLI", GURL("https://github.com/b/pulls")));
-  const BookmarkNode* qase = tree_.CreateFolder(git_id, 2, u"Qase");
-  ASSERT_TRUE(qase);
-  EXPECT_EQ(Titles(git), (std::vector<std::string>{"Tiden CLI", "Tiden APP", "Qase"}));
-  EXPECT_EQ(tree_.Find(Tree::IdOf(qase)), qase);
+  ASSERT_TRUE(tree_.AddPinned(git_id, 0, u"Acme App", GURL("https://github.com/a/pulls")));
+  ASSERT_TRUE(tree_.AddPinned(git_id, 0, u"Acme CLI", GURL("https://github.com/b/pulls")));
+  const BookmarkNode* acme = tree_.CreateFolder(git_id, 2, u"Acme");
+  ASSERT_TRUE(acme);
+  EXPECT_EQ(Titles(git), (std::vector<std::string>{"Acme CLI", "Acme App", "Acme"}));
+  EXPECT_EQ(tree_.Find(Tree::IdOf(acme)), acme);
 }
 
 TEST_F(TreeTest, UnknownParentIsRefused) {

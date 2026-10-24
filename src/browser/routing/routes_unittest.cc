@@ -23,8 +23,8 @@ Route Rule(const std::string& reference,
 }
 
 TEST(RoutesTest, ContainsIgnoresCase) {
-  const Route route = Rule("GitHub.com/qase", Route::Match::kContains, "Work");
-  EXPECT_TRUE(RouteMatches(route, GURL("https://github.com/qase-tms/app")));
+  const Route route = Rule("GitHub.com/acme", Route::Match::kContains, "Work");
+  EXPECT_TRUE(RouteMatches(route, GURL("https://github.com/acme-corp/app")));
   EXPECT_FALSE(RouteMatches(route, GURL("https://github.com/nipisarev")));
 }
 
@@ -38,7 +38,7 @@ TEST(RoutesTest, EqualToIgnoresSchemeWwwAndTrailingSlash) {
 TEST(RoutesTest, RegexIsCaseInsensitiveAndBadOnesNeverMatch) {
   EXPECT_TRUE(RouteMatches(
       Rule(R"(^https://[a-z]+\.atlassian\.net/)", Route::Match::kRegex, "W"),
-      GURL("https://QASE.atlassian.net/browse/X-1")));
+      GURL("https://ACME.atlassian.net/browse/X-1")));
   EXPECT_FALSE(RouteMatches(Rule("(unclosed", Route::Match::kRegex, "W"),
                             GURL("https://unclosed.example")));
 }

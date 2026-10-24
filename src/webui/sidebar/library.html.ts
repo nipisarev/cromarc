@@ -43,7 +43,7 @@ export function getHtml(this: LibraryElement) {
             @click="${this.onRemoveRouteClick_}">✕</button>
       </div>`)}
     <div id="add-route">
-      <input id="route-reference" placeholder="github.com/qase" spellcheck="false">
+      <input id="route-reference" placeholder="github.com/acme" spellcheck="false">
       <div class="row-controls">
         <select id="route-match">
           <option value="contains">содержит</option>

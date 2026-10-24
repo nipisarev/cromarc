@@ -1,0 +1,162 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Browser tests: each suite in tests/browser/suites drives a fresh Cromarc
+# profile over CDP. The daily build has Chromium's debug checks off (DCHECKs
+# log, dangling raw_ptr detection is off); here they are fatal, so a check
+# our code trips fails its suite. webauthn_opaque_origin runs as the daily
+# build does. --sites also loads popular sites as the daily build (needs the
+# network) and lists the DCHECKs they trip in Chromium's code.
+# Test windows show on screen; leave the Mac alone while they run.
+# Usage: tooling/test-browser [--sites] [suite...]
+#   CROMARC_APP picks another app (default: out/release/Cromarc.app).
+
+set -euo pipefail
+# shellcheck source=tooling/lib.sh
+source "$(dirname "$0")/lib.sh"
+
+app="${CROMARC_APP:-$CHROMIUM_SRC/out/release/Cromarc.app}"
+binary="$app/Contents/MacOS/Cromarc"
+[ -x "$binary" ] || die "no $binary (tooling/build release)"
+command -v node >/dev/null || die "node not installed"
+
+tests="$CROMARC_ROOT/tests/browser"
+fixtures="$tests/fixtures"
+site_port=9599
+export CROMARC_TEST_SITE="http://127.0.0.1:$site_port"
+
+sites=false
+suites=()
+for arg in "$@"; do
+  case "$arg" in
+    --sites) sites=true ;;
+    *) suites+=("$arg") ;;
+  esac
+done
+if [ ${#suites[@]} -eq 0 ] && ! $sites; then
+  for file in "$tests"/suites/*.mjs; do
+    suites+=("$(basename "$file" .mjs)")
+  done
+fi
+
+work="$(mktemp -d "${TMPDIR:-/tmp}/cromarc-tests.XXXXXX")"
+# Window helpers some suites read the window list with.
+export CROMARC_TEST_TOOLS="$work/tools"
+mkdir -p "$CROMARC_TEST_TOOLS"
+for source in "$tests"/tools/*.swift; do
+  swiftc -O -o "$CROMARC_TEST_TOOLS/$(basename "$source" .swift)" "$source" ||
+    die "cannot build $source (Xcode command line tools)"
+done
+# Another server on the port would answer the suites with its own files.
+if lsof -nP -iTCP:"$site_port" -sTCP:LISTEN >/dev/null; then
+  die "port $site_port is taken: $(lsof -nP -t -iTCP:"$site_port" -sTCP:LISTEN | tr '\n' ' ')"
+fi
+python3 -m http.server "$site_port" --bind 127.0.0.1 \
+  --directory "$fixtures/site" >/dev/null 2>&1 &
+server=$!
+browser=""
+cleanup() {
+  [ -z "$browser" ] || kill "$browser" 2>/dev/null || true
+  kill "$server" 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+for _ in $(seq 1 20); do
+  curl -sf -m 2 "$CROMARC_TEST_SITE/a.html" >/dev/null && break
+  sleep 0.5
+done
+curl -sf -m 2 "$CROMARC_TEST_SITE/a.html" >/dev/null ||
+  die "the fixture server did not start on port $site_port"
+
+# The debug checks off, as in the daily build.
+is_daily() {
+  [ "$1" = webauthn_opaque_origin ] || [ "$1" = smoke_sites ]
+}
+
+# Starts the browser for suite $1 on port $2 with profile $3, output to $4.
+launch() {
+  local name=$1 port=$2 profile=$3 log=$4
+  local args=(--user-data-dir="$profile" --remote-debugging-port="$port"
+    --no-first-run --no-default-browser-check --use-mock-keychain
+    --disable-backgrounding-occluded-windows --disable-renderer-backgrounding
+    "--window-size=1100,800")
+  is_daily "$name" ||
+    args+=("--enable-features=DcheckIsFatal,PartitionAllocDanglingPtr")
+  case "$name" in
+    import) args+=(--cromarc-arc-sidebar="$fixtures/arc_sidebar.json") ;;
+    import_export)
+      args+=(--cromarc-arc-sidebar="$work/no-arc.json"
+        --cromarc-arc-export="$fixtures/arc_export.md") ;;
+  esac
+  "$binary" "${args[@]}" about:blank >"$log" 2>&1 &
+  browser=$!
+  for _ in $(seq 1 60); do
+    curl -s -m 2 "http://127.0.0.1:$port/json/version" >/dev/null && return 0
+    sleep 1
+  done
+  return 1
+}
+
+# Stops the browser the way a quit does, then for good.
+stop() {
+  [ -n "$browser" ] || return 0
+  kill "$browser" 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    kill -0 "$browser" 2>/dev/null || break
+    sleep 1
+  done
+  kill -9 "$browser" 2>/dev/null || true
+  wait "$browser" 2>/dev/null || true
+  browser=""
+}
+
+# Runs suite $1 (script $2) on port $3; prints one line and returns its result.
+run() {
+  local name=$1 script=$2 port=$3
+  local log="$work/$name.log" out="$work/$name.out" status=0
+  if ! launch "$name" "$port" "$work/$name" "$log"; then
+    stop
+    echo "FAIL  $name: the browser did not start ($log)"
+    return 1
+  fi
+  CROMARC_TEST_LOG="$log" node "$script" "$port" "$browser" >"$out" 2>&1 &
+  local runner=$!
+  (sleep 300 && kill "$runner" 2>/dev/null) &
+  local watchdog=$!
+  wait "$runner" || status=$?
+  kill "$watchdog" 2>/dev/null || true
+  wait "$watchdog" 2>/dev/null || true
+  stop
+  local fatal
+  fatal="$(grep -m1 -E 'FATAL|dangling raw_ptr|dangling pointer' "$log" || true)"
+  local passed
+  passed="$(grep -c '^PASS' "$out" || true)"
+  if [ "$status" -eq 0 ] && ! grep -q '^FAIL' "$out" && [ -z "$fatal" ]; then
+    echo "PASS  $name ($passed checks)"
+    return 0
+  fi
+  echo "FAIL  $name"
+  grep '^FAIL' "$out" | sed 's/^/      /' || true
+  [ -z "$fatal" ] || echo "      log: $fatal"
+  [ "$status" -eq 0 ] || echo "      exit $status: $out"
+  return 1
+}
+
+failed=0
+index=0
+for name in ${suites[@]+"${suites[@]}"}; do
+  [ -f "$tests/suites/$name.mjs" ] || die "no suite $name"
+  run "$name" "$tests/suites/$name.mjs" $((9620 + index)) || failed=$((failed + 1))
+  index=$((index + 1))
+done
+if $sites; then
+  run smoke_sites "$tests/smoke_sites.mjs" 9619 || failed=$((failed + 1))
+  if grep -q 'DCHECK failed' "$work/smoke_sites.log"; then
+    log "DCHECKs real sites tripped in Chromium's code (logged, not fatal):"
+    grep -o 'DCHECK failed: .*' "$work/smoke_sites.log" | sort | uniq -c >&2
+  fi
+fi
+log "logs: $work"
+[ "$failed" -eq 0 ] || die "$failed suite(s) failed"

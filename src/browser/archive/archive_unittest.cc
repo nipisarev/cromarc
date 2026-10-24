@@ -58,15 +58,15 @@ TEST_F(ArchiveTest, EmptyQueryListsNewestFirst) {
 }
 
 TEST_F(ArchiveTest, EveryWordMustMatchTitleOrUrlCaseInsensitively) {
-  ASSERT_TRUE(archive_->Add(Entry("https://github.com/tiden/app/pulls",
+  ASSERT_TRUE(archive_->Add(Entry("https://github.com/acme/app/pulls",
                                   "Pull requests", now_)));
   ASSERT_TRUE(archive_->Add(Entry("https://docs.google.com/x",
                                   "Черновик договора", now_)));
-  EXPECT_EQ(Titles(archive_->Search(u"tiden PULL", 10)),
+  EXPECT_EQ(Titles(archive_->Search(u"acme PULL", 10)),
             (std::vector<std::string>{"Pull requests"}));
   EXPECT_EQ(Titles(archive_->Search(u"черновик", 10)),
             (std::vector<std::string>{"Черновик договора"}));
-  EXPECT_TRUE(archive_->Search(u"tiden docs", 10).empty());
+  EXPECT_TRUE(archive_->Search(u"acme docs", 10).empty());
 }
 
 TEST_F(ArchiveTest, WildcardsInTheQueryAreLiteral) {

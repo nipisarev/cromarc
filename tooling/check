@@ -12,7 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 scripts=(tooling/lib.sh tooling/bootstrap tooling/sync tooling/apply tooling/export-patches tooling/build
-  tooling/check-patches tooling/bump tooling/zen-diff branding/build_icons
+  tooling/check-patches tooling/bump tooling/zen-diff tooling/test-browser branding/build_icons
   tooling/check tooling/tests/*.sh)
 
 echo "==> bash -n"

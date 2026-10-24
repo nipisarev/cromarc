@@ -21,6 +21,7 @@ tooling/sync             # Chromium at the tag in CHROMIUM_VERSION
 tooling/apply            # src/ -> chromium/src/cromarc, patches/hooks -> branch cromarc-work
 tooling/build release    # out/release/Cromarc.app
 tooling/check            # shellcheck, tooling tests, WebUI unit tests
+tooling/test-browser     # browser suites over CDP, debug checks fatal (--sites: popular sites)
 ```
 
 Our code lives in `src/` and is mirrored into the Chromium tree as `//cromarc`. The few edits to upstream files are commits on `cromarc-work`, kept in `patches/hooks/`: to change one, commit on `cromarc-work` and run `tooling/export-patches`.

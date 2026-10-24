@@ -38,15 +38,15 @@ constexpr char kSidebar[] = R"json({
       "items": [
         "c-p1", {"id": "c-p1", "childrenIds": ["git", "t-mail"],
                  "data": {"itemContainer": {"containerType": {"spaceItems": {}}}}},
-        "git", {"id": "git", "title": "Git", "childrenIds": ["t-app", "qase"],
+        "git", {"id": "git", "title": "Git", "childrenIds": ["t-app", "acme"],
                 "data": {"list": {}}},
-        "t-app", {"id": "t-app", "title": "Tiden APP", "childrenIds": [],
+        "t-app", {"id": "t-app", "title": "Acme App", "childrenIds": [],
                   "data": {"tab": {"savedURL": "https://github.com/t/app/pulls",
                                    "savedTitle": "Pull requests · t/app"}}},
-        "qase", {"id": "qase", "title": "Qase", "childrenIds": ["t-stage"],
+        "acme", {"id": "acme", "title": "Acme", "childrenIds": ["t-stage"],
                  "data": {"list": {}}},
         "t-stage", {"id": "t-stage", "title": null, "childrenIds": [],
-                    "data": {"tab": {"savedURL": "https://stage.qase.io",
+                    "data": {"tab": {"savedURL": "https://stage.example",
                                      "savedTitle": "Stage"}}},
         "t-mail", {"id": "t-mail", "title": null, "childrenIds": [],
                    "data": {"tab": {"savedURL": "https://mail.example",
@@ -112,7 +112,7 @@ TEST(ArcSidebarTest, PinnedTreeNestsFoldersAndPrefersTheUsersTitle) {
   EXPECT_EQ(pinned[0].title, u"Git");
   ASSERT_EQ(pinned[0].children.size(), 2u);
   // A renamed tab keeps the user's name, not the page title.
-  EXPECT_EQ(pinned[0].children[0].title, u"Tiden APP");
+  EXPECT_EQ(pinned[0].children[0].title, u"Acme App");
   EXPECT_EQ(pinned[0].children[0].url, GURL("https://github.com/t/app/pulls"));
   EXPECT_TRUE(pinned[0].children[1].is_folder);
   ASSERT_EQ(pinned[0].children[1].children.size(), 1u);
@@ -171,7 +171,7 @@ constexpr char kExport[] = R"md(# Personal
 ## Favorites
 - https://slack.example/
 
-## Qase app
+## Acme app
 ### Stage
 - https://stage.example/
 ### Production
@@ -191,7 +191,7 @@ TEST(ArcExportTest, SpacesAndFoldersFollowTheHeadings) {
   const std::vector<ArcNode>& work = sidebar->spaces[1].pinned;
   ASSERT_EQ(work.size(), 3u);
   EXPECT_TRUE(work[1].is_folder);
-  EXPECT_EQ(work[1].title, u"Qase app");
+  EXPECT_EQ(work[1].title, u"Acme app");
   ASSERT_EQ(work[1].children.size(), 2u);
   EXPECT_EQ(work[1].children[0].title, u"Stage");
   ASSERT_EQ(work[1].children[0].children.size(), 1u);

@@ -22,3 +22,11 @@ disable_fieldtrial_testing_config = true
 # for distribution; revisit before publishing binaries.
 proprietary_codecs = true
 ffmpeg_branding = "Chrome"
+
+# The daily browser behaves as Chrome Stable on Chromium's own debug checks:
+# DCHECKs log instead of crashing (a site that trips one in upstream code
+# otherwise takes the whole browser down), and dangling raw_ptr detection is
+# built in but off. Tests turn both back on and fatal:
+#   --enable-features=DcheckIsFatal,PartitionAllocDanglingPtr
+dcheck_is_configurable = true
+enable_dangling_raw_ptr_feature_flag = false

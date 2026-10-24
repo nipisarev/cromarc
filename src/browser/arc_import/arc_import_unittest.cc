@@ -72,11 +72,11 @@ class ArcImportTest : public testing::Test {
 
 TEST_F(ArcImportTest, OneArcSpaceGoesToTheRootWithEssentialsFirst) {
   ArcSpace personal = Space("Personal", {
-      Folder("Git", {Tab("Tiden APP", "https://github.com/t/app/pulls")}),
+      Folder("Git", {Tab("Acme App", "https://github.com/t/app/pulls")}),
       Tab("Mail", "https://mail.example")});
   const ImportCounts counts = ImportIntoTree(
       {&personal}, {Tab("Calendar", "https://calendar.example")}, tree_);
-  EXPECT_EQ(Outline(tree_.Root()), "Calendar*, Git[Tiden APP], Mail");
+  EXPECT_EQ(Outline(tree_.Root()), "Calendar*, Git[Acme App], Mail");
   EXPECT_EQ(counts.folders, 1);
   EXPECT_EQ(counts.pinned, 2);
   EXPECT_EQ(counts.essentials, 1);
@@ -100,12 +100,12 @@ TEST_F(ArcImportTest, PinnedUrlsAreNotDuplicated) {
 
 TEST_F(ArcImportTest, ImportingAgainMergesIntoTheSameFolders) {
   ArcSpace personal = Space("Personal", {
-      Folder("Git", {Tab("Tiden APP", "https://github.com/t/app/pulls"),
-                     Folder("Qase", {Tab("Stage", "https://stage.qase.io")})})});
+      Folder("Git", {Tab("Acme App", "https://github.com/t/app/pulls"),
+                     Folder("Acme", {Tab("Stage", "https://stage.example")})})});
   ImportIntoTree({&personal}, {}, tree_);
   personal.pinned[0].children.push_back(Tab("CLI", "https://cli.example"));
   const ImportCounts counts = ImportIntoTree({&personal}, {}, tree_);
-  EXPECT_EQ(Outline(tree_.Root()), "Git[Tiden APP, Qase[Stage], CLI]");
+  EXPECT_EQ(Outline(tree_.Root()), "Git[Acme App, Acme[Stage], CLI]");
   EXPECT_EQ(counts.folders, 0);
   EXPECT_EQ(counts.pinned, 1);
   EXPECT_EQ(counts.skipped, 2);
