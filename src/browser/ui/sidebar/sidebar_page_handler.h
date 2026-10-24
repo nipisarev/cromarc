@@ -5,11 +5,13 @@
 #ifndef CROMARC_BROWSER_UI_SIDEBAR_SIDEBAR_PAGE_HANDLER_H_
 #define CROMARC_BROWSER_UI_SIDEBAR_SIDEBAR_PAGE_HANDLER_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
@@ -66,6 +68,10 @@ class SidebarPageHandler : public mojom::PageHandler,
   void RemoveItem(const std::string& id) override;
   void ResetItem(const std::string& id) override;
   void SeparateItem(const std::string& id) override;
+  void ShowContextMenu(const std::vector<std::string>& labels,
+                       int32_t x,
+                       int32_t y,
+                       ShowContextMenuCallback callback) override;
   void SetHomeToCurrent(const std::string& id) override;
   void SetCollapsed(const std::string& id, bool collapsed) override;
   void SetEssential(const std::string& id, bool essential) override;
@@ -119,6 +125,9 @@ class SidebarPageHandler : public mojom::PageHandler,
   std::vector<mojom::TabLifecyclePtr> BuildLifecycles();
   void OnTreeChanged();
   void OnLifecyclesChanged();
+  void OnContextMenuDone();
+
+  class ContextMenu;
 
   mojo::Receiver<mojom::PageHandler> receiver_;
   mojo::Remote<mojom::Page> page_;
@@ -128,6 +137,8 @@ class SidebarPageHandler : public mojom::PageHandler,
   raw_ptr<ArchiveService> archive_service_;
   base::CallbackListSubscription tree_subscription_;
   base::CallbackListSubscription lifecycle_subscription_;
+  std::unique_ptr<ContextMenu> context_menu_;
+  base::WeakPtrFactory<SidebarPageHandler> weak_factory_{this};
 };
 
 }  // namespace cromarc

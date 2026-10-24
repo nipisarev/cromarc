@@ -281,15 +281,6 @@ ${this.cleared_.length ? html`
     <button class="text" @click="${this.onUndoClearClick_}">${
         this.strings.undo}</button>
   </div>` : nothing}
-${this.menu_ ? html`
-  <div id="menu-backdrop" @click="${this.onMenuBackdropClick_}"
-      @contextmenu="${this.onMenuBackdropContextmenu_}"></div>
-  <div id="menu" role="menu"
-      style="left: ${this.menu_.x}px; top: ${this.menu_.y}px">
-    ${this.menu_.items.map((item, index) => html`
-      <div class="menu-item" role="menuitem" data-index="${index}"
-          @click="${this.onMenuItemClick_}">${item.label}</div>`)}
-  </div>` : nothing}
 <!--_html_template_end_-->`;
   // clang-format on
 }

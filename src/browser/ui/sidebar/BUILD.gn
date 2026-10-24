@@ -75,9 +75,12 @@ source_set("impl") {
     "//components/favicon/content",
     "//cromarc/browser/ui:browser_commands",
     "//cromarc/browser/ui/welcome",
+    "//ui/base/mojom:ui_base_types",
     "//ui/gfx",
     "//cromarc/webui:resources",
     "//skia",
+    "//ui/menus",
+    "//ui/views",
     "//ui/webui",
     "//url",
   ]

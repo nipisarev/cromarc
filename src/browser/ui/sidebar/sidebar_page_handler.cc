@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "base/functional/bind.h"
+#include "base/task/sequenced_task_runner.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
 #include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
@@ -33,9 +34,16 @@
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
+#include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/base/base_window.h"
+#include "ui/base/mojom/menu_source_type.mojom.h"
 #include "ui/base/webui/web_ui_util.h"
+#include "ui/gfx/geometry/point.h"
+#include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/image/image.h"
+#include "ui/menus/simple_menu_model.h"
+#include "ui/views/controls/menu/menu_runner.h"
+#include "ui/views/view.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
@@ -92,6 +100,57 @@ std::string FaviconDataUrl(content::WebContents* contents) {
 }
 
 }  // namespace
+
+// Zen's and Arc's context menus are native popups over the window, not boxes
+// inside the sidebar; so are these. On the Mac the menu is an NSMenu that runs
+// inside Run(): the chosen command arrives before the menu closes.
+class SidebarPageHandler::ContextMenu : public ui::SimpleMenuModel::Delegate {
+ public:
+  ContextMenu(const std::vector<std::string>& labels,
+              ShowContextMenuCallback callback,
+              base::OnceClosure done)
+      : callback_(std::move(callback)), done_(std::move(done)) {
+    for (size_t i = 0; i < labels.size(); ++i) {
+      if (labels[i].empty()) {
+        model_.AddSeparator(ui::NORMAL_SEPARATOR);
+      } else {
+        model_.AddItem(static_cast<int>(i), base::UTF8ToUTF16(labels[i]));
+      }
+    }
+  }
+
+  void Run(views::View* anchor, gfx::Point point) {
+    views::View::ConvertPointToScreen(anchor, &point);
+    runner_ = std::make_unique<views::MenuRunner>(
+        &model_, views::MenuRunner::CONTEXT_MENU,
+        base::BindRepeating(&ContextMenu::OnClosed, base::Unretained(this)));
+    runner_->RunMenuAt(anchor->GetWidget(), nullptr,
+                       gfx::Rect(point, gfx::Size()),
+                       views::MenuAnchorPosition::kTopLeft,
+                       ui::mojom::MenuSourceType::kMouse);
+  }
+
+  // ui::SimpleMenuModel::Delegate:
+  void ExecuteCommand(int command_id, int event_flags) override {
+    chosen_ = command_id;
+  }
+
+ private:
+  void OnClosed() {
+    if (callback_) {
+      std::move(callback_).Run(chosen_);
+    }
+    // The runner is still on the stack.
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
+                                                             std::move(done_));
+  }
+
+  ui::SimpleMenuModel model_{this};
+  std::unique_ptr<views::MenuRunner> runner_;
+  ShowContextMenuCallback callback_;
+  base::OnceClosure done_;
+  int chosen_ = -1;
+};
 
 SidebarPageHandler::SidebarPageHandler(
     mojo::PendingReceiver<mojom::PageHandler> receiver,
@@ -268,6 +327,26 @@ void SidebarPageHandler::SetHomeToCurrent(const std::string& id) {
     tree_service_->tree().SetHomeUrl(
         id, tab->GetContents()->GetLastCommittedURL());
   }
+}
+
+void SidebarPageHandler::ShowContextMenu(const std::vector<std::string>& labels,
+                                         int32_t x,
+                                         int32_t y,
+                                         ShowContextMenuCallback callback) {
+  SidebarView* view = SidebarView::ForBrowser(browser_);
+  if (!view || !view->GetWidget() || context_menu_) {
+    std::move(callback).Run(-1);
+    return;
+  }
+  context_menu_ = std::make_unique<ContextMenu>(
+      labels, std::move(callback),
+      base::BindOnce(&SidebarPageHandler::OnContextMenuDone,
+                     weak_factory_.GetWeakPtr()));
+  context_menu_->Run(view, gfx::Point(x, y));
+}
+
+void SidebarPageHandler::OnContextMenuDone() {
+  context_menu_.reset();
 }
 
 void SidebarPageHandler::SetCollapsed(const std::string& id, bool collapsed) {

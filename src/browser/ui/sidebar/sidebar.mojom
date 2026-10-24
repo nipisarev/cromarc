@@ -137,6 +137,9 @@ interface PageHandler {
   SetEssential(string id, bool essential);
   // "+ New Tab".
   NewTab();
+  // A native context menu at (x, y) in the page, as Zen's; an empty label is a
+  // separator. Returns the chosen label's index, or -1.
+  ShowContextMenu(array<string> labels, int32 x, int32 y) => (int32 index);
   // Cmd+S from the menu: compact mode on or off.
   ToggleCompactMode();
 

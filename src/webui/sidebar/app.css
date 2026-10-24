@@ -635,32 +635,6 @@ button[hidden] {
   color: inherit;
 }
 
-/* Context menu. */
-#menu-backdrop {
-  inset: 0;
-  position: fixed;
-}
-
-#menu {
-  background: var(--color-sys-surface, Canvas);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
-  box-sizing: border-box;
-  max-width: calc(100vw - 8px);
-  min-width: min(180px, calc(100vw - 8px));
-  padding: 4px;
-  position: fixed;
-}
-
-.menu-item {
-  border-radius: 5px;
-  padding: 6px 10px;
-}
-
-.menu-item:hover {
-  background: var(--active);
-}
-
 #icloud p {
   font-size: 12px;
 }

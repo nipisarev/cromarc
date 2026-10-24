@@ -42,12 +42,6 @@ export interface MenuItem {
   action: () => void;
 }
 
-export interface Menu {
-  x: number;
-  y: number;
-  items: MenuItem[];
-}
-
 // What is being dragged: a tree item (pinned or folder) or a Today tab.
 interface DragSource {
   kind: 'item'|'tab';
@@ -83,7 +77,6 @@ export class SidebarAppElement extends CrLitElement {
       tabs_: {type: Array},
       tree_: {type: Array},
       view_: {type: Object},
-      menu_: {type: Object},
       renaming_: {type: String},
       drop_: {type: Object},
       dropZone_: {type: String},
@@ -112,7 +105,6 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor tree_: TreeNode[] = [];
   protected accessor view_: SidebarView =
       {essentials: [], rows: [], attention: [], today: []};
-  protected accessor menu_: Menu|null = null;
   // Id of the item whose title is being edited.
   protected accessor renaming_: string = '';
   protected accessor drop_: DropIndicator|null = null;
@@ -170,6 +162,9 @@ export class SidebarAppElement extends CrLitElement {
   // Bumped on every TabStripService snapshot; older observers go quiet.
   private generation_ = 0;
   private drag_: DragSource|null = null;
+  // CDP tests can't click a native menu: they name the item to choose here
+  // before opening the menu.
+  testMenuChoice: string|null = null;
 
   override connectedCallback() {
     super.connectedCallback();
@@ -187,11 +182,6 @@ export class SidebarAppElement extends CrLitElement {
     router.onSwipe.addListener((swipe: Swipe) => this.onSwipe_(swipe));
     this.proxy_.handler.getSpaces().then(({spaces}) => this.setSpaces_(spaces));
     this.connectTabs_();
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
-        this.menu_ = null;
-      }
-    });
   }
 
   override willUpdate(changed: PropertyValues<this>) {
@@ -538,10 +528,7 @@ export class SidebarAppElement extends CrLitElement {
 
   // Zen's space context menu (zen-workspaces-panel-*).
   private openSpaceMenu_(space: Space, x: number, y: number) {
-    this.menu_ = {
-      x,
-      y,
-      items: [
+    this.showMenu_(x, y, [
         {label: strings.editSpace, action: () => this.editSpace_(space, false)},
         {label: strings.changeIcon, action: () => this.editSpace_(space, true)},
         {
@@ -562,8 +549,7 @@ export class SidebarAppElement extends CrLitElement {
                   action: () => this.deleting_ = space,
                 }] :
                 []),
-      ],
-    };
+    ]);
   }
 
   private editSpace_(space: Space, pickerOpen: boolean) {
@@ -865,7 +851,7 @@ export class SidebarAppElement extends CrLitElement {
           {label: strings.copyLink, action: () => this.copy_(row.homeUrl)},
           {label: strings.unpin, action: () => h.removeItem(row.id)});
     }
-    this.menu_ = {x: e.clientX, y: e.clientY, items};
+    this.showMenu_(e.clientX, e.clientY, items);
   }
 
   protected onTodayContextmenu_(e: MouseEvent) {
@@ -876,53 +862,46 @@ export class SidebarAppElement extends CrLitElement {
       return;
     }
     const h = this.proxy_.handler;
-    this.menu_ = {
-      x: e.clientX,
-      y: e.clientY,
-      items: [
-        {label: strings.pin, action: () => h.pinTab(tab.id, '', this.rootSize_(), false)},
-        {label: strings.addToEssentials, action: () => h.pinTab(tab.id, '', this.rootSize_(), true)},
-        {label: strings.copyLink, action: () => this.copy_(tab.url)},
-        {label: strings.close, action: () => this.proxy_.tabStrip.closeNodes([tab.id]).catch(() => {})},
-      ],
-    };
+    this.showMenu_(e.clientX, e.clientY, [
+      {label: strings.pin, action: () => h.pinTab(tab.id, '', this.rootSize_(), false)},
+      {label: strings.addToEssentials, action: () => h.pinTab(tab.id, '', this.rootSize_(), true)},
+      {label: strings.copyLink, action: () => this.copy_(tab.url)},
+      {label: strings.close, action: () => this.proxy_.tabStrip.closeNodes([tab.id]).catch(() => {})},
+    ]);
   }
 
   protected onBackgroundContextmenu_(e: MouseEvent) {
     e.preventDefault();
-    this.menu_ = {
-      x: e.clientX,
-      y: e.clientY,
-      items: [
-        {label: strings.newFolder, action: () => this.createFolder_('')},
-        {
-          label: strings.hideSidebar,
-          action: () => this.proxy_.handler.toggleCompactMode(),
-        },
-        {
-          label: strings.importFromArc,
-          action: () => this.proxy_.tabStrip
-                            .createTabAt(null, 'chrome://cromarc-import/')
-                            .catch(() => {}),
-        },
-      ],
-    };
+    this.showMenu_(e.clientX, e.clientY, [
+      {label: strings.newFolder, action: () => this.createFolder_('')},
+      {
+        label: strings.hideSidebar,
+        action: () => this.proxy_.handler.toggleCompactMode(),
+      },
+      {
+        label: strings.importFromArc,
+        action: () => this.proxy_.tabStrip
+                          .createTabAt(null, 'chrome://cromarc-import/')
+                          .catch(() => {}),
+      },
+    ]);
   }
 
-  protected onMenuItemClick_(e: Event) {
-    const index = Number((e.currentTarget as HTMLElement).dataset['index']);
-    const item = this.menu_?.items[index];
-    this.menu_ = null;
-    item?.action();
-  }
-
-  protected onMenuBackdropClick_() {
-    this.menu_ = null;
-  }
-
-  protected onMenuBackdropContextmenu_(e: Event) {
-    e.preventDefault();
-    this.menu_ = null;
+  // Native menus over the window, as Zen's and Arc's: the browser shows the
+  // labels and answers with the chosen one.
+  private async showMenu_(x: number, y: number, items: MenuItem[]) {
+    if (this.testMenuChoice !== null) {
+      const choice = this.testMenuChoice;
+      const item = items.find(item => item.label.includes(choice));
+      if (item) {
+        this.testMenuChoice = null;
+        item.action();
+      }
+      return;
+    }
+    const {index} = await this.proxy_.handler.showContextMenu(
+        items.map(item => item.label), Math.round(x), Math.round(y));
+    items[index]?.action();
   }
 
   private async createFolder_(parentId: string) {
@@ -976,25 +955,6 @@ export class SidebarAppElement extends CrLitElement {
       input?.focus();
       input?.select();
     }
-    if (changed.has('menu_' as keyof SidebarAppElement) && this.menu_) {
-      this.fitMenu_();
-    }
-  }
-
-  // The sidebar is narrow: a menu opened near its edge moves back inside.
-  private fitMenu_() {
-    const menu = this.shadowRoot.querySelector<HTMLElement>('#menu');
-    if (!menu) {
-      return;
-    }
-    const margin = 4;
-    const {width, height} = menu.getBoundingClientRect();
-    const x = Math.max(
-        margin, Math.min(this.menu_!.x, window.innerWidth - width - margin));
-    const y = Math.max(
-        margin, Math.min(this.menu_!.y, window.innerHeight - height - margin));
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
   }
 
   // Drag and drop (Arc): a Today tab dropped into the tree is pinned there, a
