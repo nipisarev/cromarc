@@ -31,7 +31,7 @@ for t in tooling/tests/test_*.sh; do "$t"; done
 
 echo "==> webui tests"
 if command -v node >/dev/null; then
-  node --test src/webui/*/tests/
+  node --test 'src/webui/*/tests/*_test.ts'
 else
   echo "node not installed; skipped" >&2
   [ -z "${CI:-}" ] || exit 1
