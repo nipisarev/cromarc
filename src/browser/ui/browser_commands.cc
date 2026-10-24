@@ -6,6 +6,7 @@
 
 #include "chrome/browser/profiles/profile.h"
 #include "cromarc/browser/spaces/space_controller.h"
+#include "cromarc/browser/ui/glance/hovered_link.h"
 #include "cromarc/browser/ui/little/little_window.h"
 
 namespace cromarc {
@@ -27,6 +28,10 @@ bool OpenExternalLinks(const StartupTabs& tabs, Profile* profile) {
 
 bool KeepWindowOnLastTabClose(BrowserWindowInterface* browser) {
   return SpaceController::Get()->KeepWindowOnLastTabClose(browser);
+}
+
+void OnTargetURL(content::WebContents* source, const GURL& url) {
+  HoveredLink::Set(source, url);
 }
 
 bool OpenLittleInSpace(BrowserWindowInterface* browser) {

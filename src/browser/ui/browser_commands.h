@@ -8,11 +8,16 @@
 #include "chrome/browser/ui/startup/startup_tab.h"
 
 class BrowserWindowInterface;
+class GURL;
 class Profile;
+
+namespace content {
+class WebContents;
+}  // namespace content
 
 namespace cromarc {
 
-// Hooks H5 and H6. Each returns false when Cromarc does not handle the case;
+// Hooks H5, H6 and H10. Each that returns bool returns false when Cromarc does not handle the case;
 // the caller then does what Chrome does.
 
 // H5, from AppController: links from other apps open in Little windows of
@@ -27,6 +32,10 @@ bool ShowCommandBar(BrowserWindowInterface* browser, bool edit_current_url);
 
 // Cmd+W on the last tab of a space window: the window stays, with a new tab.
 bool KeepWindowOnLastTabClose(BrowserWindowInterface* browser);
+
+// H10, from BrowserWebContentsDelegate::UpdateTargetURL: the link under the
+// cursor in `source`, for Glance.
+void OnTargetURL(content::WebContents* source, const GURL& url);
 
 // Cmd+O in a Little window: the page goes to its space, as Arc's "Open in
 // Arc".

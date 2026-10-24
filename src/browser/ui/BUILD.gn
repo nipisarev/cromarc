@@ -17,6 +17,7 @@ source_set("browser_commands_impl") {
     ":browser_commands",
     "//chrome/browser/profiles:profile",
     "//cromarc/browser/spaces",
+    "//cromarc/browser/ui/glance",
     "//cromarc/browser/ui/little",
   ]
 }
