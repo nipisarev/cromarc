@@ -80,6 +80,10 @@ CommandBar::CommandBar(BrowserWindowInterface* browser) : browser_(browser) {
 }
 
 CommandBar::~CommandBar() {
+  // The widget owns both; the handler can't clear itself here, since this bar
+  // is already out of Bars().
+  web_view_ = nullptr;
+  page_handler_ = nullptr;
   widget_observation_.Reset();
   widget_.reset();
 }
