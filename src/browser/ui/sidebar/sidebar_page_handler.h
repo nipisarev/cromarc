@@ -95,6 +95,12 @@ class SidebarPageHandler : public mojom::PageHandler,
                 const std::string& space) override;
   void RemoveRoute(const std::string& id) override;
   void SetDefaultRoute(const std::string& space) override;
+  void GetICloudSync(const std::string& space,
+                     GetICloudSyncCallback callback) override;
+  void SetICloudSync(const std::string& space, bool enabled) override;
+  void FindICloudSpaces(FindICloudSpacesCallback callback) override;
+  void ConnectICloudSpace(mojom::ICloudSpacePtr space) override;
+  void RestartBrowser() override;
 
   // SpaceController::Sidebar:
   void OnSpacesChanged() override;

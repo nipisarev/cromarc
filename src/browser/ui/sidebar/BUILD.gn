@@ -68,6 +68,7 @@ source_set("impl") {
     "//cromarc/browser/archive:service",
     "//cromarc/browser/lifecycle:service",
     "//cromarc/browser/routing",
+    "//cromarc/browser/sync",
     "//cromarc/browser/spaces",
     "//cromarc/browser/tree:service",
     "//components/favicon/content",

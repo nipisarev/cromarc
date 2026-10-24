@@ -6,7 +6,7 @@ import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 import {SwipeType} from '../sidebar.mojom-webui.js';
-import type {Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
+import type {ICloudSpace, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_api/tab_strip_api_events.mojom-webui.js';
 import {TabStripObservation} from '/tab_strip_api/tab_strip_observation.js';
@@ -92,6 +92,8 @@ export class SidebarAppElement extends CrLitElement {
       tint_: {type: String},
       editor_: {type: Object},
       deleting_: {type: Object},
+      icloud_: {type: Object},
+      remoteSpaces_: {type: Array},
       libraryShown_: {type: Boolean},
       libraryOpen_: {type: Boolean},
       libraryDrag_: {type: Number},
@@ -122,6 +124,13 @@ export class SidebarAppElement extends CrLitElement {
   // The space whose deletion waits for confirmation.
   protected accessor deleting_: Space|null = null;
   private draggedSpace_ = '';
+  // The iCloud Drive card of a space: on from the next start (`enabled`),
+  // and now (`active`).
+  protected accessor icloud_:
+      {space: Space, enabled: boolean, active: boolean}|null = null;
+  // Spaces in iCloud Drive this Mac does not have, offered in the new space
+  // form.
+  protected accessor remoteSpaces_: ICloudSpace[] = [];
   // The Library: rendered while open, dragged in or closing.
   protected accessor libraryShown_: boolean = false;
   protected accessor libraryOpen_: boolean = false;
@@ -439,8 +448,50 @@ export class SidebarAppElement extends CrLitElement {
     this.libraryTimer_ = setTimeout(() => this.libraryShown_ = false, 250);
   }
 
-  protected onAddSpaceClick_() {
+  protected async onAddSpaceClick_() {
     this.editor_ = {id: '', name: '', icon: '', pickerOpen: false};
+    this.remoteSpaces_ = [];
+    this.remoteSpaces_ = (await this.proxy_.handler.findICloudSpaces()).spaces;
+  }
+
+  protected onSpaceConnect_(e: CustomEvent<ICloudSpace>) {
+    this.editor_ = null;
+    this.proxy_.handler.connectICloudSpace(e.detail);
+  }
+
+  private async openICloud_(space: Space) {
+    const {enabled, active} =
+        await this.proxy_.handler.getICloudSync(space.id);
+    this.icloud_ = {space, enabled, active};
+  }
+
+  protected icloudState_(): string {
+    const card = this.icloud_;
+    if (!card) {
+      return '';
+    }
+    if (card.enabled === card.active) {
+      return card.enabled ? strings.icloudOn : strings.icloudOff;
+    }
+    return card.enabled ? strings.icloudOnAfterRestart :
+                          strings.icloudOffAfterRestart;
+  }
+
+  protected onICloudToggleClick_() {
+    const card = this.icloud_;
+    if (!card) {
+      return;
+    }
+    this.proxy_.handler.setICloudSync(card.space.id, !card.enabled);
+    this.icloud_ = {...card, enabled: !card.enabled};
+  }
+
+  protected onRestartClick_() {
+    this.proxy_.handler.restartBrowser();
+  }
+
+  protected onICloudCloseClick_() {
+    this.icloud_ = null;
   }
 
   protected onSpaceMenuClick_(e: MouseEvent) {
@@ -478,6 +529,7 @@ export class SidebarAppElement extends CrLitElement {
           label: strings.sleepSpace,
           action: () => this.proxy_.handler.sleepSpace(space.id),
         },
+        {label: strings.icloudSync, action: () => this.openICloud_(space)},
         ...(this.spaces_.length > 1 ?
                 [{
                   label: strings.deleteSpace,

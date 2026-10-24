@@ -7,6 +7,8 @@ import './icon_picker.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 
+import type {ICloudSpace} from '../sidebar.mojom-webui.js';
+
 import {iconMask} from './space_icon.js';
 import {getCss} from './space_editor.css.js';
 import {getHtml} from './space_editor.html.js';
@@ -39,6 +41,7 @@ export class SpaceEditorElement extends CrLitElement {
       name: {type: String},
       icon: {type: String},
       pickerOpen: {type: Boolean},
+      remoteSpaces: {type: Array},
     };
   }
 
@@ -46,6 +49,8 @@ export class SpaceEditorElement extends CrLitElement {
   accessor name: string = '';
   accessor icon: string = '';
   accessor pickerOpen: boolean = false;
+  // Spaces in iCloud Drive this Mac does not have yet (sync between Macs).
+  accessor remoteSpaces: ICloudSpace[] = [];
 
   override firstUpdated(changed: PropertyValues<this>) {
     super.firstUpdated(changed);
@@ -92,6 +97,18 @@ export class SpaceEditorElement extends CrLitElement {
       return;
     }
     this.fire('space-edit-done', {name, icon: this.icon} satisfies SpaceEdit);
+  }
+
+  protected remoteIcon_(space: ICloudSpace): string {
+    return iconMask(space.icon) ? '' : space.icon;
+  }
+
+  protected onConnectClick_(e: Event) {
+    const uuid = (e.currentTarget as HTMLElement).dataset['uuid'];
+    const space = this.remoteSpaces.find(s => s.uuid === uuid);
+    if (space) {
+      this.fire('space-connect', space);
+    }
   }
 
   protected onCancelClick_() {

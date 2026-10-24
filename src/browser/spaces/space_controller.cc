@@ -393,20 +393,28 @@ void SpaceController::LoadSpace(const std::string& id,
       /*incognito=*/false, std::move(callback));
 }
 
-void SpaceController::CreateSpace(BrowserWindowInterface* from,
-                                  const std::u16string& name,
-                                  const std::string& icon) {
+void SpaceController::CreateSpace(
+    BrowserWindowInterface* from,
+    const std::u16string& name,
+    const std::string& icon,
+    base::OnceCallback<void(Profile*)> configure) {
   ProfileManager::CreateMultiProfileAsync(
       name, profiles::GetPlaceholderAvatarIndex(), /*is_hidden=*/false,
       base::BindOnce(&SpaceController::OnSpaceCreated,
-                     weak_factory_.GetWeakPtr(), from->GetSessionID(), icon));
+                     weak_factory_.GetWeakPtr(), from->GetSessionID(), icon,
+                     std::move(configure)));
 }
 
-void SpaceController::OnSpaceCreated(SessionID from_id,
-                                     std::string icon,
-                                     Profile* profile) {
+void SpaceController::OnSpaceCreated(
+    SessionID from_id,
+    std::string icon,
+    base::OnceCallback<void(Profile*)> configure,
+    Profile* profile) {
   if (!profile) {
     return;
+  }
+  if (configure) {
+    std::move(configure).Run(profile);
   }
   profile->GetPrefs()->SetString(kSpaceIconPref, icon);
   profile->GetPrefs()->SetInteger(kSpaceOrderPref,

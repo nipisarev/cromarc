@@ -29,6 +29,13 @@ struct LinkRoute {
   string space;
 };
 
+// A space found in iCloud Drive that this Mac does not have yet.
+struct ICloudSpace {
+  string uuid;
+  string name;
+  string icon;
+};
+
 // One node of the space's tree: a folder or a pinned item.
 struct TreeNode {
   // Bookmark UUID. "" in calls means the tree root.
@@ -165,6 +172,15 @@ interface PageHandler {
   AddRoute(string reference, string match, string space);
   RemoveRoute(string id);
   SetDefaultRoute(string space);
+
+  // Sync through iCloud Drive (design, component 10). `enabled`: from the
+  // next start; `active`: now.
+  GetICloudSync(string space) => (bool enabled, bool active);
+  SetICloudSync(string space, bool enabled);
+  FindICloudSpaces() => (array<ICloudSpace> spaces);
+  // A new space bound to one in iCloud Drive; it syncs after a restart.
+  ConnectICloudSpace(ICloudSpace space);
+  RestartBrowser();
 };
 
 interface Page {

@@ -306,6 +306,7 @@ button:hover {
   top: 0;
 }
 
+#icloud,
 #delete-space {
   background: var(--color-sys-surface, Canvas);
   border-radius: 10px;
@@ -316,16 +317,19 @@ button:hover {
   position: absolute;
 }
 
+#icloud .title,
 #delete-space .title {
   font-weight: 600;
 }
 
+#icloud .buttons,
 #delete-space .buttons {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
 }
 
+#icloud button,
 #delete-space button {
   padding: 6px 12px;
 }
@@ -536,4 +540,17 @@ button[hidden] {
 
 .menu-item:hover {
   background: var(--active);
+}
+
+#icloud p {
+  font-size: 12px;
+}
+
+#icloud .state {
+  font-weight: 600;
+}
+
+#icloud .primary {
+  background: var(--accent);
+  color: var(--color-sys-on-primary, white);
 }

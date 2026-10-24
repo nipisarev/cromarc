@@ -16,6 +16,7 @@ source_set("keyed_services_impl") {
     "//cromarc/browser/archive:service",
     "//cromarc/browser/lifecycle:service",
     "//cromarc/browser/spaces",
+    "//cromarc/browser/sync",
     "//cromarc/browser/tree:service",
   ]
 }

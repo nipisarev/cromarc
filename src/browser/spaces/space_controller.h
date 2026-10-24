@@ -103,9 +103,11 @@ class SpaceController : public ProfileAttributesStorageObserver {
   // it when needed.
   // A new profile named `name` with `icon` and a colour of its own; `from`
   // switches to it.
+  // `configure` runs on the new profile before the switch.
   void CreateSpace(BrowserWindowInterface* from,
                    const std::u16string& name,
-                   const std::string& icon);
+                   const std::string& icon,
+                   base::OnceCallback<void(Profile*)> configure = {});
   void RenameSpace(const std::string& id, const std::u16string& name);
   // An emoji, "icon:<name>" for one of Zen's icons, or "" for the first
   // letter of the name.
@@ -145,7 +147,10 @@ class SpaceController : public ProfileAttributesStorageObserver {
   void SwitchToLoaded(SessionID from_id, Profile* target);
   void ShowLoadedSpace(base::OnceCallback<void(BrowserWindowInterface*)> then,
                        Profile* target);
-  void OnSpaceCreated(SessionID from_id, std::string icon, Profile* profile);
+  void OnSpaceCreated(SessionID from_id,
+                      std::string icon,
+                      base::OnceCallback<void(Profile*)> configure,
+                      Profile* profile);
   // The space window on screen: the most recently active one with a sidebar.
   BrowserWindowInterface* GetVisibleSpaceWindow();
   // `profile`'s space window, created with `bounds` when it has none.

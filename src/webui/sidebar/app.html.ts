@@ -184,9 +184,26 @@ ${this.editor_ ? html`
   <cromarc-space-editor id="space-editor" ?creating="${!this.editor_.id}"
       .name="${this.editor_.name}" .icon="${this.editor_.icon}"
       .pickerOpen="${this.editor_.pickerOpen}"
+      .remoteSpaces="${this.remoteSpaces_}"
+      @space-connect="${this.onSpaceConnect_}"
       @space-edit-done="${this.onSpaceEditDone_}"
       @space-edit-cancel="${this.onSpaceEditCancel_}">
   </cromarc-space-editor>` : nothing}
+${this.icloud_ ? html`
+  <div id="icloud" class="card" role="dialog">
+    <div class="title">${this.strings.icloudTitle} · ${this.icloud_.space.name}</div>
+    <p>${this.strings.icloudBody}</p>
+    <p class="state">${this.icloudState_()}</p>
+    <div class="buttons">
+      ${this.icloud_.enabled !== this.icloud_.active ? html`
+        <button class="primary" @click="${this.onRestartClick_}">${
+            this.strings.restart}</button>` : nothing}
+      <button id="icloud-toggle" @click="${this.onICloudToggleClick_}">${
+          this.icloud_.enabled ? this.strings.icloudDisable :
+                                 this.strings.icloudEnable}</button>
+      <button @click="${this.onICloudCloseClick_}">${this.strings.close}</button>
+    </div>
+  </div>` : nothing}
 ${this.deleting_ ? html`
   <div id="delete-space" role="alertdialog">
     <div class="title">${this.strings.deleteSpaceTitle}</div>

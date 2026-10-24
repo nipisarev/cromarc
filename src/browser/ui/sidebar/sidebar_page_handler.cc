@@ -4,6 +4,7 @@
 
 #include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
 
+#include <set>
 #include <utility>
 
 #include "base/functional/bind.h"
@@ -14,9 +15,11 @@
 #include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/common/webui_url_constants.h"
+#include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/bookmarks/browser/bookmark_node.h"
 #include "components/favicon/content/content_favicon_driver.h"
+#include "components/prefs/pref_service.h"
 #include "components/browser_apis/tab_strip/types/node_id.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
@@ -25,6 +28,7 @@
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/routing/space_routing.h"
+#include "cromarc/browser/sync/icloud_sync.h"
 #include "cromarc/browser/tree/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/browser_commands.h"
@@ -462,6 +466,72 @@ void SidebarPageHandler::RemoveRoute(const std::string& id) {
 
 void SidebarPageHandler::SetDefaultRoute(const std::string& space) {
   SpaceRouting::Get()->SetDefaultExternal(space);
+}
+
+void SidebarPageHandler::GetICloudSync(const std::string& space,
+                                       GetICloudSyncCallback callback) {
+  SpaceController::Get()->LoadSpace(
+      space, base::BindOnce(
+                 [](GetICloudSyncCallback callback, Profile* profile) {
+                   ICloudSync* sync = profile ? ICloudSync::Get(profile) : nullptr;
+                   std::move(callback).Run(sync && sync->enabled(),
+                                           sync && sync->active());
+                 },
+                 std::move(callback)));
+}
+
+void SidebarPageHandler::SetICloudSync(const std::string& space,
+                                       bool enabled) {
+  SpaceController::Get()->LoadSpace(
+      space, base::BindOnce(
+                 [](bool enabled, Profile* profile) {
+                   if (ICloudSync* sync =
+                           profile ? ICloudSync::Get(profile) : nullptr) {
+                     sync->SetEnabled(enabled);
+                   }
+                 },
+                 enabled));
+}
+
+void SidebarPageHandler::FindICloudSpaces(FindICloudSpacesCallback callback) {
+  // Spaces this Mac already has, by the uuid they sync under.
+  std::set<std::string> local;
+  for (const SpaceController::Space& space :
+       SpaceController::Get()->GetSpaces()) {
+    if (Profile* profile = SpaceController::Get()->GetLoadedProfile(space.id)) {
+      local.insert(profile->GetPrefs()->GetString(kSpaceUuidPref));
+    }
+  }
+  ICloudSync::FindSpaces(base::BindOnce(
+      [](std::set<std::string> local, FindICloudSpacesCallback callback,
+         std::vector<ICloudSync::RemoteSpace> found) {
+        std::vector<mojom::ICloudSpacePtr> spaces;
+        for (const ICloudSync::RemoteSpace& space : found) {
+          if (!local.contains(space.uuid)) {
+            spaces.push_back(
+                mojom::ICloudSpace::New(space.uuid, space.name, space.icon));
+          }
+        }
+        std::move(callback).Run(std::move(spaces));
+      },
+      std::move(local), std::move(callback)));
+}
+
+void SidebarPageHandler::ConnectICloudSpace(mojom::ICloudSpacePtr space) {
+  SpaceController::Get()->CreateSpace(
+      browser_, base::UTF8ToUTF16(space->name), space->icon,
+      base::BindOnce(
+          [](std::string uuid, Profile* profile) {
+            if (ICloudSync* sync = ICloudSync::Get(profile)) {
+              sync->SetUuid(uuid);
+              sync->SetEnabled(true);
+            }
+          },
+          space->uuid));
+}
+
+void SidebarPageHandler::RestartBrowser() {
+  chrome::AttemptRestart();
 }
 
 void SidebarPageHandler::OnSpacesChanged() {

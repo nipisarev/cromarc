@@ -31,6 +31,15 @@ export function getHtml(this: SpaceEditorElement) {
     </button>
     <button id="cancel" @click="${this.onCancelClick_}">Отмена</button>
   </div>
+  ${this.creating && this.remoteSpaces.length ? html`
+    <div id="remote">
+      <div class="label">Есть в iCloud Drive — подключить с этого Mac:</div>
+      ${this.remoteSpaces.map(space => html`
+        <button class="remote-space" data-uuid="${space.uuid}"
+            @click="${this.onConnectClick_}">
+          <span>${this.remoteIcon_(space)}</span> ${space.name}
+        </button>`)}
+    </div>` : nothing}
 </div>
 <!--_html_template_end_-->`;
   // clang-format on
