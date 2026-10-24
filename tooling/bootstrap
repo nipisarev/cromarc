@@ -6,7 +6,8 @@
 # Adapted from Stedding tooling/bootstrap-depot-tools @ 8a15306, BSD-3-Clause:
 # see third_party/stedding/LICENSE.
 #
-# Checks the host toolchain, then installs or updates depot_tools. Idempotent.
+# Checks the host toolchain, installs or updates depot_tools and creates the
+# local signing identity (lib.sh, "Local code signing"). Idempotent.
 # Usage: tooling/bootstrap
 
 # shellcheck source=tooling/lib.sh
@@ -45,4 +46,6 @@ fi
 add_depot_tools_to_path
 
 log "depot_tools: $(git -C "$DEPOT_TOOLS_DIR" rev-parse --short HEAD) ($(git -C "$DEPOT_TOOLS_DIR" log -1 --format=%cs))"
+
+create_signing_identity
 log "next: tooling/sync"

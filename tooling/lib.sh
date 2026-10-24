@@ -183,3 +183,65 @@ find_app_bundle() {
   done
   [ -n "$app" ] && printf '%s' "$app"
 }
+
+# Local code signing. An ad-hoc signature's designated requirement is the
+# build's cdhash, so the Keychain asks again for "Chromium Safe Storage" after
+# every build. Signed with one self-signed certificate, the requirement is the
+# bundle id and that certificate: the same for every build. The certificate
+# lives in a keychain of its own, not the login one, and is trusted for
+# nothing.
+SIGNING_IDENTITY="${CROMARC_SIGNING_IDENTITY:-Cromarc Local Signing}"
+SIGNING_KEYCHAIN="${CROMARC_SIGNING_KEYCHAIN:-$HOME/Library/Keychains/cromarc-signing.keychain-db}"
+
+have_signing_identity() {
+  [ -f "$SIGNING_KEYCHAIN" ] &&
+    security find-certificate -c "$SIGNING_IDENTITY" "$SIGNING_KEYCHAIN" >/dev/null 2>&1
+}
+
+# The keychain has no password: one would have to sit in plain text next to it.
+unlock_signing_keychain() {
+  security unlock-keychain -p "" "$SIGNING_KEYCHAIN"
+}
+
+create_signing_identity() {
+  have_signing_identity && return 0
+  local tmp
+  tmp="$(mktemp -d)"
+  printf '%s\n' '[req]' 'distinguished_name = dn' 'x509_extensions = ext' 'prompt = no' \
+    '[dn]' "CN = $SIGNING_IDENTITY" \
+    '[ext]' 'basicConstraints = critical, CA:false' 'keyUsage = critical, digitalSignature' \
+    'extendedKeyUsage = critical, codeSigning' > "$tmp/cert.cnf"
+  # /usr/bin/openssl (LibreSSL): `security import` reads its PKCS#12, not
+  # the AES-encrypted one OpenSSL 3 writes by default.
+  /usr/bin/openssl req -x509 -newkey rsa:2048 -nodes -days 7300 -config "$tmp/cert.cnf" \
+    -keyout "$tmp/key.pem" -out "$tmp/cert.pem" 2>/dev/null
+  /usr/bin/openssl pkcs12 -export -inkey "$tmp/key.pem" -in "$tmp/cert.pem" \
+    -name "$SIGNING_IDENTITY" -passout pass:cromarc -out "$tmp/identity.p12"
+  [ -f "$SIGNING_KEYCHAIN" ] || security create-keychain -p "" "$SIGNING_KEYCHAIN"
+  security set-keychain-settings "$SIGNING_KEYCHAIN"
+  unlock_signing_keychain
+  security import "$tmp/identity.p12" -k "$SIGNING_KEYCHAIN" -P cromarc -T /usr/bin/codesign >/dev/null
+  security set-key-partition-list -S apple-tool:,apple: -s -k "" "$SIGNING_KEYCHAIN" >/dev/null
+  rm -rf "$tmp"
+  log "signing identity \"$SIGNING_IDENTITY\" in $SIGNING_KEYCHAIN"
+}
+
+sign_code() {
+  codesign --force --timestamp=none --sign "$SIGNING_IDENTITY" --keychain "$SIGNING_KEYCHAIN" "$1" 2>&1 |
+    { grep -v ': replacing existing signature$' || true; } >&2
+}
+
+# Signs `app` inside out: the framework's libraries and helpers, the
+# framework, then the app. No hardened runtime, as the ad-hoc build had.
+sign_app() {
+  local app="$1" framework f
+  unlock_signing_keychain
+  for framework in "$app"/Contents/Frameworks/*.framework; do
+    for f in "$framework"/Versions/Current/Libraries/*.dylib "$framework"/Versions/Current/Helpers/*; do
+      [ -e "$f" ] && sign_code "$f"
+    done
+    sign_code "$framework"
+  done
+  sign_code "$app"
+  codesign --verify --deep --strict "$app" || die "the signature of $app does not verify"
+}

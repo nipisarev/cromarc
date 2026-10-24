@@ -103,6 +103,12 @@ fi
 log "built in $(( elapsed / 3600 ))h $(( (elapsed % 3600) / 60 ))m"
 app="$(find_app_bundle "$abs_out" || true)"
 if [ -n "$app" ]; then
+  if have_signing_identity; then
+    sign_app "$app"
+    log "signed: $SIGNING_IDENTITY"
+  else
+    warn "ad-hoc signature: the Keychain asks for \"Chromium Safe Storage\" again after every build. tooling/bootstrap sets up local signing"
+  fi
   log "app:  $app ($(du -sh "$app" | cut -f1))"
   log "run:  open '$app'"
 fi
