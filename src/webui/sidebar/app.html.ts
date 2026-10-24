@@ -189,6 +189,11 @@ ${this.editor_ ? html`
       @space-edit-done="${this.onSpaceEditDone_}"
       @space-edit-cancel="${this.onSpaceEditCancel_}">
   </cromarc-space-editor>` : nothing}
+${this.themeEditor_ ? html`
+  <cromarc-theme-editor id="theme-editor" .theme="${this.themeEditor_.theme}"
+      @theme-change="${this.onThemeChange_}"
+      @theme-done="${this.onThemeDone_}">
+  </cromarc-theme-editor>` : nothing}
 ${this.icloud_ ? html`
   <div id="icloud" class="card" role="dialog">
     <div class="title">${this.strings.icloudTitle} · ${this.icloud_.space.name}</div>

@@ -72,6 +72,8 @@ struct Space {
   uint32 color;
   // The space of this sidebar's window.
   bool current;
+  // The theme editor's JSON, "" for none.
+  string theme;
 };
 
 struct SnapshotTab {
@@ -154,6 +156,7 @@ interface PageHandler {
   CreateSpace(string name, string icon);
   RenameSpace(string id, string name);
   SetSpaceIcon(string id, string icon);
+  SetSpaceTheme(string id, string theme);
   ReorderSpaces(array<string> ids);
   // Closes the space's live tabs: Today's go to the archive, pinned ones
   // sleep.

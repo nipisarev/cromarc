@@ -14,6 +14,7 @@ import type {TabStripObserver} from '/tab_strip_api/tab_strip_observer.js';
 
 import './library.js';
 import './space_editor.js';
+import './theme_editor.js';
 
 import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
@@ -21,6 +22,8 @@ import {BrowserProxy} from './browser_proxy.js';
 import {buildSidebar, dropTarget} from './sidebar_model.js';
 import type {SpaceEdit} from './space_editor.js';
 import {iconMask} from './space_icon.js';
+import {gradientOf, themeFromJson} from './theme_model.js';
+import type {SpaceTheme} from './theme_model.js';
 import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
 import {strings} from './strings.js';
@@ -93,6 +96,8 @@ export class SidebarAppElement extends CrLitElement {
       editor_: {type: Object},
       deleting_: {type: Object},
       icloud_: {type: Object},
+      themeEditor_: {type: Object},
+      themePreview_: {type: Object},
       remoteSpaces_: {type: Array},
       libraryShown_: {type: Boolean},
       libraryOpen_: {type: Boolean},
@@ -131,6 +136,11 @@ export class SidebarAppElement extends CrLitElement {
   // Spaces in iCloud Drive this Mac does not have, offered in the new space
   // form.
   protected accessor remoteSpaces_: ICloudSpace[] = [];
+  // The theme editor open over the strip, and its unsaved theme.
+  protected accessor themeEditor_: {space: Space, theme: SpaceTheme}|null =
+      null;
+  protected accessor themePreview_: {id: string, theme: SpaceTheme}|null =
+      null;
   // The Library: rendered while open, dragged in or closing.
   protected accessor libraryShown_: boolean = false;
   protected accessor libraryOpen_: boolean = false;
@@ -194,6 +204,9 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   private setSpaces_(spaces: Space[]) {
+    if (this.themePreview_ && !this.themeEditor_) {
+      this.themePreview_ = null;
+    }
     this.spaces_ = spaces;
     this.snapshots_ = new Map();
     this.rest_();
@@ -526,6 +539,13 @@ export class SidebarAppElement extends CrLitElement {
         {label: strings.editSpace, action: () => this.editSpace_(space, false)},
         {label: strings.changeIcon, action: () => this.editSpace_(space, true)},
         {
+          label: strings.editTheme,
+          action: () => this.themeEditor_ = {
+            space,
+            theme: themeFromJson(space.theme),
+          },
+        },
+        {
           label: strings.sleepSpace,
           action: () => this.proxy_.handler.sleepSpace(space.id),
         },
@@ -607,11 +627,34 @@ export class SidebarAppElement extends CrLitElement {
   // Before the space list arrives, one strip: this window's own.
   protected get stripSpaces_(): Space[] {
     return this.spaces_.length ? this.spaces_ :
-        [{id: '', name: '', icon: '', color: 0, current: true}];
+        [{id: '', name: '', icon: '', color: 0, current: true, theme: ''}];
   }
 
   protected stripStyle_(index: number): string {
-    return `transform: translateX(${this.stripX_[index] ?? 0}%)`;
+    const space = this.stripSpaces_[index];
+    const theme = this.themePreview_ && space?.id === this.themePreview_.id ?
+        this.themePreview_.theme :
+        themeFromJson(space?.theme ?? '');
+    return `transform: translateX(${this.stripX_[index] ?? 0}%); ` +
+        `background: ${gradientOf(theme)}; --grain: ${theme.texture}`;
+  }
+
+  protected onThemeChange_(e: CustomEvent<SpaceTheme>) {
+    if (this.themeEditor_) {
+      // Lit sets object properties again on every render: the editor's own
+      // theme has to be the one bound.
+      this.themeEditor_ = {...this.themeEditor_, theme: e.detail};
+      this.themePreview_ = {id: this.themeEditor_.space.id, theme: e.detail};
+    }
+  }
+
+  protected onThemeDone_(e: CustomEvent<SpaceTheme>) {
+    const editor = this.themeEditor_;
+    this.themeEditor_ = null;
+    if (editor) {
+      this.proxy_.handler.setSpaceTheme(
+          editor.space.id, JSON.stringify(e.detail));
+    }
   }
 
   protected snapshotOf_(id: string): SnapshotView {

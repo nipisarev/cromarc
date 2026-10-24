@@ -19,6 +19,8 @@ inline constexpr char kSpaceIconPref[] = "cromarc.space.icon";
 inline constexpr char kSpaceOrderPref[] = "cromarc.space.order";
 // Last time the space was the visible one.
 inline constexpr char kSpaceLastActivePref[] = "cromarc.space.last_active";
+// The theme editor's JSON: {colors: [[r, g, b]...], opacity, texture, scheme}.
+inline constexpr char kSpaceThemePref[] = "cromarc.space.theme";
 
 // Registers the prefs above for every profile. Builds no service.
 class SpacePrefsFactory : public ProfileKeyedServiceFactory {

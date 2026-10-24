@@ -26,6 +26,7 @@ void SpacePrefsFactory::RegisterProfilePrefs(
   registry->RegisterStringPref(kSpaceIconPref, std::string());
   registry->RegisterIntegerPref(kSpaceOrderPref, -1);
   registry->RegisterTimePref(kSpaceLastActivePref, base::Time());
+  registry->RegisterStringPref(kSpaceThemePref, std::string());
 }
 
 std::unique_ptr<KeyedService>

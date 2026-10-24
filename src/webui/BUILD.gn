@@ -44,6 +44,9 @@ build_webui("build") {
     "sidebar/spaces.ts",
     "sidebar/strings.ts",
     "sidebar/tab_list_model.ts",
+    "sidebar/theme_editor.html.ts",
+    "sidebar/theme_editor.ts",
+    "sidebar/theme_model.ts",
     "welcome/app.html.ts",
     "welcome/app.ts",
     "welcome/steps.ts",
@@ -55,6 +58,7 @@ build_webui("build") {
     "sidebar/icon_picker.css",
     "sidebar/library.css",
     "sidebar/space_editor.css",
+    "sidebar/theme_editor.css",
     "welcome/app.css",
   ]
 

@@ -11,6 +11,7 @@ export const strings = {
   // Zen's space menu (zen-workspaces-panel-*).
   editSpace: 'Изменить space…',
   changeIcon: 'Сменить иконку…',
+  editTheme: 'Изменить тему…',
   sleepSpace: 'Усыпить space',
   deleteSpace: 'Удалить space…',
   deleteSpaceTitle: 'Удалить space?',

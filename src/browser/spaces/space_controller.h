@@ -42,6 +42,8 @@ class SpaceController : public ProfileAttributesStorageObserver {
     std::u16string name;
     std::string icon;
     SkColor color = SK_ColorTRANSPARENT;
+    // The theme editor's JSON, "" for none.
+    std::string theme;
   };
 
   // What a window's sidebar receives from the controller.
@@ -114,6 +116,10 @@ class SpaceController : public ProfileAttributesStorageObserver {
   // An emoji, "icon:<name>" for one of Zen's icons, or "" for the first
   // letter of the name.
   void SetSpaceIcon(const std::string& id, const std::string& icon);
+  // The theme editor's JSON. The first colour becomes the profile's Chrome
+  // colour and the scheme its light or dark mode, so the window around the
+  // sidebar follows.
+  void SetSpaceTheme(const std::string& id, const std::string& theme);
   // `ids` in the switcher's new order.
   void ReorderSpaces(const std::vector<std::string>& ids);
   // Deletes the space's profile the way Chrome's settings do, after `from`

@@ -315,6 +315,7 @@ std::vector<mojom::SpacePtr> SidebarPageHandler::BuildSpaces() {
     s->icon = space.icon;
     s->color = space.color;
     s->current = space.id == current;
+    s->theme = space.theme;
     result.push_back(std::move(s));
   }
   return result;
@@ -370,6 +371,11 @@ void SidebarPageHandler::RenameSpace(const std::string& id,
 void SidebarPageHandler::SetSpaceIcon(const std::string& id,
                                       const std::string& icon) {
   SpaceController::Get()->SetSpaceIcon(id, icon);
+}
+
+void SidebarPageHandler::SetSpaceTheme(const std::string& id,
+                                       const std::string& theme) {
+  SpaceController::Get()->SetSpaceTheme(id, theme);
 }
 
 void SidebarPageHandler::ReorderSpaces(const std::vector<std::string>& ids) {

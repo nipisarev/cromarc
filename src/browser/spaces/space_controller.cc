@@ -10,6 +10,8 @@
 
 #include "base/functional/bind.h"
 #include "base/i18n/char_iterator.h"
+#include "base/json/json_reader.h"
+#include "base/values.h"
 #include "base/strings/utf_string_conversion_utils.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
@@ -75,6 +77,32 @@ bool IsVisible(BrowserWindowInterface* browser) {
   return window && window->IsVisible() && !window->IsMinimized();
 }
 
+// The parts of a space theme Chrome's own theme takes.
+void ApplyTheme(Profile* profile, const std::string& json) {
+  std::optional<base::Value> value = base::JSONReader::Read(json, 0);
+  const base::DictValue* theme = value ? value->GetIfDict() : nullptr;
+  if (!theme) {
+    return;
+  }
+  ThemeService* service = ThemeServiceFactory::GetForProfile(profile);
+  const base::ListValue* colors = theme->FindList("colors");
+  if (colors && !colors->empty() && (*colors)[0].is_list() &&
+      (*colors)[0].GetList().size() == 3) {
+    const base::ListValue& rgb = (*colors)[0].GetList();
+    service->SetUserColorAndBrowserColorVariant(
+        SkColorSetRGB(rgb[0].GetIfInt().value_or(0),
+                      rgb[1].GetIfInt().value_or(0),
+                      rgb[2].GetIfInt().value_or(0)),
+        ui::mojom::BrowserColorVariant::kTonalSpot);
+  }
+  const std::string* scheme = theme->FindString("scheme");
+  service->SetBrowserColorScheme(
+      !scheme                ? ThemeService::BrowserColorScheme::kSystem
+      : *scheme == "light"   ? ThemeService::BrowserColorScheme::kLight
+      : *scheme == "dark"    ? ThemeService::BrowserColorScheme::kDark
+                             : ThemeService::BrowserColorScheme::kSystem);
+}
+
 }  // namespace
 
 // static
@@ -113,6 +141,7 @@ std::vector<SpaceController::Space> SpaceController::GetSpaces() {
     int order = -1;
     if (Profile* profile = manager->GetProfileByPath(space.path)) {
       space.icon = profile->GetPrefs()->GetString(kSpaceIconPref);
+      space.theme = profile->GetPrefs()->GetString(kSpaceThemePref);
       order = profile->GetPrefs()->GetInteger(kSpaceOrderPref);
     }
     if (space.icon.empty()) {
@@ -452,6 +481,21 @@ void SpaceController::SetSpaceIcon(const std::string& id,
                         }
                       },
                       weak_factory_.GetWeakPtr(), icon));
+}
+
+void SpaceController::SetSpaceTheme(const std::string& id,
+                                    const std::string& theme) {
+  LoadSpace(id, base::BindOnce(
+                    [](base::WeakPtr<SpaceController> self, std::string theme,
+                       Profile* profile) {
+                      if (!self || !profile) {
+                        return;
+                      }
+                      profile->GetPrefs()->SetString(kSpaceThemePref, theme);
+                      ApplyTheme(profile, theme);
+                      self->NotifySpacesChanged();
+                    },
+                    weak_factory_.GetWeakPtr(), theme));
 }
 
 void SpaceController::ReorderSpaces(const std::vector<std::string>& ids) {
