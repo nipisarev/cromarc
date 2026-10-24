@@ -20,6 +20,7 @@ tooling/bootstrap        # depot_tools in ~/depot_tools
 tooling/sync             # Chromium at the tag in CHROMIUM_VERSION
 tooling/apply            # src/ -> chromium/src/cromarc, patches/hooks -> branch cromarc-work
 tooling/build release    # out/release/Cromarc.app
+tooling/install          # the build -> /Applications/Cromarc.app, the copy to use (Cromarc closed)
 tooling/check            # shellcheck, tooling tests, WebUI unit tests
 tooling/test-browser     # browser suites over CDP, debug checks fatal (--sites: popular sites)
 ```

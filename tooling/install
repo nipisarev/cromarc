@@ -1,0 +1,39 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Copies the release build to /Applications/Cromarc.app, the copy used every
+# day, so builds and test runs never touch a running browser (a browser whose
+# helpers start from a newer build shows nothing). Refuses while Cromarc runs.
+# Usage: tooling/install
+
+set -euo pipefail
+# shellcheck source=tooling/lib.sh
+source "$(dirname "$0")/lib.sh"
+
+build="$CHROMIUM_SRC/out/release/Cromarc.app"
+app="/Applications/Cromarc.app"
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+
+[ -d "$build" ] || die "no $build (tooling/build release)"
+codesign --verify --deep "$build" 2>/dev/null || die "$build is not signed (tooling/build signs it)"
+if pgrep -f "^$app/Contents/MacOS/Cromarc" >/dev/null; then
+  die "Cromarc is running: quit it (Cmd+Q) first"
+fi
+# Started from the build folder, as before this script: not a test instance,
+# which always has its own --user-data-dir.
+for pid in $(pgrep -f "^$build/Contents/MacOS/Cromarc" || true); do
+  ps -o args= -p "$pid" | grep -q -- '--user-data-dir' ||
+    die "Cromarc is running from the build folder: quit it (Cmd+Q) first"
+done
+
+log "copying $build -> $app"
+rm -rf "$app.new"
+ditto "$build" "$app.new"
+rm -rf "$app"
+mv "$app.new" "$app"
+# Links from other apps go by bundle id, which the build shares: point it here.
+"$lsregister" -f "$app"
+"$lsregister" -u "$build" 2>/dev/null || true
+log "installed: $app (open it from there and keep it in the Dock)"
