@@ -10,6 +10,8 @@
 
 #include "base/functional/bind.h"
 #include "base/no_destructor.h"
+#include "chrome/browser/lifetime/application_lifetime_desktop.h"
+#include "chrome/browser/lifetime/browser_shutdown.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
@@ -102,6 +104,9 @@ LittleWindow::LittleWindow(BrowserWindowInterface* browser)
   }
   close_subscription_ = browser->RegisterBrowserDidClose(base::BindRepeating(
       &LittleWindow::OnWindowClosed, weak_factory_.GetWeakPtr()));
+  closing_all_subscription_ =
+      chrome::AddClosingAllBrowsersCallback(base::BindRepeating(
+          &LittleWindow::OnClosingAllBrowsers, weak_factory_.GetWeakPtr()));
 }
 
 LittleWindow::~LittleWindow() = default;
@@ -153,7 +158,25 @@ void LittleWindow::OnTabWillDetach(tabs::TabInterface* tab,
   if (moved_ || reason != tabs::TabInterface::DetachReason::kDelete) {
     return;
   }
-  content::WebContents* contents = tab->GetContents();
+  Archive(tab->GetContents(), /*session_ending=*/false);
+}
+
+void LittleWindow::OnClosingAllBrowsers(bool closing) {
+  if (!closing || moved_ ||
+      browser_shutdown::GetShutdownType() !=
+          browser_shutdown::ShutdownType::kEndSession) {
+    return;
+  }
+  BrowserWindowInterface* little = BrowserWindowInterface::FromSessionID(id_);
+  tabs::TabInterface* tab = little ? little->GetActiveTabInterface() : nullptr;
+  if (tab) {
+    moved_ = true;
+    Archive(tab->GetContents(), /*session_ending=*/true);
+  }
+}
+
+void LittleWindow::Archive(content::WebContents* contents,
+                           bool session_ending) {
   ArchiveService* archive = ArchiveService::Get(
       Profile::FromBrowserContext(contents->GetBrowserContext()));
   ArchiveEntry entry;
@@ -161,7 +184,12 @@ void LittleWindow::OnTabWillDetach(tabs::TabInterface* tab,
   entry.title = contents->GetTitle();
   entry.closed_at = base::Time::Now();
   entry.reason = "little";
-  if (archive && entry.url.is_valid() && !entry.url.is_empty()) {
+  if (!archive || !entry.url.is_valid() || entry.url.is_empty()) {
+    return;
+  }
+  if (session_ending) {
+    archive->AddAtSessionEnd(entry);
+  } else {
     archive->Add(std::move(entry));
   }
 }

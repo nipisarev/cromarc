@@ -5,6 +5,7 @@
 #include "cromarc/browser/archive/archive_service_factory.h"
 
 #include "chrome/browser/profiles/profile.h"
+#include "components/pref_registry/pref_registry_syncable.h"
 #include "cromarc/browser/archive/archive_service.h"
 
 namespace cromarc {
@@ -28,10 +29,16 @@ ArchiveServiceFactory::ArchiveServiceFactory()
 
 ArchiveServiceFactory::~ArchiveServiceFactory() = default;
 
+void ArchiveServiceFactory::RegisterProfilePrefs(
+    user_prefs::PrefRegistrySyncable* registry) {
+  registry->RegisterListPref(kArchivePendingPref);
+}
+
 std::unique_ptr<KeyedService>
 ArchiveServiceFactory::BuildServiceInstanceForBrowserContext(
     content::BrowserContext* context) const {
-  return std::make_unique<ArchiveService>(context->GetPath());
+  return std::make_unique<ArchiveService>(
+      context->GetPath(), Profile::FromBrowserContext(context)->GetPrefs());
 }
 
 }  // namespace cromarc

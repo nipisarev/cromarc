@@ -37,5 +37,9 @@ source_set("service") {
     "//chrome/browser:browser_public_dependencies",
     "//components/keyed_service/core",
   ]
-  deps = [ "//chrome/browser/profiles:profile" ]
+  deps = [
+    "//chrome/browser/profiles:profile",
+    "//components/pref_registry",
+    "//components/prefs",
+  ]
 }

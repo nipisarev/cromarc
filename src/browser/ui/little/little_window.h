@@ -16,6 +16,10 @@
 class BrowserWindowInterface;
 class Profile;
 
+namespace content {
+class WebContents;
+}  // namespace content
+
 namespace cromarc {
 
 // Little Arc (design, component 5 and UI section 7): a link from another app
@@ -54,7 +58,11 @@ class LittleWindow {
 
   void OnTabWillDetach(tabs::TabInterface* tab,
                        tabs::TabInterface::DetachReason reason);
+  // At SIGTERM or logout (chrome::SessionEnding) the process exits with its
+  // tabs open; the page goes to the archive then.
+  void OnClosingAllBrowsers(bool closing);
   void OnSpaceShown(BrowserWindowInterface* space_window);
+  void Archive(content::WebContents* contents, bool session_ending);
   void OnWindowClosed(BrowserWindowInterface* browser);
 
   const SessionID id_;
@@ -63,6 +71,7 @@ class LittleWindow {
   bool moved_ = false;
   base::CallbackListSubscription tab_subscription_;
   base::CallbackListSubscription close_subscription_;
+  base::CallbackListSubscription closing_all_subscription_;
   base::WeakPtrFactory<LittleWindow> weak_factory_{this};
 };
 

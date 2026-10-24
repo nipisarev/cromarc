@@ -9,10 +9,12 @@
 #include <vector>
 
 #include "base/functional/callback.h"
+#include "base/memory/raw_ptr.h"
 #include "base/threading/sequence_bound.h"
 #include "components/keyed_service/core/keyed_service.h"
 #include "cromarc/browser/archive/archive.h"
 
+class PrefService;
 class Profile;
 
 namespace base {
@@ -20,6 +22,9 @@ class FilePath;
 }  // namespace base
 
 namespace cromarc {
+
+// Entries waiting for the archive database, from AddAtSessionEnd().
+inline constexpr char kArchivePendingPref[] = "cromarc.archive.pending";
 
 // The archive of one regular profile, on a background sequence. Results come
 // back on the calling sequence.
@@ -29,18 +34,24 @@ class ArchiveService : public KeyedService {
 
   static ArchiveService* Get(Profile* profile);
 
-  explicit ArchiveService(const base::FilePath& profile_path);
+  // Entries AddAtSessionEnd() left in `prefs` go into the archive now.
+  ArchiveService(const base::FilePath& profile_path, PrefService* prefs);
   ArchiveService(const ArchiveService&) = delete;
   ArchiveService& operator=(const ArchiveService&) = delete;
   ~ArchiveService() override;
 
   void Add(ArchiveEntry entry);
+  // For a session that is ending (chrome::SessionEnding: SIGTERM, logout):
+  // the process exits without waiting for the database, but the profile's
+  // prefs are written. The entry goes into the archive at the next start.
+  void AddAtSessionEnd(const ArchiveEntry& entry);
   void Search(const std::u16string& query,
               size_t limit,
               SearchCallback callback);
   void Remove(int64_t id);
 
  private:
+  const raw_ptr<PrefService> prefs_;
   base::SequenceBound<Archive> archive_;
 };
 
