@@ -36,6 +36,8 @@ class LittleWindow {
 
   // The space the page goes to by default: the window's own.
   std::string default_space() const { return default_space_; }
+  // The page's URL; empty once the window has closed.
+  GURL url() const;
 
   // Moves the page to the space's Today and brings that space forward. A
   // space of another profile gets the URL; the page here closes unarchived.

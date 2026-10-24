@@ -15,10 +15,51 @@ export function getHtml(this: LibraryElement) {
     <button id="close" title="Закрыть (Esc)" @click="${this.onCloseClick_}">✕</button>
   </div>
   <div id="sections">
-    <button class="section" selected>🗃 Архив</button>
+    <button class="section" ?selected="${this.section_ === 'archive'}"
+        @click="${this.onArchiveClick_}">🗃 Архив</button>
+    <button class="section" ?selected="${this.section_ === 'links'}"
+        @click="${this.onLinksClick_}">Ссылки</button>
     <button class="section" @click="${this.onHistoryClick_}">История</button>
     <button class="section" @click="${this.onDownloadsClick_}">Загрузки</button>
   </div>
+  ${this.section_ === 'links' ? html`
+  <div id="links">
+    <label class="hint">Ссылки из других приложений открываются в</label>
+    <select id="default-route" @change="${this.onDefaultRouteChange_}">
+      <option value="" ?selected="${this.defaultRoute_ === ''}">
+        последнем открытом space
+      </option>
+      ${this.spaces.map(space => html`
+        <option value="${space.id}"
+            ?selected="${this.defaultRoute_ === space.id}">${space.name}</option>`)}
+    </select>
+    <div class="hint">…кроме этих правил (первое подходящее):</div>
+    ${this.routes_.map(route => html`
+      <div class="route">
+        <span class="reference">${route.reference}</span>
+        <span class="sub">${this.matchLabels_[route.match]} →
+          ${this.spaceName_(route.space)}</span>
+        <button class="remove" data-id="${route.id}" title="Удалить правило"
+            @click="${this.onRemoveRouteClick_}">✕</button>
+      </div>`)}
+    <div id="add-route">
+      <input id="route-reference" placeholder="github.com/qase" spellcheck="false">
+      <div class="row-controls">
+        <select id="route-match">
+          <option value="contains">содержит</option>
+          <option value="equal-to">равно</option>
+          <option value="regex">regex</option>
+        </select>
+        <select id="route-space">
+          ${this.spaces.map(space => html`
+            <option value="${space.id}">${space.name}</option>`)}
+        </select>
+        <button id="add-route-button" @click="${this.onAddRouteClick_}">
+          Добавить
+        </button>
+      </div>
+    </div>
+  </div>` : html`
   <input id="search" type="search" placeholder="Поиск в архиве"
       spellcheck="false" .value="${this.query_}"
       @input="${this.onSearchInput_}">
@@ -39,7 +80,7 @@ export function getHtml(this: LibraryElement) {
           </span>
           <span class="restore" title="Вернуть в Today">↺</span>
         </div>`)}`)}
-  </div>
+  </div>`}
 </div>
 <!--_html_template_end_-->`;
   // clang-format on

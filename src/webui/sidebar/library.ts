@@ -5,7 +5,7 @@
 import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 
-import type {ArchivedTab} from '../sidebar.mojom-webui.js';
+import type {ArchivedTab, LinkRoute, Space} from '../sidebar.mojom-webui.js';
 
 import {BrowserProxy} from './browser_proxy.js';
 import {getCss} from './library.css.js';
@@ -15,9 +15,16 @@ import type {DayGroup} from './library_model.js';
 
 const LIMIT = 200;
 
+const MATCH_LABELS: Record<string, string> = {
+  'contains': 'содержит',
+  'equal-to': 'равно',
+  'regex': 'regex',
+};
+
 // The Library (design, UI section 10), after Zen's ZenLibrary: Cromarc's
-// archive first, by day, searchable; History and Downloads open Chrome's
-// pages. Fires `library-close`.
+// archive first, by day, searchable; the link rules (Zen's space routing
+// section); History and Downloads open Chrome's pages. Fires
+// `library-close`.
 export class LibraryElement extends CrLitElement {
   static get is() {
     return 'cromarc-library';
@@ -33,12 +40,22 @@ export class LibraryElement extends CrLitElement {
 
   static override get properties() {
     return {
+      spaces: {type: Array},
+      section_: {type: String},
       query_: {type: String},
       groups_: {type: Array},
       loaded_: {type: Boolean},
+      routes_: {type: Array},
+      defaultRoute_: {type: String},
+      matchLabels_: {type: Object},
     };
   }
 
+  accessor spaces: Space[] = [];
+  protected accessor section_: 'archive'|'links' = 'archive';
+  protected accessor routes_: LinkRoute[] = [];
+  protected accessor defaultRoute_: string = '';
+  protected accessor matchLabels_: Record<string, string> = MATCH_LABELS;
   protected accessor query_: string = '';
   protected accessor groups_: Array<DayGroup<ArchivedTab>> = [];
   protected accessor loaded_: boolean = false;
@@ -74,6 +91,51 @@ export class LibraryElement extends CrLitElement {
     this.groups_ = this.groups_
                        .map(g => ({...g, tabs: g.tabs.filter(t => t !== tab)}))
                        .filter(g => g.tabs.length);
+  }
+
+  protected onArchiveClick_() {
+    this.section_ = 'archive';
+  }
+
+  protected async onLinksClick_() {
+    this.section_ = 'links';
+    await this.loadRoutes_();
+  }
+
+  protected spaceName_(id: string): string {
+    return this.spaces.find(s => s.id === id)?.name ?? id;
+  }
+
+  protected async onDefaultRouteChange_(e: Event) {
+    await this.proxy_.handler.setDefaultRoute(
+        (e.target as HTMLSelectElement).value);
+    await this.loadRoutes_();
+  }
+
+  protected async onAddRouteClick_() {
+    const root = this.shadowRoot;
+    const reference =
+        root.querySelector<HTMLInputElement>('#route-reference')!.value.trim();
+    if (!reference) {
+      return;
+    }
+    this.proxy_.handler.addRoute(
+        reference, root.querySelector<HTMLSelectElement>('#route-match')!.value,
+        root.querySelector<HTMLSelectElement>('#route-space')!.value);
+    root.querySelector<HTMLInputElement>('#route-reference')!.value = '';
+    await this.loadRoutes_();
+  }
+
+  protected async onRemoveRouteClick_(e: Event) {
+    this.proxy_.handler.removeRoute(
+        (e.currentTarget as HTMLElement).dataset['id']!);
+    await this.loadRoutes_();
+  }
+
+  private async loadRoutes_() {
+    const {routes, defaultExternal} = await this.proxy_.handler.getRoutes();
+    this.routes_ = routes;
+    this.defaultRoute_ = defaultExternal;
   }
 
   protected onHistoryClick_() {

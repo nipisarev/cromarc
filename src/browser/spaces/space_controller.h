@@ -94,6 +94,11 @@ class SpaceController : public ProfileAttributesStorageObserver {
 
   void OnSwipe(BrowserWindowInterface* browser, const SwipeTracker::Event& event);
 
+  // Runs `callback` with space `id`'s profile, loading it first if needed;
+  // null when there is no such space or it failed to load.
+  void LoadSpace(const std::string& id,
+                 base::OnceCallback<void(Profile*)> callback);
+
   // Space settings (design, UI section 11). A space is a profile: these load
   // it when needed.
   // A new profile named `name` with `icon` and a colour of its own; `from`
@@ -140,9 +145,6 @@ class SpaceController : public ProfileAttributesStorageObserver {
   void SwitchToLoaded(SessionID from_id, Profile* target);
   void ShowLoadedSpace(base::OnceCallback<void(BrowserWindowInterface*)> then,
                        Profile* target);
-  // Runs `callback` with space `id`'s profile, loading it first if needed.
-  void WithProfile(const std::string& id,
-                   base::OnceCallback<void(Profile*)> callback);
   void OnSpaceCreated(SessionID from_id, std::string icon, Profile* profile);
   // The space window on screen: the most recently active one with a sidebar.
   BrowserWindowInterface* GetVisibleSpaceWindow();

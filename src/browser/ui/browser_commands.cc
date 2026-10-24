@@ -5,11 +5,40 @@
 #include "cromarc/browser/ui/browser_commands.h"
 
 #include "chrome/browser/profiles/profile.h"
+#include "base/functional/bind.h"
+#include "cromarc/browser/routing/space_routing.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/glance/hovered_link.h"
 #include "cromarc/browser/ui/little/little_window.h"
 
 namespace cromarc {
+
+namespace {
+
+// A Little window of `space`, or of `fallback` when a rule names a space that
+// is gone.
+void OpenLittleIn(const std::string& space,
+                  const std::string& fallback,
+                  const GURL& url) {
+  SpaceController::Get()->LoadSpace(
+      space, base::BindOnce(
+                 [](std::string fallback, GURL url, Profile* profile) {
+                   if (profile) {
+                     LittleWindow::Open(profile, url);
+                   } else if (!fallback.empty()) {
+                     OpenLittleIn(fallback, std::string(), url);
+                   }
+                 },
+                 fallback, url));
+}
+
+void RouteExternalLink(const std::string& fallback, const GURL& url) {
+  const std::string space =
+      SpaceForExternalLink(SpaceRouting::Get()->routes(), url);
+  OpenLittleIn(space.empty() ? fallback : space, fallback, url);
+}
+
+}  // namespace
 
 bool OpenExternalLinks(const StartupTabs& tabs, Profile* profile) {
   if (profile->IsOffTheRecord()) {
@@ -20,8 +49,11 @@ bool OpenExternalLinks(const StartupTabs& tabs, Profile* profile) {
       return false;
     }
   }
+  // The routing rules choose the space; `profile` (the one used last) takes
+  // what they leave.
   for (const StartupTab& tab : tabs) {
-    LittleWindow::Open(profile, tab.url);
+    SpaceRouting::Get()->WhenLoaded(base::BindOnce(
+        &RouteExternalLink, SpaceController::IdOf(profile), tab.url));
   }
   return true;
 }

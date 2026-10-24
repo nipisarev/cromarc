@@ -106,6 +106,12 @@ LittleWindow::LittleWindow(BrowserWindowInterface* browser)
 
 LittleWindow::~LittleWindow() = default;
 
+GURL LittleWindow::url() const {
+  BrowserWindowInterface* little = BrowserWindowInterface::FromSessionID(id_);
+  tabs::TabInterface* tab = little ? little->GetActiveTabInterface() : nullptr;
+  return tab ? tab->GetContents()->GetLastCommittedURL() : GURL();
+}
+
 void LittleWindow::OpenInSpace(const std::string& space_id) {
   SpaceController::Get()->ShowSpace(
       space_id, base::BindOnce(&LittleWindow::OnSpaceShown,

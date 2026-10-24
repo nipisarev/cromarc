@@ -124,3 +124,69 @@ button:hover,
 .row:hover .restore {
   opacity: .7;
 }
+
+#links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.hint {
+  font-size: 11px;
+  opacity: .6;
+}
+
+select,
+#route-reference {
+  background: rgba(128, 128, 128, .12);
+  border: none;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  min-width: 0;
+  padding: 5px 6px;
+}
+
+.route {
+  align-items: center;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  padding: 4px 6px;
+}
+
+.route:hover {
+  background: rgba(128, 128, 128, .15);
+}
+
+.route .reference {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route .sub {
+  grid-column: 1;
+}
+
+.route .remove {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  opacity: .5;
+}
+
+#add-route {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.row-controls select {
+  flex: 1;
+}

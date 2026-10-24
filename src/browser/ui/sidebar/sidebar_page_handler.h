@@ -89,6 +89,12 @@ class SidebarPageHandler : public mojom::PageHandler,
                      uint32_t limit,
                      SearchArchiveCallback callback) override;
   void RestoreFromArchive(int64_t id, const GURL& url) override;
+  void GetRoutes(GetRoutesCallback callback) override;
+  void AddRoute(const std::string& reference,
+                const std::string& match,
+                const std::string& space) override;
+  void RemoveRoute(const std::string& id) override;
+  void SetDefaultRoute(const std::string& space) override;
 
   // SpaceController::Sidebar:
   void OnSpacesChanged() override;

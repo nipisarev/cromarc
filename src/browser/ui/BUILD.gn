@@ -16,6 +16,7 @@ source_set("browser_commands_impl") {
   deps = [
     ":browser_commands",
     "//chrome/browser/profiles:profile",
+    "//cromarc/browser/routing",
     "//cromarc/browser/spaces",
     "//cromarc/browser/ui/glance",
     "//cromarc/browser/ui/little",

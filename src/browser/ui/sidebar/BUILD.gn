@@ -67,6 +67,7 @@ source_set("impl") {
     "//components/browser_apis/tab_strip/resources:resources",
     "//cromarc/browser/archive:service",
     "//cromarc/browser/lifecycle:service",
+    "//cromarc/browser/routing",
     "//cromarc/browser/spaces",
     "//cromarc/browser/tree:service",
     "//components/favicon/content",

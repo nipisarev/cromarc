@@ -21,6 +21,7 @@ source_set("little") {
     "//components/vector_icons",
     "//content/public/browser",
     "//cromarc/browser/archive:service",
+    "//cromarc/browser/routing",
     "//cromarc/browser/spaces",
     "//ui/base",
     "//ui/display",

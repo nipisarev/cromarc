@@ -24,6 +24,7 @@
 #include "content/public/common/referrer.h"
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
+#include "cromarc/browser/routing/space_routing.h"
 #include "cromarc/browser/tree/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/browser_commands.h"
@@ -426,6 +427,41 @@ void SidebarPageHandler::SearchArchive(const std::string& query,
 void SidebarPageHandler::RestoreFromArchive(int64_t id, const GURL& url) {
   browser_->OpenGURL(url, WindowOpenDisposition::NEW_FOREGROUND_TAB);
   archive_service_->Remove(id);
+}
+
+void SidebarPageHandler::GetRoutes(GetRoutesCallback callback) {
+  SpaceRouting::Get()->WhenLoaded(base::BindOnce(
+      [](GetRoutesCallback callback) {
+        const Routes& routes = SpaceRouting::Get()->routes();
+        std::vector<mojom::LinkRoutePtr> result;
+        for (const Route& route : routes.routes) {
+          result.push_back(mojom::LinkRoute::New(
+              route.id, route.reference, std::string(MatchName(route.match)),
+              route.space));
+        }
+        std::move(callback).Run(std::move(result), routes.default_external);
+      },
+      std::move(callback)));
+}
+
+void SidebarPageHandler::AddRoute(const std::string& reference,
+                                  const std::string& match,
+                                  const std::string& space) {
+  const Route::Match type =
+      MatchFromName(match).value_or(Route::Match::kContains);
+  SpaceRouting::Get()->WhenLoaded(base::BindOnce(
+      [](std::string reference, Route::Match type, std::string space) {
+        SpaceRouting::Get()->AddRoute(reference, type, space);
+      },
+      reference, type, space));
+}
+
+void SidebarPageHandler::RemoveRoute(const std::string& id) {
+  SpaceRouting::Get()->RemoveRoute(id);
+}
+
+void SidebarPageHandler::SetDefaultRoute(const std::string& space) {
+  SpaceRouting::Get()->SetDefaultExternal(space);
 }
 
 void SidebarPageHandler::OnSpacesChanged() {

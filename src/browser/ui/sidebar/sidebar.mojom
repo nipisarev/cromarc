@@ -19,6 +19,16 @@ struct ArchivedTab {
   string folder_path;
 };
 
+// A rule sending links from other apps to a space (Zen's space routing).
+struct LinkRoute {
+  string id;
+  string reference;
+  // "contains", "equal-to" or "regex".
+  string match;
+  // The space's id.
+  string space;
+};
+
 // One node of the space's tree: a folder or a pinned item.
 struct TreeNode {
   // Bookmark UUID. "" in calls means the tree root.
@@ -149,6 +159,12 @@ interface PageHandler {
   SearchArchive(string query, uint32 limit) => (array<ArchivedTab> tabs);
   // Back to Today: opens the URL and drops the archive row.
   RestoreFromArchive(int64 id, url.mojom.Url url);
+
+  // The Library's link rules. `default_external` "" is the space used last.
+  GetRoutes() => (array<LinkRoute> routes, string default_external);
+  AddRoute(string reference, string match, string space);
+  RemoveRoute(string id);
+  SetDefaultRoute(string space);
 };
 
 interface Page {

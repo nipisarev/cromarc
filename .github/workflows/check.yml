@@ -22,8 +22,8 @@ jobs:
   repository:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
       - name: Install shellcheck
@@ -36,7 +36,7 @@ jobs:
   newest-stable:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Hooks against Chrome's newest stable for Mac
         run: |
           latest="$(curl -sf 'https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Mac&num=1' |

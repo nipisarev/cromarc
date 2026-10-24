@@ -1,0 +1,41 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+source_set("routes") {
+  sources = [
+    "routes.cc",
+    "routes.h",
+  ]
+  public_deps = [ "//base" ]
+  deps = [
+    "//third_party/re2",
+    "//url",
+  ]
+}
+
+source_set("routing") {
+  sources = [
+    "space_routing.cc",
+    "space_routing.h",
+  ]
+  public_deps = [
+    ":routes",
+    "//chrome/browser:browser_public_dependencies",
+  ]
+  deps = [
+    "//chrome/browser:browser_process",
+    "//chrome/browser/profiles:profile_manager",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "routes_unittest.cc" ]
+  deps = [
+    ":routes",
+    "//base",
+    "//testing/gtest",
+    "//url",
+  ]
+}

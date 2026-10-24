@@ -229,6 +229,7 @@ ${this.addProgress_ > 0 ? html`
   </div>` : nothing}
 ${this.libraryShown_ ? html`
   <cromarc-library id="library" ?dragging="${this.libraryDrag_ >= 0}"
+      .spaces="${this.spaces_}"
       style="${this.libraryStyle_()}"
       @library-close="${this.onLibraryClose_}">
   </cromarc-library>` : nothing}

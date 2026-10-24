@@ -378,8 +378,12 @@ BrowserWindowInterface* SpaceController::GetVisibleSpaceWindow() {
   return found;
 }
 
-void SpaceController::WithProfile(const std::string& id,
-                                  base::OnceCallback<void(Profile*)> callback) {
+void SpaceController::LoadSpace(const std::string& id,
+                                base::OnceCallback<void(Profile*)> callback) {
+  if (!std::ranges::contains(GetSpaces(), id, &Space::id)) {
+    std::move(callback).Run(nullptr);
+    return;
+  }
   if (Profile* profile = GetLoadedProfile(id)) {
     std::move(callback).Run(profile);
     return;
@@ -427,7 +431,7 @@ void SpaceController::RenameSpace(const std::string& id,
 
 void SpaceController::SetSpaceIcon(const std::string& id,
                                    const std::string& icon) {
-  WithProfile(id, base::BindOnce(
+  LoadSpace(id, base::BindOnce(
                       [](base::WeakPtr<SpaceController> self, std::string icon,
                          Profile* profile) {
                         if (self && profile) {
@@ -440,7 +444,7 @@ void SpaceController::SetSpaceIcon(const std::string& id,
 
 void SpaceController::ReorderSpaces(const std::vector<std::string>& ids) {
   for (size_t i = 0; i < ids.size(); ++i) {
-    WithProfile(ids[i],
+    LoadSpace(ids[i],
                 base::BindOnce(
                     [](base::WeakPtr<SpaceController> self, int order,
                        bool last, Profile* profile) {
