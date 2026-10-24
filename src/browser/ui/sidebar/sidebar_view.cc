@@ -9,11 +9,16 @@
 #include <string>
 #include <utility>
 
+#include "base/functional/bind.h"
+#include "base/location.h"
+#include "base/logging.h"
 #include "base/no_destructor.h"
+#include "base/task/single_thread_task_runner.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "content/public/browser/navigation_controller.h"
+#include "content/public/browser/reload_type.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/referrer.h"
 #include "cromarc/browser/spaces/space_controller.h"
@@ -33,6 +38,8 @@
 namespace cromarc {
 
 namespace {
+
+constexpr int kMaxReloadsPerMinute = 3;
 
 std::set<SidebarView*>& Sidebars() {
   static base::NoDestructor<std::set<SidebarView*>> sidebars;
@@ -89,11 +96,11 @@ SidebarView::SidebarView(BrowserWindowInterface* browser)
   InstallSpaceInputMonitor();
   SpaceController::Get()->OnWindowCreated(browser);
   MaybeShowWelcome(browser);
-  // Takes all the height left in the region's content area. The bottom button
-  // container after it is unbounded too, with weight 1: at equal weights
-  // FlexLayout splits the space. Zero-weight children are served first, so
-  // weight 0 gives the space to this view. It must not have a zero preferred
-  // size: FlexLayout serves those last.
+  // Takes all the height left in the region's content area. Should the
+  // bottom button container after it show, it is unbounded too, with weight
+  // 1: at equal weights FlexLayout splits the space. Zero-weight children are
+  // served first, so weight 0 gives the space to this view. It must not have a
+  // zero preferred size: FlexLayout serves those last.
   SetProperty(views::kFlexBehaviorKey,
               views::FlexSpecification(views::MinimumFlexSizeRule::kScaleToZero,
                                        views::MaximumFlexSizeRule::kUnbounded)
@@ -122,6 +129,32 @@ bool SidebarView::HandleKeyboardEvent(
     const input::NativeWebKeyboardEvent& event) {
   return unhandled_keyboard_event_handler_.HandleKeyboardEvent(
       event, GetFocusManager());
+}
+
+void SidebarView::PrimaryMainFrameRenderProcessGone(
+    base::TerminationStatus status) {
+  if (status == base::TERMINATION_STATUS_NORMAL_TERMINATION ||
+      status == base::TERMINATION_STATUS_STILL_RUNNING) {
+    return;
+  }
+  const base::TimeTicks now = base::TimeTicks::Now();
+  if (now - first_reload_ > base::Minutes(1)) {
+    first_reload_ = now;
+    reloads_ = 0;
+  }
+  if (++reloads_ > kMaxReloadsPerMinute) {
+    LOG(ERROR) << "Cromarc: the sidebar keeps crashing; not reloading it";
+    return;
+  }
+  // Not from inside the observer call: the frame is still being torn down.
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindOnce(&SidebarView::Reload, weak_factory_.GetWeakPtr()));
+}
+
+void SidebarView::Reload() {
+  web_contents()->GetController().Reload(content::ReloadType::NORMAL,
+                                         /*check_for_repost=*/false);
 }
 
 BEGIN_METADATA(SidebarView)

@@ -8,6 +8,9 @@
 #include <memory>
 
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
+#include "base/process/kill.h"
+#include "base/time/time.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/native_ui_types.h"
 #include "ui/views/controls/webview/unhandled_keyboard_event_handler.h"
@@ -48,10 +51,21 @@ class SidebarView : public views::WebView {
   bool HandleKeyboardEvent(content::WebContents* source,
                            const input::NativeWebKeyboardEvent& event) override;
 
+  // content::WebContentsObserver (through views::WebView): the window has no
+  // other tab UI, so a crashed sidebar loads again instead of a sad tab.
+  void PrimaryMainFrameRenderProcessGone(
+      base::TerminationStatus status) override;
+
  private:
+  void Reload();
+
   raw_ptr<BrowserWindowInterface> browser_;
   std::unique_ptr<CompactMode> compact_mode_;
   views::UnhandledKeyboardEventHandler unhandled_keyboard_event_handler_;
+  // Reloads within a minute of the first one, to stop a crash loop.
+  base::TimeTicks first_reload_;
+  int reloads_ = 0;
+  base::WeakPtrFactory<SidebarView> weak_factory_{this};
 };
 
 }  // namespace cromarc

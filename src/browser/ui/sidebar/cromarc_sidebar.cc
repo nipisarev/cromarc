@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "base/check.h"
+#include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_bottom_container.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/views/view.h"
 #include "ui/views/view_utils.h"
@@ -18,6 +19,12 @@ void InstallSidebar(views::View* parent,
                     views::View* native_tab_list,
                     BrowserWindowInterface* browser) {
   native_tab_list->SetVisible(false);
+  for (views::View* child : parent->children()) {
+    // Its only button, New Tab, is in the sidebar's list.
+    if (views::IsViewClass<VerticalTabStripBottomContainer>(child)) {
+      child->SetVisible(false);
+    }
+  }
   for (views::View* child : parent->children()) {
     if (views::IsViewClass<SidebarView>(child)) {
       return;

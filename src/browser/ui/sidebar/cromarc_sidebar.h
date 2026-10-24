@@ -17,8 +17,8 @@ inline constexpr char kSidebarHost[] = "cromarc-sidebar.top-chrome";
 inline constexpr char kSidebarURL[] = "chrome://cromarc-sidebar.top-chrome/";
 
 // Hook H2, called by the vertical tab strip region right after it adds its
-// native tab list to `parent`: hides that list and puts the Cromarc sidebar
-// after it. Safe to call again when the region re-adds its list.
+// native tab list to `parent`: hides that list and the New Tab button under
+// it and puts the Cromarc sidebar after the list. Safe to call again when the region re-adds its list.
 void InstallSidebar(views::View* parent,
                     views::View* native_tab_list,
                     BrowserWindowInterface* browser);
