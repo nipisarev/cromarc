@@ -20,6 +20,7 @@
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/space_input.h"
+#include "cromarc/browser/ui/welcome/welcome_ui.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/page_transition_types.h"
@@ -87,6 +88,7 @@ SidebarView::SidebarView(BrowserWindowInterface* browser)
   compact_mode_ = std::make_unique<CompactMode>(this);
   InstallSpaceInputMonitor();
   SpaceController::Get()->OnWindowCreated(browser);
+  MaybeShowWelcome(browser);
   // Takes all the height left in the region's content area. The bottom button
   // container after it is unbounded too, with weight 1: at equal weights
   // FlexLayout splits the space. Zero-weight children are served first, so

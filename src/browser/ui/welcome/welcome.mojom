@@ -1,0 +1,31 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+module cromarc.welcome.mojom;
+
+struct WelcomeState {
+  string space_name;
+  string space_icon;
+  // Arc's StorableSidebar.json is on this Mac.
+  bool arc_found;
+  bool is_default_browser;
+};
+
+interface PageHandlerFactory {
+  CreatePageHandler(pending_receiver<PageHandler> handler);
+};
+
+// First run (design, UI section 12).
+interface PageHandler {
+  GetState() => (WelcomeState state);
+  // This window's space: its name, icon and colour (0 keeps the colour).
+  SetupSpace(string name, string icon, uint32 color);
+  // Another space; the window stays on this one.
+  AddSpace(string name, string icon);
+  // macOS asks the person; true when Cromarc is the default browser after.
+  SetAsDefaultBrowser() => (bool is_default);
+  OpenArcImport();
+  // Closes the welcome tab.
+  Finish();
+};

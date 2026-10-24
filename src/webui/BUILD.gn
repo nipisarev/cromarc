@@ -18,6 +18,7 @@ build_webui("build") {
     "arc_import/arc_import.html",
     "command_bar/command_bar.html",
     "sidebar/sidebar.html",
+    "welcome/welcome.html",
   ] + cromarc_space_icons
 
   ts_files = [
@@ -43,6 +44,9 @@ build_webui("build") {
     "sidebar/spaces.ts",
     "sidebar/strings.ts",
     "sidebar/tab_list_model.ts",
+    "welcome/app.html.ts",
+    "welcome/app.ts",
+    "welcome/steps.ts",
   ]
   css_files = [
     "arc_import/app.css",
@@ -51,6 +55,7 @@ build_webui("build") {
     "sidebar/icon_picker.css",
     "sidebar/library.css",
     "sidebar/space_editor.css",
+    "welcome/app.css",
   ]
 
   webui_context_type = "trusted"
@@ -71,6 +76,7 @@ build_webui("build") {
     "//cromarc/browser/ui/arc_import:mojo_bindings_ts__generator",
     "//cromarc/browser/ui/command_bar:mojo_bindings_ts__generator",
     "//cromarc/browser/ui/sidebar:mojo_bindings_ts__generator",
+    "//cromarc/browser/ui/welcome:mojo_bindings_ts__generator",
   ]
   mojo_files = [
     "$root_gen_dir/components/browser_apis/tab_strip/node_id_converter.ts",
@@ -79,6 +85,7 @@ build_webui("build") {
     "$root_gen_dir/cromarc/browser/ui/arc_import/arc_import.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/command_bar/command_bar.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/sidebar/sidebar.mojom-webui.ts",
+    "$root_gen_dir/cromarc/browser/ui/welcome/welcome.mojom-webui.ts",
   ]
 
   ts_path_mappings = [ "/tab_strip_api/*|" + rebase_path(

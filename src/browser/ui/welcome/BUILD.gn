@@ -1,0 +1,52 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import("//mojo/public/tools/bindings/mojom.gni")
+
+assert(!is_android)
+
+mojom("mojo_bindings") {
+  sources = [ "welcome.mojom" ]
+  webui_module_path = "/"
+}
+
+source_set("welcome") {
+  sources = [ "welcome_ui.h" ]
+  public_deps = [
+    ":mojo_bindings",
+    "//content/public/browser",
+    "//mojo/public/cpp/bindings",
+    "//ui/webui",
+  ]
+}
+
+source_set("impl") {
+  sources = [
+    "welcome_page_handler.cc",
+    "welcome_page_handler.h",
+    "welcome_ui.cc",
+  ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    ":welcome",
+    "//base",
+    "//chrome/browser:browser_process",
+    "//chrome/browser:shell_integration",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/profiles:profile_manager",
+    "//chrome/browser/themes",
+    "//chrome/browser/ui/browser_window",
+    "//chrome/browser/ui/webui:webui_util",
+    "//chrome/common",
+    "//components/sessions",
+    "//components/tabs:public",
+    "//content/public/browser",
+    "//cromarc/browser/spaces",
+    "//cromarc/browser/ui/arc_import",
+    "//cromarc/webui:resources",
+    "//skia",
+    "//ui/webui",
+    "//url",
+  ]
+}

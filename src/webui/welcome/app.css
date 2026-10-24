@@ -1,0 +1,161 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* #css_wrapper_metadata_start
+ * #type=style-lit
+ * #scheme=relative
+ * #css_wrapper_metadata_end */
+
+:host {
+  color: var(--color-sys-on-surface, #1f1f1f);
+  display: block;
+  font-size: 14px;
+}
+
+main {
+  margin: 12vh auto;
+  max-width: 460px;
+  padding: 0 16px;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.dot {
+  background: rgba(128, 128, 128, .3);
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.dot[current] {
+  background: var(--color-sys-primary, #6b40d9);
+}
+
+section {
+  animation: in 300ms cubic-bezier(.2, .8, .2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@keyframes in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0;
+}
+
+p {
+  line-height: 1.5;
+  margin: 0;
+  opacity: .75;
+}
+
+button {
+  background: rgba(128, 128, 128, .12);
+  border: none;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  padding: 9px 14px;
+}
+
+button:hover {
+  background: rgba(128, 128, 128, .22);
+}
+
+.primary {
+  background: var(--color-sys-primary, #6b40d9);
+  color: var(--color-sys-on-primary, #fff);
+}
+
+.text {
+  background: none;
+}
+
+.name-wrapper,
+.row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.name-wrapper {
+  background: rgba(128, 128, 128, .1);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+#icon {
+  align-items: center;
+  border: 1px dashed rgba(128, 128, 128, .6);
+  display: flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  width: 34px;
+}
+
+.svg {
+  background: currentColor;
+  height: 16px;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  width: 16px;
+}
+
+input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  flex: 1;
+  font: inherit;
+  min-width: 0;
+  outline: none;
+}
+
+.row input {
+  background: rgba(128, 128, 128, .1);
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.colors {
+  display: flex;
+  gap: 8px;
+}
+
+.color {
+  border-radius: 50%;
+  height: 26px;
+  padding: 0;
+  width: 26px;
+}
+
+.color[selected] {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.added {
+  margin: 0;
+  padding-inline-start: 18px;
+}
+
+.ok {
+  font-weight: 600;
+  opacity: 1;
+}

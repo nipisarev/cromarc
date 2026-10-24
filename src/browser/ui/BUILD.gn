@@ -38,5 +38,6 @@ source_set("webui_registration_impl") {
     "//cromarc/browser/ui/command_bar",
     "//cromarc/browser/ui/sidebar",
     "//cromarc/browser/ui/sidebar:mojo_bindings",
+    "//cromarc/browser/ui/welcome",
   ]
 }

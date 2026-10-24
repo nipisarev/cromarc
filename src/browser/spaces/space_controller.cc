@@ -397,18 +397,20 @@ void SpaceController::CreateSpace(
     BrowserWindowInterface* from,
     const std::u16string& name,
     const std::string& icon,
-    base::OnceCallback<void(Profile*)> configure) {
+    base::OnceCallback<void(Profile*)> configure,
+    bool switch_to_it) {
   ProfileManager::CreateMultiProfileAsync(
       name, profiles::GetPlaceholderAvatarIndex(), /*is_hidden=*/false,
       base::BindOnce(&SpaceController::OnSpaceCreated,
                      weak_factory_.GetWeakPtr(), from->GetSessionID(), icon,
-                     std::move(configure)));
+                     std::move(configure), switch_to_it));
 }
 
 void SpaceController::OnSpaceCreated(
     SessionID from_id,
     std::string icon,
     base::OnceCallback<void(Profile*)> configure,
+    bool switch_to_it,
     Profile* profile) {
   if (!profile) {
     return;
@@ -424,7 +426,9 @@ void SpaceController::OnSpaceCreated(
           kNewSpaceColors[(GetSpaces().size() - 1) % kNewSpaceColors.size()],
           ui::mojom::BrowserColorVariant::kTonalSpot);
   NotifySpacesChanged();
-  SwitchToLoaded(from_id, profile);
+  if (switch_to_it) {
+    SwitchToLoaded(from_id, profile);
+  }
 }
 
 void SpaceController::RenameSpace(const std::string& id,

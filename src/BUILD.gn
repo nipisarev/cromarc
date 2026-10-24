@@ -21,6 +21,7 @@ group("cromarc") {
     "//cromarc/browser/ui/arc_import:impl",
     "//cromarc/browser/ui/command_bar:impl",
     "//cromarc/browser/ui/sidebar:impl",
+    "//cromarc/browser/ui/welcome:impl",
   ]
 }
 

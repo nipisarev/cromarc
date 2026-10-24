@@ -73,6 +73,7 @@ source_set("impl") {
     "//cromarc/browser/tree:service",
     "//components/favicon/content",
     "//cromarc/browser/ui:browser_commands",
+    "//cromarc/browser/ui/welcome",
     "//ui/gfx",
     "//cromarc/webui:resources",
     "//skia",
