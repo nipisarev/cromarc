@@ -32,6 +32,9 @@ build_webui("build") {
     "sidebar/emoji_data.ts",
     "sidebar/icon_picker.html.ts",
     "sidebar/icon_picker.ts",
+    "sidebar/library.html.ts",
+    "sidebar/library.ts",
+    "sidebar/library_model.ts",
     "sidebar/sidebar_model.ts",
     "sidebar/space_editor.html.ts",
     "sidebar/space_editor.ts",
@@ -46,6 +49,7 @@ build_webui("build") {
     "command_bar/app.css",
     "sidebar/app.css",
     "sidebar/icon_picker.css",
+    "sidebar/library.css",
     "sidebar/space_editor.css",
   ]
 

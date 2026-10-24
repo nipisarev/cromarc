@@ -362,6 +362,70 @@ button:hover {
   opacity: .6;
 }
 
+#library-button {
+  margin-inline-start: auto;
+  opacity: .7;
+}
+
+#library-button[selected] {
+  background: var(--active);
+  opacity: 1;
+}
+
+/* The Library slides over the sidebar from the left (zen:library). */
+#library {
+  background: var(--color-sys-surface, Canvas);
+  bottom: 36px;
+  inset-inline: 0;
+  position: absolute;
+  top: 0;
+  transition: transform 250ms cubic-bezier(.2, .8, .2, 1);
+}
+
+#library[dragging] {
+  transition: none;
+}
+
+/* Zen's add-space badge past the last space (zen:spaces/ZenSpaceAddSwipe). */
+#add-swipe {
+  align-items: center;
+  display: flex;
+  height: 44px;
+  justify-content: center;
+  position: absolute;
+  right: 12px;
+  top: 40%;
+  width: 44px;
+}
+
+#add-swipe svg {
+  inset: 0;
+  position: absolute;
+  transform: rotate(-90deg);
+}
+
+#add-swipe circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+#add-swipe .track {
+  stroke: rgba(128, 128, 128, .25);
+}
+
+#add-swipe .arc {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
+#add-swipe span {
+  font-size: 18px;
+}
+
+#add-swipe[ready] span {
+  color: var(--accent);
+}
+
 .space-button[current] {
   background: var(--active);
 }

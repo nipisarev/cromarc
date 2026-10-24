@@ -7,6 +7,18 @@ module cromarc.mojom;
 import "components/browser_apis/tab_strip/tab_strip_api_types.mojom";
 import "url/mojom/url.mojom";
 
+// A tab Cromarc closed, as the Library's archive lists it.
+struct ArchivedTab {
+  int64 id;
+  url.mojom.Url url;
+  string title;
+  // When it was closed, in milliseconds since the Unix epoch.
+  double closed_at;
+  // "idle", "clear", "folder" or "little".
+  string reason;
+  string folder_path;
+};
+
 // One node of the space's tree: a folder or a pinned item.
 struct TreeNode {
   // Bookmark UUID. "" in calls means the tree root.
@@ -131,6 +143,12 @@ interface PageHandler {
   SleepSpace(string id);
   // False for the last space.
   DeleteSpace(string id) => (bool deleted);
+
+  // The Library's archive (design, UI section 10): this space's closed tabs
+  // matching `query`, newest first.
+  SearchArchive(string query, uint32 limit) => (array<ArchivedTab> tabs);
+  // Back to Today: opens the URL and drops the archive row.
+  RestoreFromArchive(int64 id, url.mojom.Url url);
 };
 
 interface Page {

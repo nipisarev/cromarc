@@ -85,6 +85,10 @@ class SidebarPageHandler : public mojom::PageHandler,
   void SleepSpace(const std::string& id) override;
   void DeleteSpace(const std::string& id,
                    DeleteSpaceCallback callback) override;
+  void SearchArchive(const std::string& query,
+                     uint32_t limit,
+                     SearchArchiveCallback callback) override;
+  void RestoreFromArchive(int64_t id, const GURL& url) override;
 
   // SpaceController::Sidebar:
   void OnSpacesChanged() override;

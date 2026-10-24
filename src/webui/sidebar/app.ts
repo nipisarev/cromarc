@@ -12,6 +12,7 @@ import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_a
 import {TabStripObservation} from '/tab_strip_api/tab_strip_observation.js';
 import type {TabStripObserver} from '/tab_strip_api/tab_strip_observer.js';
 
+import './library.js';
 import './space_editor.js';
 
 import {getCss} from './app.css.js';
@@ -20,7 +21,7 @@ import {BrowserProxy} from './browser_proxy.js';
 import {buildSidebar, dropTarget} from './sidebar_model.js';
 import type {SpaceEdit} from './space_editor.js';
 import {iconMask} from './space_icon.js';
-import {circularDiff, isAnimatedStrip, neighbourIndex, moveSpace, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
+import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
 import {strings} from './strings.js';
 import {TabListModel} from './tab_list_model.js';
@@ -91,6 +92,10 @@ export class SidebarAppElement extends CrLitElement {
       tint_: {type: String},
       editor_: {type: Object},
       deleting_: {type: Object},
+      libraryShown_: {type: Boolean},
+      libraryOpen_: {type: Boolean},
+      libraryDrag_: {type: Number},
+      addProgress_: {type: Number},
     };
   }
 
@@ -117,6 +122,17 @@ export class SidebarAppElement extends CrLitElement {
   // The space whose deletion waits for confirmation.
   protected accessor deleting_: Space|null = null;
   private draggedSpace_ = '';
+  // The Library: rendered while open, dragged in or closing.
+  protected accessor libraryShown_: boolean = false;
+  protected accessor libraryOpen_: boolean = false;
+  // How far a swipe has pulled the Library in, 0–1; -1 when no swipe does.
+  protected accessor libraryDrag_: number = -1;
+  // Zen's add-space swipe past the last space: 1 is ready.
+  protected accessor addProgress_: number = 0;
+  // What a swipe at the edge of the spaces does (zen ZenSpacesSwipe actions).
+  private edgeAction_: 'library'|'add'|null = null;
+  private edgeAllowed_ = {library: false, add: false};
+  private libraryTimer_ = 0;
   private deferred_: Set<string> = new Set();
   private clearedTimer_ = 0;
   private swipe_: SwipeState|null = null;
@@ -222,7 +238,7 @@ export class SidebarAppElement extends CrLitElement {
   // Trackpad swipe over the sidebar (zen:spaces/ZenSpacesSwipe.mjs).
   private onSwipe_(swipe: Swipe) {
     const count = this.spaces_.length;
-    if (count < 2) {
+    if (count < 1) {
       return;
     }
     const current = this.currentIndex_;
@@ -231,6 +247,12 @@ export class SidebarAppElement extends CrLitElement {
         cancelAnimationFrame(this.animationFrame_);
         this.swipe_ = new SwipeState();
         this.swipeOffset_ = 0;
+        // Past the first space the Library, past the last a new space.
+        this.edgeAction_ = null;
+        this.edgeAllowed_ = {
+          library: current === 0 && !this.libraryOpen_,
+          add: current === count - 1 && !this.editor_,
+        };
         this.loadSnapshots_();
         break;
       case SwipeType.kUpdate: {
@@ -240,6 +262,26 @@ export class SidebarAppElement extends CrLitElement {
         // Strips follow the fingers: towards the next space they move left.
         this.swipeOffset_ = -this.swipe_.update(swipe.amount, this.offsetWidth);
         const offset = this.swipeOffset_;
+        if (!this.edgeAction_ && offset > 0 && this.edgeAllowed_.library) {
+          this.edgeAction_ = 'library';
+          this.libraryShown_ = true;
+        } else if (!this.edgeAction_ && offset < 0 && this.edgeAllowed_.add) {
+          this.edgeAction_ = 'add';
+        }
+        if (this.edgeAction_ === 'library') {
+          this.libraryDrag_ = Math.min(1, Math.max(0, offset / this.offsetWidth * 2));
+          return;
+        }
+        if (this.edgeAction_ === 'add') {
+          this.addProgress_ = addSwipeProgress(swipe.amount);
+          this.stripX_ = this.spaces_.map(
+              (_, i) => circularDiff(i, current, count) * 100 +
+                  this.addProgress_ * ADD_SWIPE_SHIFT);
+          return;
+        }
+        if (count < 2) {
+          return;
+        }
         this.stripX_ = this.spaces_.map(
             (_, i) => circularDiff(i, current, count) * 100 + offset / 2);
         this.setTint_(
@@ -250,6 +292,25 @@ export class SidebarAppElement extends CrLitElement {
       }
       case SwipeType.kEnd: {
         this.swipe_ = null;
+        const action = this.edgeAction_;
+        this.edgeAction_ = null;
+        if (action === 'library') {
+          const open = swipe.direction === -1 || this.libraryDrag_ >= 0.5;
+          this.libraryDrag_ = -1;
+          open ? this.openLibrary_() : this.closeLibrary_();
+          return;
+        }
+        if (action === 'add') {
+          if (this.addProgress_ >= 1) {
+            this.onAddSpaceClick_();
+          }
+          this.addProgress_ = 0;
+          this.animateTo_(current);
+          return;
+        }
+        if (count < 2) {
+          return;
+        }
         if (swipe.direction === 0) {
           this.animateTo_(current);
           return;
@@ -340,6 +401,42 @@ export class SidebarAppElement extends CrLitElement {
 
   protected iconText_(icon: string): string {
     return iconMask(icon) ? '' : icon;
+  }
+
+  protected onLibraryClick_() {
+    this.libraryOpen_ ? this.closeLibrary_() : this.openLibrary_();
+  }
+
+  protected onLibraryClose_() {
+    this.closeLibrary_();
+  }
+
+  protected libraryStyle_(): string {
+    const reveal = this.libraryDrag_ >= 0 ? this.libraryDrag_ :
+                                            (this.libraryOpen_ ? 1 : 0);
+    return `transform: translateX(${(reveal - 1) * 100}%)`;
+  }
+
+  protected addSwipeArc_(): string {
+    return `${easeInOut(this.addProgress_) * 100} 100`;
+  }
+
+  protected addSwipeStyle_(): string {
+    const entry = Math.min(this.addProgress_ / ADD_SWIPE_ENTRY, 1);
+    return `translate: ${(1 - entry) * ADD_SWIPE_TRAVEL}% 0; opacity: ${entry}`;
+  }
+
+  private openLibrary_() {
+    clearTimeout(this.libraryTimer_);
+    this.libraryShown_ = true;
+    this.libraryOpen_ = true;
+  }
+
+  private closeLibrary_() {
+    this.libraryOpen_ = false;
+    clearTimeout(this.libraryTimer_);
+    // After the slide out (library.css).
+    this.libraryTimer_ = setTimeout(() => this.libraryShown_ = false, 250);
   }
 
   protected onAddSpaceClick_() {

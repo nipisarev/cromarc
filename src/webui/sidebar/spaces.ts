@@ -121,3 +121,22 @@ export function moveSpace(
   result.splice(to, 0, dragged);
   return result;
 }
+
+// Zen's add-space swipe (zen:spaces/ZenSpaceAddSwipe.mjs): ready at 80% of
+// a swipe, the badge settled by 75% of that, coming 55% of its width in,
+// the strips moving 25% aside (halved like every strip offset).
+export const ADD_SWIPE_THRESHOLD = 0.8;
+export const ADD_SWIPE_ENTRY = 0.75;
+export const ADD_SWIPE_TRAVEL = 55;
+export const ADD_SWIPE_SHIFT = -25 / 2;
+
+// `amount` is the swipe so far (SwipeTracker: finger travel / 550 px).
+export function addSwipeProgress(amount: number): number {
+  return Math.min(1.2, Math.abs(amount) / ADD_SWIPE_THRESHOLD);
+}
+
+// Zen's #easeInOut for the progress arc.
+export function easeInOut(x: number): number {
+  const clamped = Math.min(Math.max(x, 0), 1);
+  return -(Math.cos(Math.PI * clamped) - 1) / 2;
+}

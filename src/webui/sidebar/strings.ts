@@ -19,6 +19,7 @@ export const strings = {
   delete: 'Удалить',
   cancel: 'Отмена',
   newSpace: 'Создать space',
+  library: 'Библиотека',
   today: 'Today',
   rename: 'Переименовать',
   remove: 'Удалить',

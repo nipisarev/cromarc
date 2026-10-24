@@ -1,0 +1,126 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* #css_wrapper_metadata_start
+ * #type=style-lit
+ * #scheme=relative
+ * #css_wrapper_metadata_end */
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+#library {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 6px;
+}
+
+#header {
+  align-items: center;
+  display: flex;
+}
+
+.title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+button {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  padding: 4px 8px;
+}
+
+button:hover,
+.section[selected] {
+  background: rgba(128, 128, 128, .18);
+}
+
+#sections {
+  display: flex;
+  gap: 2px;
+}
+
+#search {
+  background: rgba(128, 128, 128, .12);
+  border: none;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  padding: 6px 8px;
+}
+
+#list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.empty {
+  opacity: .5;
+  text-align: center;
+}
+
+.day {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: .6;
+  padding: 8px 6px 4px;
+}
+
+.row {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  padding: 5px 6px;
+}
+
+.row:hover {
+  background: rgba(128, 128, 128, .15);
+}
+
+.favicon {
+  background-size: 16px;
+  flex-shrink: 0;
+  height: 16px;
+  width: 16px;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name,
+.sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 11px;
+  opacity: .6;
+}
+
+.restore {
+  opacity: 0;
+}
+
+.row:hover .restore {
+  opacity: .7;
+}

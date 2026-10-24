@@ -213,7 +213,25 @@ ${this.deleting_ ? html`
   <button id="add-space" class="space-button" title="${this.strings.newSpace}"
       ?hidden="${!this.spaces_.length}"
       @click="${this.onAddSpaceClick_}">＋</button>
+  <button id="library-button" class="space-button"
+      title="${this.strings.library}" ?selected="${this.libraryOpen_}"
+      @click="${this.onLibraryClick_}">🗃</button>
 </div>
+${this.addProgress_ > 0 ? html`
+  <div id="add-swipe" ?ready="${this.addProgress_ >= 1}"
+      style="${this.addSwipeStyle_()}">
+    <svg viewBox="0 0 36 36">
+      <circle class="track" cx="18" cy="18" r="16" pathLength="100"></circle>
+      <circle class="arc" cx="18" cy="18" r="16" pathLength="100"
+          stroke-dasharray="${this.addSwipeArc_()}"></circle>
+    </svg>
+    <span>＋</span>
+  </div>` : nothing}
+${this.libraryShown_ ? html`
+  <cromarc-library id="library" ?dragging="${this.libraryDrag_ >= 0}"
+      style="${this.libraryStyle_()}"
+      @library-close="${this.onLibraryClose_}">
+  </cromarc-library>` : nothing}
 ${this.cleared_.length ? html`
   <div id="toast" role="status">
     <span>${this.strings.cleared}</span>

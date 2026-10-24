@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {circularDiff, isAnimatedStrip, moveSpace, neighbourIndex, spring, stripTransform, SwipeState} from '../spaces.ts';
+import {addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, moveSpace, neighbourIndex, spring, stripTransform, SwipeState} from '../spaces.ts';
 
 const near = (a: number, b: number, eps = 1e-3) =>
     assert.ok(Math.abs(a - b) < eps, `${a} ≉ ${b}`);
@@ -72,4 +72,13 @@ test('dragging a space onto another takes its place', () => {
   assert.deepEqual(moveSpace(['a', 'b', 'c'], 'b', 'c'), ['a', 'c', 'b']);
   assert.equal(moveSpace(['a', 'b'], 'a', 'a'), null);
   assert.equal(moveSpace(['a', 'b'], 'x', 'a'), null);
+});
+
+test('the add-space swipe is ready at 80% of a swipe, like Zen', () => {
+  near(addSwipeProgress(0.4), 0.5);
+  near(addSwipeProgress(-0.8), 1);
+  near(addSwipeProgress(5), 1.2);
+  near(easeInOut(0), 0);
+  near(easeInOut(0.5), 0.5);
+  near(easeInOut(1), 1);
 });

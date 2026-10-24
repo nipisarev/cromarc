@@ -403,6 +403,31 @@ void SidebarPageHandler::DeleteSpace(const std::string& id,
   std::move(callback).Run(SpaceController::Get()->DeleteSpace(browser_, id));
 }
 
+void SidebarPageHandler::SearchArchive(const std::string& query,
+                                       uint32_t limit,
+                                       SearchArchiveCallback callback) {
+  archive_service_->Search(
+      base::UTF8ToUTF16(query), limit,
+      base::BindOnce(
+          [](SearchArchiveCallback callback,
+             std::vector<ArchiveEntry> entries) {
+            std::vector<mojom::ArchivedTabPtr> tabs;
+            for (const ArchiveEntry& entry : entries) {
+              tabs.push_back(mojom::ArchivedTab::New(
+                  entry.id, entry.url, base::UTF16ToUTF8(entry.title),
+                  entry.closed_at.InMillisecondsFSinceUnixEpoch(),
+                  entry.reason, entry.folder_path));
+            }
+            std::move(callback).Run(std::move(tabs));
+          },
+          std::move(callback)));
+}
+
+void SidebarPageHandler::RestoreFromArchive(int64_t id, const GURL& url) {
+  browser_->OpenGURL(url, WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  archive_service_->Remove(id);
+}
+
 void SidebarPageHandler::OnSpacesChanged() {
   page_->OnSpacesChanged(BuildSpaces());
 }
