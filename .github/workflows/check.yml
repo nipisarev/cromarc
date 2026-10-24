@@ -43,8 +43,12 @@ jobs:
             python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["version"])')"
           . ./CHROMIUM_VERSION
           echo "pin $CHROMIUM_TAG, newest stable $latest"
+          newer="$(printf '%s\n%s\n' "$CHROMIUM_TAG" "$latest" | sort -V | tail -1)"
           if [ "$latest" = "$CHROMIUM_TAG" ]; then
             echo "up to date"
+          elif [ "$newer" = "$CHROMIUM_TAG" ]; then
+            # A tag can be pinned before Mac stable gets it.
+            echo "the pin is ahead of Mac stable"
           else
             echo "::notice::Chrome $latest is out; bump with tooling/bump $latest"
             tooling/check-patches "$latest"
