@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import type {TreeNode} from './sidebar.mojom-webui.js';
+import type {TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 
 // asleep: no live tab, opening loads the home URL. away: the live tab left the
@@ -37,6 +37,8 @@ export type TreeRow = FolderRow|PinnedRow;
 export interface SidebarView {
   essentials: PinnedRow[];
   rows: TreeRow[];
+  // Deferred Today tabs ("Needs attention"): not closed, could lose input.
+  attention: Tab[];
   today: Tab[];
 }
 
@@ -54,7 +56,9 @@ export function isAwayFromHome(homeUrl: string, currentUrl: string): boolean {
   return normalize(homeUrl) !== normalize(currentUrl);
 }
 
-export function buildSidebar(tree: TreeNode[], tabs: Tab[]): SidebarView {
+export function buildSidebar(
+    tree: TreeNode[], tabs: Tab[],
+    deferred: Set<string> = new Set()): SidebarView {
   const tabsById = new Map(tabs.map(t => [t.id, t]));
   const linked = new Set<string>();
   const essentials: PinnedRow[] = [];
@@ -99,8 +103,13 @@ export function buildSidebar(tree: TreeNode[], tabs: Tab[]): SidebarView {
   };
   visit(tree, 0, '', false);
 
-  const today = tabs.filter(t => !linked.has(t.id)).reverse();
-  return {essentials, rows, today};
+  const unlinked = tabs.filter(t => !linked.has(t.id)).reverse();
+  return {
+    essentials,
+    rows,
+    attention: unlinked.filter(t => deferred.has(t.id)),
+    today: unlinked.filter(t => !deferred.has(t.id)),
+  };
 }
 
 export type DropPosition = 'before'|'after'|'inside';

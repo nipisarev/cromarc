@@ -1,0 +1,47 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+module cromarc.command_bar.mojom;
+
+import "url/mojom/url.mojom";
+
+enum ResultKind {
+  // A tab of this window: switch to it.
+  kTab,
+  // A pinned item: focus its tab or wake it.
+  kPinned,
+  // Omnibox suggestion: history, bookmark, search, typed URL.
+  kSuggestion,
+  // A tab Cromarc archived.
+  kArchive,
+};
+
+struct Result {
+  ResultKind kind;
+  // Tab handle, pinned item id, or suggestion/archive index.
+  string id;
+  string title;
+  string subtitle;
+  url.mojom.Url url;
+};
+
+interface PageHandlerFactory {
+  CreatePageHandler(pending_remote<Page> page,
+                    pending_receiver<PageHandler> handler);
+};
+
+interface PageHandler {
+  Query(string text);
+  // Opens `result`: a URL replaces the current page in the Cmd+L mode and opens
+  // a Today tab otherwise; a URL that is a pinned item's home focuses it.
+  Open(Result result);
+  Close();
+};
+
+interface Page {
+  // The bar opened: start from `text` (the current URL for Cmd+L, "" for
+  // Cmd+T), all of it selected.
+  OnShown(string text);
+  OnResults(string text, array<Result> results);
+};

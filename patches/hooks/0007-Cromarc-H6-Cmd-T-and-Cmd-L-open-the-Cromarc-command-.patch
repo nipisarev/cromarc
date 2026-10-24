@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 24 Oct 2026 01:56:33 +0200
+Subject: [PATCH 7/7] Cromarc H6: Cmd+T and Cmd+L open the Cromarc command bar
+
+IDC_NEW_TAB and IDC_FOCUS_LOCATION first offer the command to //cromarc;
+windows without a command bar (apps, popups, off the record) keep Chrome's
+behaviour.
+
+diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
+index 04e9137cf57dd..fc91df078912c 100644
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -657,6 +657,7 @@ if (!is_android) {
+       "//chrome/browser:browser_public_dependencies",
+     ]
+     deps = [
++      "//cromarc:headers",  # Cromarc
+       ":accelerator_table",
+       ":browser_actions",
+       ":browser_commands",
+diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
+index 921461b9e9bd0..e96154fbb61a6 100644
+--- a/chrome/browser/ui/browser_command_controller.cc
++++ b/chrome/browser/ui/browser_command_controller.cc
+@@ -200,6 +200,8 @@
+ 
+ static_assert(BUILDFLAG(ENABLE_EXTENSIONS));
+ 
++#include "cromarc/browser/ui/command_bar/cromarc_command_bar.h"  // Cromarc
++
+ using Extension = extensions::Extension;
+ using ExtensionRegistry = extensions::ExtensionRegistry;
+ using ExtensionRegistryObserver = extensions::ExtensionRegistryObserver;
+@@ -753,6 +755,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
+       CloseWindow(browser_);
+       break;
+     case IDC_NEW_TAB: {
++      if (cromarc::ShowCommandBar(browser_, false)) {  // Cromarc
++        break;
++      }
+       NewTab(browser_, NewTabTypes::kNewTabCommand);
+       break;
+     }
+@@ -1102,6 +1107,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
+       FocusToolbar(browser_);
+       break;
+     case IDC_FOCUS_LOCATION:
++      if (cromarc::ShowCommandBar(browser_, true)) {  // Cromarc
++        break;
++      }
+       if (!window()->IsLocationBarVisible()) {
+         break;
+       }

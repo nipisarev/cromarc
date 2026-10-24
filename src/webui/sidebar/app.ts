@@ -5,7 +5,7 @@
 import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
-import type {TreeNode} from './sidebar.mojom-webui.js';
+import type {TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_api/tab_strip_api_events.mojom-webui.js';
 import {TabStripObservation} from '/tab_strip_api/tab_strip_observation.js';
@@ -63,16 +63,25 @@ export class SidebarAppElement extends CrLitElement {
       renaming_: {type: String},
       drop_: {type: Object},
       strings: {type: Object},
+      minutesLeft_: {type: Object},
+      cleared_: {type: Array},
     };
   }
 
   protected accessor tabs_: Tab[] = [];
   protected accessor tree_: TreeNode[] = [];
-  protected accessor view_: SidebarView = {essentials: [], rows: [], today: []};
+  protected accessor view_: SidebarView =
+      {essentials: [], rows: [], attention: [], today: []};
   protected accessor menu_: Menu|null = null;
   // Id of the item whose title is being edited.
   protected accessor renaming_: string = '';
   protected accessor drop_: DropIndicator|null = null;
+  // Today tabs close to the archive: tab id → minutes left.
+  protected accessor minutesLeft_: Map<string, number> = new Map();
+  // URLs closed by the last Clear while its undo toast shows.
+  protected accessor cleared_: string[] = [];
+  private deferred_: Set<string> = new Set();
+  private clearedTimer_ = 0;
 
   protected accessor strings: typeof strings = strings;
   private readonly proxy_ = BrowserProxy.getInstance();
@@ -85,6 +94,10 @@ export class SidebarAppElement extends CrLitElement {
     this.proxy_.callbackRouter.onTreeChanged.addListener(
         (nodes: TreeNode[]) => this.tree_ = nodes);
     this.proxy_.handler.getTree().then(({nodes}) => this.tree_ = nodes);
+    this.proxy_.callbackRouter.onTabLifecyclesChanged.addListener(
+        (tabs: TabLifecycle[]) => this.setLifecycles_(tabs));
+    this.proxy_.handler.getTabLifecycles().then(
+        ({tabs}) => this.setLifecycles_(tabs));
     this.connectTabs_();
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
@@ -96,9 +109,17 @@ export class SidebarAppElement extends CrLitElement {
   override willUpdate(changed: PropertyValues<this>) {
     super.willUpdate(changed);
     if (changed.has('tabs_' as keyof SidebarAppElement) ||
-        changed.has('tree_' as keyof SidebarAppElement)) {
-      this.view_ = buildSidebar(this.tree_, this.tabs_);
+        changed.has('tree_' as keyof SidebarAppElement) ||
+        changed.has('minutesLeft_' as keyof SidebarAppElement)) {
+      this.view_ = buildSidebar(this.tree_, this.tabs_, this.deferred_);
     }
+  }
+
+  private setLifecycles_(tabs: TabLifecycle[]) {
+    this.deferred_ = new Set(tabs.filter(t => t.deferred).map(t => t.tab));
+    // A new Map also re-runs buildSidebar() for the deferred set.
+    this.minutesLeft_ = new Map(tabs.filter(t => t.minutesLeft > 0)
+                                    .map(t => [t.tab, t.minutesLeft]));
   }
 
   // Reads the window's tab strip and follows its events; re-reads it when an
@@ -156,6 +177,17 @@ export class SidebarAppElement extends CrLitElement {
     return row.state === 'away' && row.tab ? row.tab.url : row.homeUrl;
   }
 
+  protected todayTooltip_(tab: Tab): string {
+    const minutes = this.minutesLeft_.get(tab.id);
+    return minutes ? `${tab.title}\n${strings.archivesIn(minutes)}` : tab.title;
+  }
+
+  // Width of the countdown bar: grows over the last hour.
+  protected countdown_(tab: Tab): string {
+    const minutes = this.minutesLeft_.get(tab.id);
+    return minutes ? `${Math.round((60 - minutes) / 60 * 100)}%` : '0';
+  }
+
   // Clicks.
 
   protected onItemClick_(e: Event) {
@@ -198,6 +230,32 @@ export class SidebarAppElement extends CrLitElement {
 
   protected onNewTabClick_() {
     this.proxy_.handler.newTab();
+  }
+
+  // Today's Clear: everything goes to the archive; a toast offers undo for
+  // 5 seconds (design, UI section 4).
+  protected async onClearClick_() {
+    const {closed} = await this.proxy_.handler.clearToday();
+    if (closed.length === 0) {
+      return;
+    }
+    this.cleared_ = closed;
+    clearTimeout(this.clearedTimer_);
+    this.clearedTimer_ = setTimeout(() => this.cleared_ = [], 5000);
+  }
+
+  protected onUndoClearClick_() {
+    this.proxy_.handler.reopenTabs(this.cleared_);
+    this.cleared_ = [];
+    clearTimeout(this.clearedTimer_);
+  }
+
+  protected onKeepClick_(e: Event) {
+    e.stopPropagation();
+    const id = this.idOf_(e);
+    if (id) {
+      this.proxy_.handler.keepTab(id);
+    }
   }
 
   // Context menus.

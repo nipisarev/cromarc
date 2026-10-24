@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html dir="$i18n{textdirection}" lang="$i18n{language}">
+  <head>
+    <meta charset="utf-8">
+    <title>Cromarc command bar</title>
+    <style>
+      html,
+      body {
+        background: transparent;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <cromarc-command-bar-app></cromarc-command-bar-app>
+    <script type="module" src="command_bar/app.js"></script>
+    <link rel="stylesheet" href="chrome://resources/css/text_defaults_md.css">
+    <link rel="stylesheet" href="chrome://theme/colors.css?sets=ui,chrome">
+  </body>
+</html>

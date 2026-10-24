@@ -72,6 +72,30 @@ export function getHtml(this: SidebarAppElement) {
         @drop="${this.onTreeEndDrop_}"></div>
   </div>
   <div class="separator"></div>
+  ${this.view_.attention.length ? html`
+    <div class="section-header attention">⚠ ${this.strings.needsAttention}</div>
+    ${this.view_.attention.map(tab => html`
+      <div class="row attention" data-id="${tab.id}" title="${tab.title}"
+          ?active="${tab.isActive}" @click="${this.onTodayClick_}">
+        <span class="favicon"
+            style="background-image: ${this.faviconFor_(tab.url, tab)}">
+        </span>
+        <span class="title">${tab.title || tab.url}
+          <span class="subtitle">${this.strings.unsavedInput}</span>
+        </span>
+      </div>
+      <div class="attention-actions" data-id="${tab.id}">
+        <button class="text" data-tab="${tab.id}"
+            @click="${this.onCloseTabClick_}">${this.strings.closeAnyway}
+        </button>
+        <button class="text" @click="${this.onKeepClick_}">${
+            this.strings.keep}</button>
+      </div>`)}` : nothing}
+  <div class="section-header">
+    <span>${this.strings.today}</span>
+    <button class="text" ?hidden="${this.view_.today.length === 0}"
+        @click="${this.onClearClick_}">${this.strings.clear}</button>
+  </div>
   <div class="row new-tab" @click="${this.onNewTabClick_}">
     <span class="plus">＋</span>
     <span class="title">${this.strings.newTab}</span>
@@ -80,7 +104,8 @@ export function getHtml(this: SidebarAppElement) {
       @drop="${this.onTodayDrop_}">
     ${this.view_.today.map(tab => html`
       <div class="row today" data-id="${tab.id}" data-kind="tab"
-          draggable="true" ?active="${tab.isActive}" title="${tab.title}"
+          draggable="true" ?active="${tab.isActive}"
+          title="${this.todayTooltip_(tab)}"
           @click="${this.onTodayClick_}"
           @contextmenu="${this.onTodayContextmenu_}"
           @dragstart="${this.onDragstart_}" @dragend="${this.onDragend_}">
@@ -90,9 +115,16 @@ export function getHtml(this: SidebarAppElement) {
         <span class="title">${tab.title || tab.url}</span>
         <button class="close" title="${this.strings.close}"
             data-tab="${tab.id}" @click="${this.onCloseTabClick_}">×</button>
+        <span class="countdown" style="width: ${this.countdown_(tab)}"></span>
       </div>`)}
   </div>
 </div>
+${this.cleared_.length ? html`
+  <div id="toast" role="status">
+    <span>${this.strings.cleared}</span>
+    <button class="text" @click="${this.onUndoClearClick_}">${
+        this.strings.undo}</button>
+  </div>` : nothing}
 ${this.menu_ ? html`
   <div id="menu-backdrop" @click="${this.onMenuBackdropClick_}"
       @contextmenu="${this.onMenuBackdropContextmenu_}"></div>

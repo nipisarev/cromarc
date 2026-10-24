@@ -11,8 +11,8 @@
 #include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_service_feature.h"
 #include "chrome/browser/ui/webui/favicon_source.h"
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
-#include "chrome/grit/cromarc_sidebar_resources.h"
-#include "chrome/grit/cromarc_sidebar_resources_map.h"
+#include "chrome/grit/cromarc_resources.h"
+#include "chrome/grit/cromarc_resources_map.h"
 #include "chrome/grit/tab_strip_api_resources_map.h"
 #include "components/browser_apis/tab_strip/tab_strip_api.mojom.h"
 #include "components/favicon_base/favicon_url_parser.h"
@@ -21,6 +21,8 @@
 #include "content/public/browser/web_ui.h"
 #include "content/public/browser/web_ui_data_source.h"
 #include "content/public/common/url_constants.h"
+#include "cromarc/browser/archive/archive_service.h"
+#include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
@@ -35,7 +37,7 @@ SidebarUI::SidebarUI(content::WebUI* web_ui)
     : TopChromeWebUIController(web_ui) {
   content::WebUIDataSource* source = content::WebUIDataSource::CreateAndAdd(
       web_ui->GetWebContents()->GetBrowserContext(), kSidebarHost);
-  webui::SetupWebUIDataSource(source, kCromarcSidebarResources,
+  webui::SetupWebUIDataSource(source, kCromarcResources,
                               IDR_CROMARC_SIDEBAR_SIDEBAR_HTML);
   // TabStripService bindings and helpers, served under /tab_strip_api/.
   source->AddResourcePaths(kTabStripApiResources);
@@ -73,13 +75,16 @@ void SidebarUI::CreatePageHandler(
     mojo::PendingReceiver<mojom::PageHandler> handler) {
   BrowserWindowInterface* const browser =
       webui::GetBrowserWindowInterface(web_ui()->GetWebContents());
-  TreeService* const tree_service =
-      TreeService::Get(Profile::FromWebUI(web_ui()));
-  if (!browser || !tree_service) {
+  Profile* const profile = Profile::FromWebUI(web_ui());
+  TreeService* const tree_service = TreeService::Get(profile);
+  LifecycleService* const lifecycle_service = LifecycleService::Get(profile);
+  ArchiveService* const archive_service = ArchiveService::Get(profile);
+  if (!browser || !tree_service || !lifecycle_service || !archive_service) {
     return;
   }
   page_handler_ = std::make_unique<SidebarPageHandler>(
-      std::move(handler), std::move(page), browser, tree_service);
+      std::move(handler), std::move(page), browser, tree_service,
+      lifecycle_service, archive_service);
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(SidebarUI)

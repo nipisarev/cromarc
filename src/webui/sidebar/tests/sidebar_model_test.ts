@@ -69,6 +69,13 @@ test('today has the unlinked tabs, newest (last in the strip) first', () => {
   assert.deepEqual(view.today.map(t => t.id), ['3:2', '2:2']);
 });
 
+test('deferred tabs move from Today to Needs attention', () => {
+  const view = buildSidebar([], [tab('1:2', 'https://a'), tab('2:2', 'https://b')],
+      new Set(['1:2']));
+  assert.deepEqual(view.attention.map(t => t.id), ['1:2']);
+  assert.deepEqual(view.today.map(t => t.id), ['2:2']);
+});
+
 test('away from home ignores the fragment and a trailing slash', () => {
   assert.equal(isAwayFromHome('https://h/p', 'https://h/p/'), false);
   assert.equal(isAwayFromHome('https://h/p', 'https://h/p#x'), false);

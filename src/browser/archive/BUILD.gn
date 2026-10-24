@@ -1,0 +1,41 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+source_set("archive") {
+  sources = [
+    "archive.cc",
+    "archive.h",
+  ]
+  public_deps = [
+    "//base",
+    "//sql",
+    "//url",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "archive_unittest.cc" ]
+  deps = [
+    ":archive",
+    "//base/test:test_support",
+    "//testing/gtest",
+    "//url",
+  ]
+}
+
+source_set("service") {
+  sources = [
+    "archive_service.cc",
+    "archive_service.h",
+    "archive_service_factory.cc",
+    "archive_service_factory.h",
+  ]
+  public_deps = [
+    ":archive",
+    "//chrome/browser:browser_public_dependencies",
+    "//components/keyed_service/core",
+  ]
+  deps = [ "//chrome/browser/profiles:profile" ]
+}

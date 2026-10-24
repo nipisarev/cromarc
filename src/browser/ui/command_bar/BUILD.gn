@@ -1,0 +1,60 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import("//mojo/public/tools/bindings/mojom.gni")
+
+assert(!is_android)
+
+mojom("mojo_bindings") {
+  sources = [ "command_bar.mojom" ]
+  webui_module_path = "/"
+  public_deps = [ "//url/mojom:url_mojom_gurl" ]
+}
+
+# Headers, for the upstream files the hooks touch.
+source_set("command_bar") {
+  sources = [
+    "command_bar_ui.h",
+    "cromarc_command_bar.h",
+  ]
+  public_deps = [
+    ":mojo_bindings",
+    "//chrome/browser/ui/webui/top_chrome",
+    "//mojo/public/cpp/bindings",
+  ]
+}
+
+source_set("impl") {
+  sources = [
+    "command_bar.cc",
+    "command_bar.h",
+    "command_bar_page_handler.cc",
+    "command_bar_page_handler.h",
+    "command_bar_ui.cc",
+  ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    ":command_bar",
+    "//base:i18n",
+    "//chrome/browser/autocomplete",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui/browser_window",
+    "//chrome/browser/ui/webui:favicon_source",
+    "//chrome/browser/ui/webui:webui_util",
+    "//components/bookmarks/browser",
+    "//components/favicon_base",
+    "//components/omnibox/browser",
+    "//components/tabs:public",
+    "//content/public/browser",
+    "//cromarc/browser/archive:service",
+    "//cromarc/browser/tree:service",
+    "//cromarc/webui:resources",
+    "//skia",
+    "//third_party/metrics_proto",
+    "//ui/views",
+    "//ui/views/controls/webview",
+    "//ui/webui",
+    "//url",
+  ]
+}

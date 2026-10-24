@@ -1,0 +1,102 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* #css_wrapper_metadata_start
+ * #type=style-lit
+ * #scheme=relative
+ * #css_wrapper_metadata_end */
+
+:host {
+  --text: var(--color-sys-on-surface, CanvasText);
+  --text-dim: var(--color-sys-on-surface-subtle, GrayText);
+  --surface: var(--color-sys-surface, Canvas);
+  --selected: var(--color-sys-tonal-container, rgba(128, 128, 128, .2));
+
+  box-sizing: border-box;
+  color: var(--text);
+  display: block;
+  font-size: 14px;
+  height: 100%;
+  padding: 16px;
+}
+
+/* The card leaves room around it for its shadow inside the widget. */
+#card {
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .28), 0 0 0 1px rgba(0, 0, 0, .06);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+#input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--selected);
+  color: var(--text);
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 18px;
+  height: 56px;
+  outline: none;
+  padding: 0 20px;
+}
+
+#results {
+  overflow-y: auto;
+  padding: 6px;
+}
+
+#results[hidden] {
+  display: none;
+}
+
+.result {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  height: 44px;
+  padding: 0 12px;
+}
+
+.result[selected] {
+  background: var(--selected);
+}
+
+.icon {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  flex-shrink: 0;
+  height: 16px;
+  width: 16px;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title,
+.subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.kind {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  font-size: 12px;
+}

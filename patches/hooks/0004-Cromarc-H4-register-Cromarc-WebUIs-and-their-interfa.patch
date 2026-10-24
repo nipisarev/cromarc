@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nikolay Pisarev <nipisarev@gmail.com>
 Date: Sat, 24 Oct 2026 00:15:36 +0200
-Subject: [PATCH 4/5] Cromarc H4: register Cromarc WebUIs and their interfaces
+Subject: [PATCH 4/7] Cromarc H4: register Cromarc WebUIs and their interfaces
 
 RegisterChromeWebUIConfigs() and the desktop WebUI interface broker call
 into //cromarc, which registers chrome://cromarc-* pages and binds their

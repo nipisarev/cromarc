@@ -1,0 +1,46 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+source_set("policy") {
+  sources = [
+    "policy.cc",
+    "policy.h",
+  ]
+  public_deps = [ "//base" ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "policy_unittest.cc" ]
+  deps = [
+    ":policy",
+    "//testing/gtest",
+  ]
+}
+
+source_set("service") {
+  sources = [
+    "lifecycle_service.cc",
+    "lifecycle_service.h",
+    "lifecycle_service_factory.cc",
+    "lifecycle_service_factory.h",
+  ]
+  public_deps = [
+    ":policy",
+    "//chrome/browser:browser_public_dependencies",
+    "//components/keyed_service/core",
+    "//components/tabs:public",
+    "//url",
+  ]
+  deps = [
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/sessions",
+    "//chrome/browser/ui/browser_window",
+    "//components/performance_manager",
+    "//content/public/browser",
+    "//cromarc/browser/archive:service",
+    "//cromarc/browser/tree:service",
+    "//ui/base/idle",
+  ]
+}

@@ -4,11 +4,15 @@
 
 #include "cromarc/browser/keyed_services.h"
 
+#include "cromarc/browser/archive/archive_service_factory.h"
+#include "cromarc/browser/lifecycle/lifecycle_service_factory.h"
 #include "cromarc/browser/tree/tree_service_factory.h"
 
 namespace cromarc {
 
 void EnsureKeyedServiceFactoriesBuilt() {
+  ArchiveServiceFactory::GetInstance();
+  LifecycleServiceFactory::GetInstance();
   TreeServiceFactory::GetInstance();
 }
 

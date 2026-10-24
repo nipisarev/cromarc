@@ -15,6 +15,7 @@
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
+#include "url/gurl.h"
 
 class BrowserWindowInterface;
 
@@ -28,6 +29,8 @@ class TabInterface;
 
 namespace cromarc {
 
+class ArchiveService;
+class LifecycleService;
 class TreeService;
 
 // Tree operations for the sidebar of `browser`.
@@ -36,7 +39,9 @@ class SidebarPageHandler : public mojom::PageHandler {
   SidebarPageHandler(mojo::PendingReceiver<mojom::PageHandler> receiver,
                      mojo::PendingRemote<mojom::Page> page,
                      BrowserWindowInterface* browser,
-                     TreeService* tree_service);
+                     TreeService* tree_service,
+                     LifecycleService* lifecycle_service,
+                     ArchiveService* archive_service);
   SidebarPageHandler(const SidebarPageHandler&) = delete;
   SidebarPageHandler& operator=(const SidebarPageHandler&) = delete;
   ~SidebarPageHandler() override;
@@ -62,19 +67,31 @@ class SidebarPageHandler : public mojom::PageHandler {
   void SetCollapsed(const std::string& id, bool collapsed) override;
   void SetEssential(const std::string& id, bool essential) override;
   void NewTab() override;
+  void GetTabLifecycles(GetTabLifecyclesCallback callback) override;
+  void KeepTab(const tabs_api::NodeId& tab) override;
+  void ClearToday(ClearTodayCallback callback) override;
+  void ReopenTabs(const std::vector<GURL>& urls) override;
 
  private:
   std::vector<mojom::TreeNodePtr> BuildChildren(
       const bookmarks::BookmarkNode* folder);
   // Returns pinned items' live tabs inside `node` (itself included) to Today.
   void ReleaseLiveTabs(const bookmarks::BookmarkNode* node);
+  // Archives the pinned items of a folder that is being removed.
+  void ArchiveFolder(const bookmarks::BookmarkNode* folder,
+                     const std::string& path);
+  std::vector<mojom::TabLifecyclePtr> BuildLifecycles();
   void OnTreeChanged();
+  void OnLifecyclesChanged();
 
   mojo::Receiver<mojom::PageHandler> receiver_;
   mojo::Remote<mojom::Page> page_;
   raw_ptr<BrowserWindowInterface> browser_;
   raw_ptr<TreeService> tree_service_;
+  raw_ptr<LifecycleService> lifecycle_service_;
+  raw_ptr<ArchiveService> archive_service_;
   base::CallbackListSubscription tree_subscription_;
+  base::CallbackListSubscription lifecycle_subscription_;
 };
 
 }  // namespace cromarc

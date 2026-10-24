@@ -6,22 +6,32 @@ import("//ui/webui/resources/tools/build_webui.gni")
 
 assert(!is_android)
 
-# chrome://cromarc-sidebar.top-chrome. Packed into chrome's resources.pak
-# (hook in chrome/chrome_paks.gni); ids in tools/gritsettings/resource_ids.spec.
+# All Cromarc WebUI pages, one folder each, in a single package: hook H0 packs
+# cromarc_resources.pak once and gives it one grit id range, so a new page
+# needs no change upstream. Each page's data source serves the whole map with
+# its own HTML as the default resource.
 build_webui("build") {
-  grd_prefix = "cromarc_sidebar"
+  grd_prefix = "cromarc"
 
-  static_files = [ "sidebar.html" ]
+  static_files = [
+    "command_bar/command_bar.html",
+    "sidebar/sidebar.html",
+  ]
 
   ts_files = [
-    "app.html.ts",
-    "app.ts",
-    "browser_proxy.ts",
-    "sidebar_model.ts",
-    "strings.ts",
-    "tab_list_model.ts",
+    "command_bar/app.html.ts",
+    "command_bar/app.ts",
+    "sidebar/app.html.ts",
+    "sidebar/app.ts",
+    "sidebar/browser_proxy.ts",
+    "sidebar/sidebar_model.ts",
+    "sidebar/strings.ts",
+    "sidebar/tab_list_model.ts",
   ]
-  css_files = [ "app.css" ]
+  css_files = [
+    "command_bar/app.css",
+    "sidebar/app.css",
+  ]
 
   webui_context_type = "trusted"
 
@@ -32,17 +42,20 @@ build_webui("build") {
     "//ui/webui/resources/mojo:build_ts",
   ]
 
-  # sidebar.mojom imports tabs_api types; like //chrome/browser/resources/
-  # webui_browser, the generated files it references are served at the root.
+  # Generated bindings, served at the package root. sidebar.mojom imports
+  # tabs_api types; like //chrome/browser/resources/webui_browser, the files
+  # those reference are served at the root too.
   mojo_files_deps = [
     "//components/browser_apis/tab_strip:mojom_ts__copy_converters",
     "//components/browser_apis/tab_strip:mojom_ts__generator",
+    "//cromarc/browser/ui/command_bar:mojo_bindings_ts__generator",
     "//cromarc/browser/ui/sidebar:mojo_bindings_ts__generator",
   ]
   mojo_files = [
     "$root_gen_dir/components/browser_apis/tab_strip/node_id_converter.ts",
     "$root_gen_dir/components/browser_apis/tab_strip/tab_strip_api_types.mojom-converters.ts",
     "$root_gen_dir/components/browser_apis/tab_strip/tab_strip_api_types.mojom-webui.ts",
+    "$root_gen_dir/cromarc/browser/ui/command_bar/command_bar.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/sidebar/sidebar.mojom-webui.ts",
   ]
 

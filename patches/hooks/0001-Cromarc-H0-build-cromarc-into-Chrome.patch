@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nikolay Pisarev <nipisarev@gmail.com>
 Date: Sat, 24 Oct 2026 00:14:16 +0200
-Subject: [PATCH 1/5] Cromarc H0: build //cromarc into Chrome
+Subject: [PATCH 1/7] Cromarc H0: build //cromarc into Chrome
 
 //chrome/browser/ui links the //cromarc group (new Cromarc modules are added
 there, not here), the WebUI configs see //cromarc:headers, //cromarc WebUIs
@@ -33,7 +33,7 @@ index 7341632b43d34..0416facf1ef2e 100644
      "//chrome/browser/contextual_tasks:ui",
      "//chrome/browser/glic",
 diff --git a/chrome/chrome_paks.gni b/chrome/chrome_paks.gni
-index 12a5e53584f9f..edbb3a92614d7 100644
+index 12a5e53584f9f..1ae206345213c 100644
 --- a/chrome/chrome_paks.gni
 +++ b/chrome/chrome_paks.gni
 @@ -275,6 +275,11 @@ template("chrome_extra_paks") {
@@ -42,8 +42,8 @@ index 12a5e53584f9f..edbb3a92614d7 100644
        ]
 +
 +      # Cromarc
-+      sources += [ "$root_gen_dir/chrome/cromarc_sidebar_resources.pak" ]
-+      deps += [ "//cromarc/webui/sidebar:resources" ]
++      sources += [ "$root_gen_dir/chrome/cromarc_resources.pak" ]
++      deps += [ "//cromarc/webui:resources" ]
 +
        if (is_chrome_branded) {
          sources += [
@@ -61,7 +61,7 @@ index a75e73285cf86..fb003daccc71b 100644
      # Lit has officially being declared as the preferred framework (over
      # Polymer) for new WebUI code, see [1] and [2]
 diff --git a/tools/gritsettings/resource_ids.spec b/tools/gritsettings/resource_ids.spec
-index 8749c14d44f1b..63f56d34d2e16 100644
+index 8749c14d44f1b..12a7de665c1d8 100644
 --- a/tools/gritsettings/resource_ids.spec
 +++ b/tools/gritsettings/resource_ids.spec
 @@ -1799,6 +1799,12 @@
@@ -69,8 +69,8 @@ index 8749c14d44f1b..63f56d34d2e16 100644
    },
  
 +  # Cromarc
-+  "<(SHARED_INTERMEDIATE_DIR)/cromarc/webui/sidebar/resources.grd": {
-+    "META": {"sizes": {"includes": [20]}},
++  "<(SHARED_INTERMEDIATE_DIR)/cromarc/webui/resources.grd": {
++    "META": {"sizes": {"includes": [500]}},
 +    "includes": [10300],
 +  },
 +

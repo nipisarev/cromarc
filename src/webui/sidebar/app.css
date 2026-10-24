@@ -240,6 +240,86 @@ button:hover {
   min-height: 40px;
 }
 
+/* Section headers: Needs attention, Today. */
+.section-header {
+  align-items: center;
+  color: var(--text-dim);
+  display: flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  height: 26px;
+  justify-content: space-between;
+  padding-inline: 8px 4px;
+  text-transform: uppercase;
+}
+
+.section-header.attention {
+  color: var(--color-sys-error, #c5221f);
+}
+
+button.text {
+  font-size: 12px;
+  height: 22px;
+  padding: 0 8px;
+  width: auto;
+}
+
+button[hidden] {
+  display: none;
+}
+
+.attention .title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.attention-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 0 6px 6px 32px;
+}
+
+/* Countdown in the last hour before the archive (design, UI section 4). */
+.countdown {
+  background: var(--accent);
+  border-radius: 1px;
+  bottom: 2px;
+  height: 2px;
+  left: 8px;
+  opacity: .6;
+  position: absolute;
+}
+
+.row:not(:hover) .countdown {
+  opacity: 0;
+}
+
+#toast {
+  align-items: center;
+  background: var(--color-sys-inverse-surface, #333);
+  border-radius: 8px;
+  bottom: 12px;
+  color: var(--color-sys-inverse-on-surface, #fff);
+  display: flex;
+  gap: 8px;
+  left: 8px;
+  padding: 6px 6px 6px 12px;
+  position: fixed;
+  right: 8px;
+}
+
+#toast button {
+  color: inherit;
+}
+
 /* Context menu. */
 #menu-backdrop {
   inset: 0;

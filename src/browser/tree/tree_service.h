@@ -15,6 +15,8 @@
 #include "components/tabs/public/tab_interface.h"
 #include "cromarc/browser/tree/tree.h"
 
+class BrowserWindowInterface;
+class GURL;
 class Profile;
 
 namespace bookmarks {
@@ -46,6 +48,13 @@ class TreeService : public KeyedService {
   std::optional<std::string> GetItemForTab(const tabs::TabInterface* tab);
   void Link(const std::string& item_id, tabs::TabInterface* tab);
   void Unlink(const std::string& item_id);
+
+  // Focuses the live tab of a pinned item, or opens its home URL in `browser`
+  // as a pinned tab linked to the item.
+  void Open(BrowserWindowInterface* browser, const std::string& item_id);
+  // The pinned item whose home URL is `url` (ignoring the fragment and a
+  // trailing slash), if any.
+  std::optional<std::string> FindItemByHomeUrl(const GURL& url);
 
   // Runs when the tree or a link changes.
   base::CallbackListSubscription RegisterOnChanged(

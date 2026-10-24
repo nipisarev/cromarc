@@ -46,5 +46,6 @@ source_set("service") {
   deps = [
     "//chrome/browser/bookmarks",
     "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui/browser_window",
   ]
 }

@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 24 Oct 2026 01:34:16 +0200
+Subject: [PATCH 6/7] Cromarc H9: metrics tag for the Cromarc archive database
+
+sql::Database checks its tag against this list at compile time.
+
+diff --git a/tools/metrics/histograms/metadata/sql/histograms.xml b/tools/metrics/histograms/metadata/sql/histograms.xml
+index 55f07550ca901..ad5d82f1c26d0 100644
+--- a/tools/metrics/histograms/metadata/sql/histograms.xml
++++ b/tools/metrics/histograms/metadata/sql/histograms.xml
+@@ -30,6 +30,7 @@ chromium-metrics-reviews@google.com.
+ </variants>
+ 
+ <variants name="DatabaseTag">
++  <variant name="CromarcArchive" summary="Cromarc archive of closed tabs"/>
+   <variant name="AccessibilityAnnotator"
+       summary="AccessibilityAnnotator (deprecated 08/2026)"/>
+   <variant name="Activity" summary="Activity"/>

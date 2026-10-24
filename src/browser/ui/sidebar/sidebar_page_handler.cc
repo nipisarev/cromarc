@@ -8,6 +8,7 @@
 
 #include "base/functional/bind.h"
 #include "base/strings/utf_string_conversions.h"
+#include "base/time/time.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/common/webui_url_constants.h"
@@ -17,8 +18,11 @@
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/referrer.h"
+#include "cromarc/browser/archive/archive_service.h"
+#include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/tree/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
+#include "cromarc/browser/ui/command_bar/cromarc_command_bar.h"
 #include "ui/base/base_window.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
@@ -47,13 +51,20 @@ SidebarPageHandler::SidebarPageHandler(
     mojo::PendingReceiver<mojom::PageHandler> receiver,
     mojo::PendingRemote<mojom::Page> page,
     BrowserWindowInterface* browser,
-    TreeService* tree_service)
+    TreeService* tree_service,
+    LifecycleService* lifecycle_service,
+    ArchiveService* archive_service)
     : receiver_(this, std::move(receiver)),
       page_(std::move(page)),
       browser_(browser),
       tree_service_(tree_service),
+      lifecycle_service_(lifecycle_service),
+      archive_service_(archive_service),
       tree_subscription_(tree_service_->RegisterOnChanged(
           base::BindRepeating(&SidebarPageHandler::OnTreeChanged,
+                              base::Unretained(this)))),
+      lifecycle_subscription_(lifecycle_service_->RegisterOnChanged(
+          base::BindRepeating(&SidebarPageHandler::OnLifecyclesChanged,
                               base::Unretained(this)))) {}
 
 SidebarPageHandler::~SidebarPageHandler() = default;
@@ -96,28 +107,7 @@ void SidebarPageHandler::OnTreeChanged() {
 }
 
 void SidebarPageHandler::OpenItem(const std::string& id) {
-  const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
-  if (!node || !node->is_url()) {
-    return;
-  }
-  if (tabs::TabInterface* tab = tree_service_->GetLiveTab(id)) {
-    BrowserWindowInterface* owner = tab->GetBrowserWindowInterface();
-    TabStripModel* model = owner->GetTabStripModel();
-    model->ActivateTabAt(model->GetIndexOfTab(tab));
-    if (owner != browser_) {
-      owner->GetWindow()->Activate();
-    }
-    return;
-  }
-  // Asleep: its home URL, as a new pinned tab of this window.
-  browser_->OpenGURL(node->url(), WindowOpenDisposition::NEW_FOREGROUND_TAB);
-  TabStripModel* model = browser_->GetTabStripModel();
-  tabs::TabInterface* tab = model->GetTabAtIndex(model->active_index());
-  if (!tab) {
-    return;
-  }
-  SetPinned(tab, true);
-  tree_service_->Link(id, tab);
+  tree_service_->Open(browser_, id);
 }
 
 void SidebarPageHandler::CreateFolder(const std::string& parent_id,
@@ -177,12 +167,37 @@ void SidebarPageHandler::ReleaseLiveTabs(const bookmarks::BookmarkNode* node) {
   }
 }
 
+void SidebarPageHandler::ArchiveFolder(const bookmarks::BookmarkNode* folder,
+                                       const std::string& path) {
+  const std::string here =
+      path.empty() ? base::UTF16ToUTF8(folder->GetTitle())
+                   : path + " / " + base::UTF16ToUTF8(folder->GetTitle());
+  for (const auto& child : folder->children()) {
+    if (child->is_folder()) {
+      ArchiveFolder(child.get(), here);
+      continue;
+    }
+    ArchiveEntry entry;
+    entry.url = child->url();
+    entry.title = child->GetTitle();
+    entry.closed_at = base::Time::Now();
+    entry.reason = "folder";
+    entry.folder_path = here;
+    archive_service_->Add(std::move(entry));
+  }
+}
+
 void SidebarPageHandler::RemoveItem(const std::string& id) {
   const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
   if (!node) {
     return;
   }
   ReleaseLiveTabs(node);
+  // A removed folder's pinned items stay findable in the archive (design,
+  // UI section 3).
+  if (node->is_folder()) {
+    ArchiveFolder(node, std::string());
+  }
   tree_service_->tree().Remove(id);
 }
 
@@ -213,8 +228,49 @@ void SidebarPageHandler::SetEssential(const std::string& id, bool essential) {
 }
 
 void SidebarPageHandler::NewTab() {
-  browser_->OpenGURL(GURL(chrome::kChromeUINewTabURL),
-                     WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  // Same as Cmd+T (design, UI section 4).
+  if (!ShowCommandBar(browser_, /*edit_current_url=*/false)) {
+    browser_->OpenGURL(GURL(chrome::kChromeUINewTabURL),
+                       WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  }
+}
+
+std::vector<mojom::TabLifecyclePtr> SidebarPageHandler::BuildLifecycles() {
+  std::vector<mojom::TabLifecyclePtr> result;
+  for (const LifecycleService::TabState& state :
+       lifecycle_service_->GetTabStates(browser_)) {
+    auto lifecycle = mojom::TabLifecycle::New();
+    lifecycle->tab = tabs_api::NodeId::FromTabHandle(state.tab->GetHandle());
+    lifecycle->deferred = state.deferred;
+    lifecycle->minutes_left =
+        static_cast<int32_t>(state.time_left.InMinutes());
+    result.push_back(std::move(lifecycle));
+  }
+  return result;
+}
+
+void SidebarPageHandler::GetTabLifecycles(GetTabLifecyclesCallback callback) {
+  std::move(callback).Run(BuildLifecycles());
+}
+
+void SidebarPageHandler::OnLifecyclesChanged() {
+  page_->OnTabLifecyclesChanged(BuildLifecycles());
+}
+
+void SidebarPageHandler::KeepTab(const tabs_api::NodeId& tab_id) {
+  if (tabs::TabInterface* tab = TabFromNodeId(tab_id)) {
+    lifecycle_service_->Keep(tab);
+  }
+}
+
+void SidebarPageHandler::ClearToday(ClearTodayCallback callback) {
+  std::move(callback).Run(lifecycle_service_->ClearToday(browser_));
+}
+
+void SidebarPageHandler::ReopenTabs(const std::vector<GURL>& urls) {
+  for (const GURL& url : urls) {
+    browser_->OpenGURL(url, WindowOpenDisposition::NEW_BACKGROUND_TAB);
+  }
 }
 
 }  // namespace cromarc

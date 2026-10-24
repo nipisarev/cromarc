@@ -23,6 +23,15 @@ struct TreeNode {
   array<TreeNode> children;
 };
 
+// Lifecycle state of a tab worth showing: deferred, or about to be archived.
+struct TabLifecycle {
+  tabs_api.mojom.NodeId tab;
+  // Would have been closed but could lose typed input ("Needs attention").
+  bool deferred;
+  // Minutes until the archive, within the last hour; 0 otherwise.
+  int32 minutes_left;
+};
+
 interface PageHandlerFactory {
   CreatePageHandler(pending_remote<Page> page,
                     pending_receiver<PageHandler> handler);
@@ -51,10 +60,19 @@ interface PageHandler {
   SetHomeToCurrent(string id);
   SetCollapsed(string id, bool collapsed);
   SetEssential(string id, bool essential);
-  // "+ New Tab" (the command bar replaces it in part 4).
+  // "+ New Tab".
   NewTab();
+
+  GetTabLifecycles() => (array<TabLifecycle> tabs);
+  // "Keep" on a deferred tab: its clock restarts.
+  KeepTab(tabs_api.mojom.NodeId tab);
+  // Today's "Clear": archives and closes the Today tabs of this window.
+  ClearToday() => (array<url.mojom.Url> closed);
+  // Undo of Clear: reopens these URLs as Today tabs.
+  ReopenTabs(array<url.mojom.Url> urls);
 };
 
 interface Page {
   OnTreeChanged(array<TreeNode> nodes);
+  OnTabLifecyclesChanged(array<TabLifecycle> tabs);
 };
