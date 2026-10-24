@@ -9,7 +9,7 @@ An Arc/Zen-style browser built on vanilla Chromium, where every space is a full 
 
 ## Status
 
-Early development, used daily by its author. Working: the sidebar with nested folders, pinned tabs and Essentials, the command bar, idle tabs to an archive and the Library, spaces as profiles with Zen's switching animation and swipes, an Arc sidebar importer, Little Arc windows for links from other apps, Glance, compact mode. Not yet: themes, sync between Macs, link routing rules.
+Early development, used daily by its author. Working: the sidebar with nested folders, pinned tabs and Essentials, the command bar, idle tabs to an archive and the Library, spaces as profiles with Zen's switching animation, swipes and gradient themes, an Arc sidebar importer, Little Arc windows for links from other apps with Zen's link routing rules, Glance, compact mode, sync between Macs through iCloud Drive (one Mac at a time).
 
 ## Building (macOS, Apple Silicon)
 
