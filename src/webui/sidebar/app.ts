@@ -31,6 +31,8 @@ import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_mode
 import {strings} from './strings.js';
 import {TabListModel} from './tab_list_model.js';
 
+const PINS_COLLAPSED_KEY = 'cromarc.pinsCollapsed';
+
 // The space form open over the strip: a new space, or `id`'s settings.
 export interface SpaceEditorState {
   id: string;
@@ -110,6 +112,7 @@ export class SidebarAppElement extends CrLitElement {
       libraryOpen_: {type: Boolean},
       libraryDrag_: {type: Number},
       addProgress_: {type: Number},
+      pinsCollapsed_: {type: Boolean},
     };
   }
 
@@ -163,6 +166,10 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor libraryDrag_: number = -1;
   // Zen's add-space swipe past the last space: 1 is ready.
   protected accessor addProgress_: number = 0;
+  // Zen's collapsible pins: the space header folds the pinned tabs away.
+  protected accessor pinsCollapsed_: boolean = false;
+  private pinnedCount_ = -1;
+  private treeLoaded_ = false;
   // What a swipe at the edge of the spaces does (zen ZenSpacesSwipe actions).
   private edgeAction_: 'library'|'add'|null = null;
   private edgeAllowed_ = {library: false, add: false};
@@ -198,9 +205,14 @@ export class SidebarAppElement extends CrLitElement {
 
   override connectedCallback() {
     super.connectedCallback();
+    try {
+      this.pinsCollapsed_ = localStorage.getItem(PINS_COLLAPSED_KEY) === '1';
+    } catch {
+      // No storage: the pinned tabs start open.
+    }
     this.proxy_.callbackRouter.onTreeChanged.addListener(
-        (nodes: TreeNode[]) => this.tree_ = nodes);
-    this.proxy_.handler.getTree().then(({nodes}) => this.tree_ = nodes);
+        (nodes: TreeNode[]) => this.setTree_(nodes));
+    this.proxy_.handler.getTree().then(({nodes}) => this.setTree_(nodes));
     this.proxy_.callbackRouter.onTabLifecyclesChanged.addListener(
         (tabs: TabLifecycle[]) => this.setLifecycles_(tabs));
     this.proxy_.handler.getTabLifecycles().then(
@@ -228,12 +240,58 @@ export class SidebarAppElement extends CrLitElement {
         changed.has('minutesLeft_' as keyof SidebarAppElement)) {
       this.view_ = buildSidebar(this.tree_, this.tabs_, this.deferred_);
       this.fillTitles_();
+      this.checkPins_();
     }
     if (this.drag_ &&
         changed.has('essentialsSlot_' as keyof SidebarAppElement)) {
       this.tileRects_ = new Map(
           [...this.tiles_()].map(([id, tile]) => [id, tile.getBoundingClientRect()]));
     }
+  }
+
+  private setTree_(nodes: TreeNode[]) {
+    this.treeLoaded_ = true;
+    this.tree_ = nodes;
+  }
+
+  // As Zen's space (checkPinsExistence, TabPinned): no pinned tabs, nothing
+  // to fold; pinning one unfolds them.
+  private checkPins_() {
+    if (!this.treeLoaded_) {
+      return;
+    }
+    const count = this.view_.rows.filter(row => row.kind === 'pinned').length;
+    if (this.pinsCollapsed_ &&
+        (count === 0 || (this.pinnedCount_ >= 0 && count > this.pinnedCount_))) {
+      this.setPinsCollapsed_(false);
+    }
+    this.pinnedCount_ = count;
+  }
+
+  private setPinsCollapsed_(collapsed: boolean) {
+    this.pinsCollapsed_ = collapsed;
+    try {
+      localStorage.setItem(PINS_COLLAPSED_KEY, collapsed ? '1' : '0');
+    } catch {
+      // Not kept across restarts then.
+    }
+  }
+
+  // Zen's indicator click (ZenSpace.mjs): folds or unfolds the pinned tabs.
+  protected onHeaderClick_(e: MouseEvent) {
+    if (e.button !== 0 || this.view_.rows.length === 0 ||
+        (e.target as Element).closest('button')) {
+      return;
+    }
+    this.setPinsCollapsed_(!this.pinsCollapsed_);
+  }
+
+  // Folded, the pinned tabs keep only the selected one, as a folded folder.
+  protected visibleRows_(): TreeRow[] {
+    return this.pinsCollapsed_ ?
+        this.view_.rows.filter(
+            row => row.kind === 'pinned' && this.isActive_(row.tab)) :
+        this.view_.rows;
   }
 
   // Pinned items imported from Arc's export file come untitled: each keeps

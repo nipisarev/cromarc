@@ -45,13 +45,20 @@ export function getHtml(this: SidebarAppElement) {
           </div>` : html`<div class="essential slot"></div>`)}`}
       </div>
       <div class="space-header ${this.dropZone_ === 'header' ? 'over' : ''}"
+          ?has-pins="${this.view_.rows.length > 0}"
+          ?collapsed="${this.pinsCollapsed_}"
+          @click="${this.onHeaderClick_}"
           @dragover="${this.onHeaderDragover_}"
           @dragleave="${this.onZoneDragleave_}"
           @drop="${this.onHeaderDrop_}">
+        <span class="space-icon-stack" ?no-icon="${!space.icon}">
+        <span class="svg chevron"
+            style="mask-image: url(sidebar/ui_icons/chevron.svg)"></span>
         <span class="space-icon" ?no-icon="${!space.icon}">${
             this.iconMask_(space.icon) ? html`
             <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}">
             </span>` : html`${space.icon}`}</span>
+        </span>
         <span class="space-name" @dblclick="${this.onSpaceNameDblclick_}">${
             space.name}</span>
         <button class="space-menu-button" title="${this.strings.spaceActions}"
@@ -62,7 +69,7 @@ export function getHtml(this: SidebarAppElement) {
       </div>
       <div id="tabs" class="tabs">
       <div id="tree" role="tree">
-        ${this.view_.rows.map(row => row.kind === 'folder' ? html`
+        ${this.visibleRows_().map(row => row.kind === 'folder' ? html`
           <div class="row folder ${this.dropClass_(row.id)}" data-id="${row.id}"
               data-kind="item" draggable="true" style="--depth: ${row.depth}"
               ?collapsed="${row.collapsed}"
@@ -191,10 +198,12 @@ export function getHtml(this: SidebarAppElement) {
           </div>`)}
       </div>
       <div class="space-header">
+        <span class="space-icon-stack" ?no-icon="${!space.icon}">
         <span class="space-icon" ?no-icon="${!space.icon}">${
             this.iconMask_(space.icon) ? html`
             <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}">
             </span>` : html`${space.icon}`}</span>
+        </span>
         <span class="space-name">${space.name}</span>
       </div>
       <div class="tabs">

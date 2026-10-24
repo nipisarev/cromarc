@@ -711,8 +711,58 @@ button[hidden],
   background: var(--themed-icon-fill);
 }
 
+/* The icon's place: with pinned tabs, a chevron takes it on hover and while
+ * they are folded; a space without icon leaves it empty but for that
+ * (zen-workspaces.css, collapsible pins). */
+.space-icon-stack {
+  display: grid;
+  transition: margin-inline-end .1s;
+}
+
+.space-icon-stack > * {
+  grid-area: 1 / 1;
+}
+
+.space-icon-stack[no-icon] {
+  margin-inline-end: calc(-1 * (9px + 16px));
+}
+
 .space-header .space-icon[no-icon] {
+  visibility: hidden;
+}
+
+.chevron {
   display: none;
+  height: 16px;
+  padding: 1px;
+  transform: rotate(90deg);
+  transition: transform .1s, opacity .15s;
+  width: 16px;
+}
+
+.space-icon-stack[no-icon] .chevron {
+  display: block;
+  opacity: 0;
+}
+
+.space-header[has-pins]:hover .space-icon-stack,
+.space-header[collapsed] .space-icon-stack {
+  margin-inline-end: 0;
+}
+
+.space-header[has-pins]:hover .chevron,
+.space-header[collapsed] .chevron {
+  display: block;
+  opacity: 1;
+}
+
+.space-header[has-pins]:hover .space-icon,
+.space-header[collapsed] .space-icon {
+  display: none;
+}
+
+.space-header[collapsed] .chevron {
+  transform: rotate(0deg);
 }
 
 .space-name {
