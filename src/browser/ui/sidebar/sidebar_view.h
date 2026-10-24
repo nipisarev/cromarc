@@ -7,6 +7,7 @@
 
 #include <memory>
 
+#include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/process/kill.h"
@@ -56,8 +57,15 @@ class SidebarView : public views::WebView {
   void PrimaryMainFrameRenderProcessGone(
       base::TerminationStatus status) override;
 
+ protected:
+  // views::WebView:
+  void AddedToWidget() override;
+
  private:
   void Reload();
+  void ObserveFullscreen();
+  // The page's rounded corners go with PageInsets(): none in tab fullscreen.
+  void UpdatePageCorners();
 
   raw_ptr<BrowserWindowInterface> browser_;
   std::unique_ptr<CompactMode> compact_mode_;
@@ -65,6 +73,7 @@ class SidebarView : public views::WebView {
   // Reloads within a minute of the first one, to stop a crash loop.
   base::TimeTicks first_reload_;
   int reloads_ = 0;
+  base::CallbackListSubscription fullscreen_subscription_;
   base::WeakPtrFactory<SidebarView> weak_factory_{this};
 };
 

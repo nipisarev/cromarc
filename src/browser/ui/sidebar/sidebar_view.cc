@@ -16,6 +16,10 @@
 #include "base/task/single_thread_task_runner.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/multi_contents_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/reload_type.h"
@@ -29,9 +33,11 @@
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/page_transition_types.h"
+#include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/gfx/geometry/size.h"
 #include "ui/views/layout/flex_layout_types.h"
 #include "ui/views/view_class_properties.h"
+#include "ui/views/view_utils.h"
 #include "ui/views/widget/widget.h"
 #include "url/gurl.h"
 
@@ -150,6 +156,42 @@ void SidebarView::PrimaryMainFrameRenderProcessGone(
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(&SidebarView::Reload, weak_factory_.GetWeakPtr()));
+}
+
+void SidebarView::AddedToWidget() {
+  views::WebView::AddedToWidget();
+  // The window's features, fullscreen among them, come after its views.
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, base::BindOnce(&SidebarView::ObserveFullscreen,
+                                weak_factory_.GetWeakPtr()));
+}
+
+void SidebarView::ObserveFullscreen() {
+  ExclusiveAccessManager* manager = ExclusiveAccessManager::From(browser_);
+  if (!manager) {
+    return;
+  }
+  fullscreen_subscription_ =
+      manager->fullscreen_controller()->RegisterOnFullscreenStateChanged(
+          base::BindRepeating(&SidebarView::UpdatePageCorners,
+                              base::Unretained(this)));
+  UpdatePageCorners();
+}
+
+void SidebarView::UpdatePageCorners() {
+  views::View* view = parent();
+  while (view && !views::IsViewClass<BrowserView>(view)) {
+    view = view->parent();
+  }
+  BrowserView* browser_view = views::AsViewClass<BrowserView>(view);
+  if (!browser_view || !browser_view->multi_contents_view()) {
+    return;
+  }
+  MultiContentsView* contents = browser_view->multi_contents_view();
+  contents->SetBackgroundRadii(PageInsets(browser_view).IsEmpty()
+                                   ? gfx::RoundedCornersF()
+                                   : gfx::RoundedCornersF(kPageCornerRadius));
+  contents->InvalidateLayout();
 }
 
 void SidebarView::Reload() {

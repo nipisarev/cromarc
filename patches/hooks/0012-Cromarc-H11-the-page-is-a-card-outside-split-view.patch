@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 24 Oct 2026 08:20:27 +0200
+Subject: [PATCH] Cromarc H11: the page is a card outside split view
+
+MultiContentsView asks Cromarc for insets round the single page and shows
+its themed background behind them, as split view does; the corners come
+from SetBackgroundRadii, which Cromarc calls.
+
+diff --git a/chrome/browser/ui/views/frame/multi_contents_view.cc b/chrome/browser/ui/views/frame/multi_contents_view.cc
+index a756f076ffce5..6d3974cc20639 100644
+--- a/chrome/browser/ui/views/frame/multi_contents_view.cc
++++ b/chrome/browser/ui/views/frame/multi_contents_view.cc
+@@ -51,6 +51,7 @@
+ #include "ui/views/layout/layout_types.h"
+ #include "ui/views/layout/proposed_layout.h"
+ #include "ui/views/view_class_properties.h"
++#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
+ 
+ namespace {
+ constexpr int kSnapDistance = 15;
+@@ -507,8 +508,11 @@ views::ProposedLayout MultiContentsView::CalculateProposedLayout(
+ 
+   gfx::Rect available_space = gfx::Rect(width, height);
+ 
+-  const bool show_background =
+-      drop_target_view_->GetVisible() || IsInSplitView();
++  // Cromarc: outside split view the page is a card on the background.
++  const gfx::Insets page_insets =
++      IsInSplitView() ? gfx::Insets() : cromarc::PageInsets(browser_view_);
++  const bool show_background = drop_target_view_->GetVisible() ||
++                               IsInSplitView() || !page_insets.IsEmpty();
+   layouts.child_layouts.emplace_back(background_view_.get(), show_background,
+                                      available_space);
+ 
+@@ -523,6 +527,7 @@ views::ProposedLayout MultiContentsView::CalculateProposedLayout(
+   if (IsInSplitView()) {
+     available_space.Inset(split_view_insets_);
+   }
++  available_space.Inset(page_insets);  // Cromarc
+   ViewSizes sizes = GetViewSizes(available_space);
+ 
+   gfx::Rect start_rect, resize_rect, end_rect;

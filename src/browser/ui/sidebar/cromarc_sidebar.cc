@@ -8,6 +8,9 @@
 #include <optional>
 
 #include "base/check.h"
+#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_bottom_container.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/views/view.h"
@@ -33,6 +36,18 @@ void InstallSidebar(views::View* parent,
   const std::optional<size_t> index = parent->GetIndexOf(native_tab_list);
   CHECK(index.has_value());
   parent->AddChildViewAt(std::make_unique<SidebarView>(browser), *index + 1);
+}
+
+gfx::Insets PageInsets(BrowserView* browser_view) {
+  BrowserWindowInterface* browser = browser_view->browser();
+  ExclusiveAccessManager* manager = ExclusiveAccessManager::From(browser);
+  if (!SidebarView::ForBrowser(browser) || !manager ||
+      manager->fullscreen_controller()->IsTabFullscreen()) {
+    return gfx::Insets();
+  }
+  // Zen: margin on the page's far sides, none toward the sidebar and the
+  // toolbar.
+  return gfx::Insets::TLBR(0, 0, kPageSeparation, kPageSeparation);
 }
 
 }  // namespace cromarc

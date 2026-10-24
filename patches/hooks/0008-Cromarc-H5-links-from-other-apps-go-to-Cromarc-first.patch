@@ -5,10 +5,10 @@ Subject: [PATCH] Cromarc H5: links from other apps go to Cromarc first
 
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
-index 33a6696fd803a..eea89f8ca6ec8 100644
+index 5aa5b0447d685..2fec09a62b85a 100644
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1537,6 +1537,7 @@ source_set("core") {
+@@ -1538,6 +1538,7 @@ source_set("core") {
      deps += [
        ":app_controller_mac",
        ":chrome_browser_application_mac",
