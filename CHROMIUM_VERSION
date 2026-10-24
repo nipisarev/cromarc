@@ -2,8 +2,8 @@
 # CHROMIUM_TAG is a tag in https://chromium.googlesource.com/chromium/src.git.
 # CHROMIUM_COMMIT is what that tag resolves to; tooling/sync checks it.
 
-CHROMIUM_TAG=156.0.8078.48
+CHROMIUM_TAG=156.0.8078.70
 CHROMIUM_MILESTONE=156
-CHROMIUM_COMMIT=d0c02bfad08ec92a6ffcf989e53cd995e6381a4c
+CHROMIUM_COMMIT=c074338f557c9be290b20b8b03ff7c3a2ceb51ac
 CHROMIUM_CHANNEL=stable
-CHROMIUM_PIN_DATE=2026-10-23
+CHROMIUM_PIN_DATE=2026-10-24

@@ -33,16 +33,8 @@ shopt -s nullglob
 patches=("$CROMARC_ROOT"/patches/hooks/*.patch)
 shopt -u nullglob
 
-# Rebuilding the branch drops its commits: refuse when one of them is not in patches/hooks.
-if git rev-parse -q --verify refs/heads/cromarc-work >/dev/null; then
-  # ${a[@]+...}: /bin/bash 3.2 treats an empty array as unset under set -u.
-  exported="$(cat /dev/null ${patches[@]+"${patches[@]}"} | git patch-id --stable | cut -d' ' -f1 | sort -u)"
-  while read -r id commit; do
-    [ -n "$id" ] || continue
-    grep -qx "$id" <<<"$exported" || die "cromarc-work has $(git log -1 --format='%h "%s"' "$commit"), which is not in patches/hooks.
-     Keep it: tooling/export-patches, then re-run. Drop it: git -C $CHROMIUM_SRC branch -D cromarc-work"
-  done < <(git log -p --reverse "$pin..refs/heads/cromarc-work" | git patch-id --stable)
-fi
+# Rebuilding the branch drops its commits.
+require_exported_patches "$pin"
 
 log "cromarc-work = $CHROMIUM_TAG + ${#patches[@]} hook patch(es)"
 git checkout -q -B cromarc-work "$pin"

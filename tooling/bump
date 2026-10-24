@@ -53,6 +53,11 @@ sed -i '' \
   "$version_file"
 
 log "3/6 sync"
+# Off cromarc-work, which tooling/apply rebuilds on the new tag, once every
+# commit on it is in patches/hooks.
+require_exported_patches "refs/tags/$from"
+require_clean_chromium_tree
+git -C "$CHROMIUM_SRC" checkout -q --detach "refs/tags/$from"
 t=$SECONDS
 "$tooling/sync"
 sync_s=$((SECONDS - t))

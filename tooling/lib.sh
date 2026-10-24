@@ -103,6 +103,23 @@ $changes
      Commit them on cromarc-work and run tooling/export-patches, or discard them."
 }
 
+# Refuses when cromarc-work has a commit on top of $1 that is not in
+# patches/hooks: rebuilding or leaving the branch would lose it.
+require_exported_patches() {
+  local base="$1" exported id commit
+  git -C "$CHROMIUM_SRC" rev-parse -q --verify refs/heads/cromarc-work >/dev/null || return 0
+  shopt -s nullglob
+  local files=("$CROMARC_ROOT"/patches/hooks/*.patch)
+  shopt -u nullglob
+  # ${a[@]+...}: /bin/bash 3.2 treats an empty array as unset under set -u.
+  exported="$(cat /dev/null ${files[@]+"${files[@]}"} | git -C "$CHROMIUM_SRC" patch-id --stable | cut -d' ' -f1 | sort -u)"
+  while read -r id commit; do
+    [ -n "$id" ] || continue
+    grep -qx "$id" <<<"$exported" || die "cromarc-work has $(git -C "$CHROMIUM_SRC" log -1 --format='%h "%s"' "$commit"), which is not in patches/hooks.
+     Keep it: tooling/export-patches, then re-run. Drop it: git -C $CHROMIUM_SRC branch -D cromarc-work"
+  done < <(git -C "$CHROMIUM_SRC" log -p --reverse "$base..refs/heads/cromarc-work" | git -C "$CHROMIUM_SRC" patch-id --stable)
+}
+
 # src/ is mirrored into the Chromium tree as //cromarc; git there ignores it.
 mirror_cromarc_sources() {
   mkdir -p "$CHROMIUM_SRC/cromarc"
