@@ -1,0 +1,49 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# What changed upstream in the Zen files Cromarc ports (docs/zen-sources.txt)
+# between the commit they were ported from and REF, to bring their fixes
+# over. Uses a clone in $ZEN_DIR (default ~/.cache/cromarc/zen-desktop).
+#
+# Usage: tooling/zen-diff [REF] [-p]   (REF default: origin/dev; -p: patches)
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+ref="origin/dev" patch=0
+for arg in "$@"; do
+  case "$arg" in
+    -p) patch=1 ;;
+    -h|--help) sed -n '5,11p' "$0"; exit 0 ;;
+    -*) die "unknown argument: $arg" ;;
+    *) ref="$arg" ;;
+  esac
+done
+
+sources="$CROMARC_ROOT/docs/zen-sources.txt"
+repo="$(sed -n 's/^ZEN_REPO=//p' "$sources")"
+base="$(sed -n 's/^ZEN_COMMIT=//p' "$sources")"
+[ -n "$repo" ] && [ -n "$base" ] || die "ZEN_REPO and ZEN_COMMIT must be set in $sources"
+paths=()
+while read -r path _; do
+  paths+=("$path")
+done < <(grep -Ev '^(#|ZEN_|$)' "$sources")
+
+zen="${ZEN_DIR:-$HOME/.cache/cromarc/zen-desktop}"
+if [ ! -d "$zen/.git" ]; then
+  log "cloning $repo into $zen"
+  mkdir -p "$(dirname "$zen")"
+  git clone -q --filter=blob:none "$repo" "$zen"
+fi
+git -C "$zen" fetch -q origin
+git -C "$zen" cat-file -e "$base^{commit}" 2>/dev/null || die "$base is not in $zen"
+
+log "ported Zen files, $base..$ref"
+if [ "$patch" -eq 1 ]; then
+  git -C "$zen" --no-pager diff "$base" "$ref" -- "${paths[@]}"
+else
+  git -C "$zen" --no-pager diff --stat "$base" "$ref" -- "${paths[@]}"
+  git -C "$zen" --no-pager log --oneline "$base..$ref" -- "${paths[@]}" | head -40
+fi

@@ -1,0 +1,74 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Moves Cromarc to another Chromium tag (design, "Цикл обновлений Chromium"):
+# check the hooks against the tag, repin, sync, rebuild cromarc-work from the
+# tag and the hooks, build, run the tests, and log the bump with its timings
+# in docs/maintenance-log.md. Stops at the first step that fails; the pin
+# change and the log entry are left for review, not committed.
+#
+# Usage: tooling/bump TAG [--check]
+#   --check  only whether the hooks apply to TAG (tooling/check-patches)
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+tag="" check_only=0
+for arg in "$@"; do
+  case "$arg" in
+    --check) check_only=1 ;;
+    -h|--help) sed -n '5,14p' "$0"; exit 0 ;;
+    -*) die "unknown argument: $arg" ;;
+    *) tag="$arg" ;;
+  esac
+done
+case "$tag" in
+  *[!0-9.]*|'') die "a Chromium version tag like 156.0.8078.70 is required" ;;
+esac
+[ "$tag" != "$CHROMIUM_TAG" ] || die "already at $tag"
+
+tooling="$CROMARC_ROOT/tooling"
+log "1/6 hooks against $tag"
+"$tooling/check-patches" "$tag" ||
+  die "resolve the conflicts first: rebase cromarc-work onto $tag by hand, then tooling/export-patches"
+[ "$check_only" -eq 0 ] || exit 0
+
+require_macos_arm64 "$@"
+commit="$(git ls-remote "$CHROMIUM_URL" "refs/tags/$tag^{}" "refs/tags/$tag" |
+  awk 'NR==1 || /\^\{\}$/ {c=$1} END {print c}')"
+[ -n "$commit" ] || die "no tag $tag at $CHROMIUM_URL"
+
+from="$CHROMIUM_TAG"
+started=$SECONDS
+
+log "2/6 pin: $from -> $tag ($commit)"
+version_file="$CROMARC_ROOT/CHROMIUM_VERSION"
+sed -i '' \
+  -e "s/^CHROMIUM_TAG=.*/CHROMIUM_TAG=$tag/" \
+  -e "s/^CHROMIUM_MILESTONE=.*/CHROMIUM_MILESTONE=${tag%%.*}/" \
+  -e "s/^CHROMIUM_COMMIT=.*/CHROMIUM_COMMIT=$commit/" \
+  -e "s/^CHROMIUM_PIN_DATE=.*/CHROMIUM_PIN_DATE=$(date +%F)/" \
+  "$version_file"
+
+log "3/6 sync"
+t=$SECONDS
+"$tooling/sync"
+sync_s=$((SECONDS - t))
+log "4/6 apply"
+"$tooling/apply"
+log "5/6 build"
+t=$SECONDS
+"$tooling/build" release chrome cromarc_unittests
+build_s=$((SECONDS - t))
+log "6/6 tests"
+"$CHROMIUM_SRC/out/release/cromarc_unittests" >/dev/null
+"$tooling/check" >/dev/null
+
+log_file="$CROMARC_ROOT/docs/maintenance-log.md"
+[ -f "$log_file" ] || printf '# Maintenance log\n\nBumps of the Chromium pin (design, "Цикл обновлений Chromium").\n\n| Date | From | To | Sync | Build | Total | Notes |\n|---|---|---|---|---|---|---|\n' > "$log_file"
+printf '| %s | %s | %s | %d min | %d min | %d min | hooks applied as they were |\n' \
+  "$(date +%F)" "$from" "$tag" $((sync_s / 60)) $((build_s / 60)) \
+  $(((SECONDS - started) / 60)) >> "$log_file"
+log "bumped to $tag; review and commit CHROMIUM_VERSION and docs/maintenance-log.md"

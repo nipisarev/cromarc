@@ -111,6 +111,10 @@ test_find_app_bundle_skips_helpers() {
 
 test_reexecs_native_under_rosetta() {
   local tmp out
+  if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+    echo "  skip  arch: Rosetta is not installed"
+    return 0
+  fi
   tmp="$(mktemp -d)"
   printf '. "%s/lib.sh"\nrequire_macos_arm64 "$@"\nprintf "%%s %%s" "$(uname -m)" "$*"\n' "$TOOLING_DIR" > "$tmp/probe.sh"
   out="$(arch -x86_64 /bin/bash "$tmp/probe.sh" one two 2>&1)"

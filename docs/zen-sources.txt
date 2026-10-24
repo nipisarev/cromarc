@@ -1,0 +1,28 @@
+# Zen files Cromarc ports, and where they went (design, "Как переносим код Zen").
+# tooling/zen-diff shows what changed in them upstream since ZEN_COMMIT.
+#
+# Format: <path in zen-browser/desktop>  <Cromarc files>
+# A trailing / is a directory.
+
+ZEN_REPO=https://github.com/zen-browser/desktop.git
+ZEN_COMMIT=f2b18c4f6179a3918c0d92f2a7406322cda4ad12
+
+src/zen/spaces/ZenSpacesSwipe.mjs                 src/webui/sidebar/spaces.ts src/webui/sidebar/app.ts src/browser/spaces/swipe_tracker.cc
+src/zen/spaces/ZenSpaceManager.mjs                src/webui/sidebar/spaces.ts src/webui/sidebar/app.ts
+src/zen/spaces/ZenSpaceAddSwipe.mjs               src/webui/sidebar/spaces.ts src/webui/sidebar/app.ts
+src/zen/spaces/ZenSpaceCreation.mjs               src/webui/sidebar/space_editor.ts
+src/zen/spaces/create-workspace-form.css          src/webui/sidebar/space_editor.css
+src/zen/spaces/ZenSpaceIcons.mjs                  src/webui/sidebar/app.ts
+src/zen/spaces/ZenSpace.mjs                       src/webui/sidebar/app.html.ts
+src/zen/common/emojis/ZenEmojiPicker.mjs          src/webui/sidebar/icon_picker.ts src/webui/sidebar/space_icons.ts
+src/zen/common/emojis/ZenEmojisData.min.mjs       src/webui/sidebar/emoji_data.ts
+src/browser/themes/shared/zen-icons/common/selectable/  src/webui/sidebar/icons/
+src/zen/library/ZenLibrary.mjs                    src/webui/sidebar/library.ts src/webui/sidebar/app.ts
+src/zen/glance/ZenGlanceManager.mjs               src/browser/ui/glance/glance.cc
+src/zen/compact-mode/ZenCompactMode.mjs           src/browser/ui/sidebar/compact_mode.cc
+src/zen/tabs/zen-tabs/vertical-tabs.css           src/webui/sidebar/app.css
+src/zen/folders/ZenFolders.mjs                    src/webui/sidebar/sidebar_model.ts
+locales/en-US/browser/browser/zen-workspaces.ftl  src/webui/sidebar/strings.ts
+prefs/zen/workspaces.yaml                         src/webui/sidebar/spaces.ts
+prefs/zen/glance.yaml                             src/browser/ui/glance/glance.cc
+prefs/zen/compact-mode.yaml                       src/browser/ui/sidebar/compact_mode.cc

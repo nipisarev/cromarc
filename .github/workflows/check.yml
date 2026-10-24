@@ -1,0 +1,51 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# The cheap half of the update cycle (design, "Цикл обновлений Chromium"):
+# repository checks and whether the hooks apply, without a Chromium
+# checkout. Full builds stay on the developer's Mac.
+name: check
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Daily: does Chrome's newest stable for Mac take the hooks as they are?
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install shellcheck
+        run: brew install shellcheck
+      - name: Shell, tooling and WebUI unit tests
+        run: tooling/check
+      - name: Hooks apply to the pin
+        run: tooling/check-patches
+
+  newest-stable:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hooks against Chrome's newest stable for Mac
+        run: |
+          latest="$(curl -sf 'https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Mac&num=1' |
+            python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["version"])')"
+          . ./CHROMIUM_VERSION
+          echo "pin $CHROMIUM_TAG, newest stable $latest"
+          if [ "$latest" = "$CHROMIUM_TAG" ]; then
+            echo "up to date"
+          else
+            echo "::notice::Chrome $latest is out; bump with tooling/bump $latest"
+            tooling/check-patches "$latest"
+          fi

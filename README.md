@@ -9,7 +9,7 @@ An Arc/Zen-style browser built on vanilla Chromium, where every space is a full 
 
 ## Status
 
-Early development. The tooling builds vanilla Chromium at the pinned version; no Cromarc features yet.
+Early development, used daily by its author. Working: the sidebar with nested folders, pinned tabs and Essentials, the command bar, idle tabs to an archive and the Library, spaces as profiles with Zen's switching animation and swipes, an Arc sidebar importer, Little Arc windows for links from other apps, Glance, compact mode. Not yet: themes, sync between Macs, link routing rules.
 
 ## Building (macOS, Apple Silicon)
 
@@ -24,6 +24,14 @@ tooling/check            # shellcheck, tooling tests, WebUI unit tests
 ```
 
 Our code lives in `src/` and is mirrored into the Chromium tree as `//cromarc`. The few edits to upstream files are commits on `cromarc-work`, kept in `patches/hooks/`: to change one, commit on `cromarc-work` and run `tooling/export-patches`.
+
+Keeping up with upstream:
+
+```bash
+tooling/check-patches 157.0.8103.21   # do the hooks apply to a tag? (no checkout needed)
+tooling/bump 156.0.8078.70            # repin, sync, apply, build, test, log to docs/maintenance-log.md
+tooling/zen-diff                      # what changed in the Zen code we ported (docs/zen-sources.txt)
+```
 
 Issues and pull requests are closed for now.
 

@@ -1,0 +1,60 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Whether patches/hooks apply to a Chromium tag, without a checkout: the
+# files the hooks touch are fetched at that tag from Gitiles into a scratch
+# repository, and the patches go on with `git am`, in order. Cheap enough
+# for CI, and the first look at a bump.
+#
+# Usage: tooling/check-patches [TAG]   (default: the pin)
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+tag="${1:-$CHROMIUM_TAG}"
+case "$tag" in
+  -h|--help) sed -n '5,12p' "$0"; exit 0 ;;
+  *[!0-9.]*|'') die "a Chromium version tag like 156.0.8078.48, got '$tag'" ;;
+esac
+gitiles="https://chromium.googlesource.com/chromium/src/+/refs/tags/$tag"
+
+patches=("$CROMARC_ROOT"/patches/hooks/*.patch)
+[ -e "${patches[0]}" ] || die "no patches in patches/hooks"
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+git -C "$work" init -q
+git -C "$work" config user.email check@cromarc.invalid
+git -C "$work" config user.name check-patches
+
+# Every path a patch modifies or deletes exists upstream; added files do not.
+paths="$(for p in "${patches[@]}"; do
+  awk '/^diff --git /{path=substr($3, 3)} /^--- a\//{print path}' "$p"
+done | sort -u)"
+log "fetching $(echo "$paths" | wc -l | tr -d ' ') files at $tag"
+while IFS= read -r path; do
+  mkdir -p "$work/$(dirname "$path")"
+  if ! curl -sfL --retry 3 "$gitiles/$path?format=TEXT" | base64 --decode > "$work/$path"; then
+    die "$path is not in $tag (renamed or removed upstream?)"
+  fi
+done <<< "$paths"
+git -C "$work" add -A
+git -C "$work" commit -q -m "$tag"
+
+failed=0
+for p in "${patches[@]}"; do
+  name="$(basename "$p")"
+  if out="$(git -C "$work" am -q "$p" 2>&1)"; then
+    printf '  ok        %s\n' "$name"
+  else
+    printf '  CONFLICT  %s\n' "$name"
+    printf '%s\n' "$out" | grep -E 'patch failed|does not apply|CONFLICT' | sort -u |
+      sed 's/^/              /' || true
+    git -C "$work" am --abort >/dev/null 2>&1 || true
+    failed=1
+  fi
+done
+[ "$failed" -eq 0 ] || die "patches/hooks do not all apply to $tag"
+log "patches/hooks apply to $tag"
