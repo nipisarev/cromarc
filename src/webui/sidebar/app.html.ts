@@ -2,9 +2,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import {html, nothing} from '//resources/lit/v3_0/lit.rollup.js';
+import {html, nothing, repeat} from '//resources/lit/v3_0/lit.rollup.js';
 
 import type {SidebarAppElement} from './app.js';
+import {essentialsLayout} from './sidebar_model.js';
 
 export function getHtml(this: SidebarAppElement) {
   // clang-format off
@@ -16,11 +17,22 @@ export function getHtml(this: SidebarAppElement) {
     <div id="sidebar" class="sidebar"
           @contextmenu="${this.onBackgroundContextmenu_}">
       <div id="essentials" class="essentials"
-          ?empty="${this.view_.essentials.length === 0}"
+          layout="${essentialsLayout(this.view_.essentials.length)}"
           @dragover="${this.onEssentialsDragover_}"
           @drop="${this.onEssentialsDrop_}">
-        ${this.view_.essentials.map(e => html`
-          <div class="essential" data-id="${e.id}" data-kind="item"
+        ${this.essentialsPromo_() ? html`
+          <div class="essentials-promo ${this.promoOver_ ? 'over' : ''}"
+              @dragover="${this.onPromoDragover_}"
+              @dragleave="${this.onPromoDragleave_}">
+            <span class="svg" style="mask-image: ${this.iconMask_('icon:heart')}">
+            </span>
+            <span class="promo-title">${this.strings.essentialsPromoLabel}</span>
+            <span class="promo-sublabel">${
+                this.strings.essentialsPromoSublabel}</span>
+          </div>` : html`${
+          repeat(this.essentialCells_(), e => e?.id ?? '', e => e ? html`
+          <div class="essential ${this.isDragged_(e.id) ? 'dragging' : ''}"
+              data-id="${e.id}" data-kind="item"
               draggable="true" title="${e.title}" state="${e.state}"
               ?active="${this.isActive_(e.tab)}"
               @click="${this.onItemClick_}"
@@ -29,7 +41,7 @@ export function getHtml(this: SidebarAppElement) {
             <span class="favicon"
                 style="background-image: ${this.faviconFor_(e.homeUrl, e.tab)}">
             </span>
-          </div>`)}
+          </div>` : html`<div class="essential slot"></div>`)}`}
       </div>
       <div class="space-header ${this.dropZone_ === 'header' ? 'over' : ''}"
           @dragover="${this.onHeaderDragover_}"
@@ -157,8 +169,8 @@ export function getHtml(this: SidebarAppElement) {
       </div>
     </div>` : html`
     <div class="sidebar snapshot">
-      <div class="essentials"
-          ?empty="${this.snapshotOf_(space.id).view.essentials.length === 0}">
+      <div class="essentials" layout="${
+          essentialsLayout(this.snapshotOf_(space.id).view.essentials.length)}">
         ${this.snapshotOf_(space.id).view.essentials.map(e => html`
           <div class="essential" state="asleep" title="${e.title}">
             <span class="favicon"
@@ -281,6 +293,7 @@ ${this.cleared_.length ? html`
     <button class="text" @click="${this.onUndoClearClick_}">${
         this.strings.undo}</button>
   </div>` : nothing}
+<div id="drag-ghost"></div>
 <!--_html_template_end_-->`;
   // clang-format on
 }

@@ -72,6 +72,7 @@ class SidebarPageHandler : public mojom::PageHandler,
                        int32_t x,
                        int32_t y,
                        ShowContextMenuCallback callback) override;
+  void PlayHapticFeedback() override;
   void SetHomeToCurrent(const std::string& id) override;
   void SetCollapsed(const std::string& id, bool collapsed) override;
   void SetEssential(const std::string& id, bool essential) override;

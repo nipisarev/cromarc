@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {buildSidebar, dropTarget, isAwayFromHome} from '../sidebar_model.ts';
+import {buildSidebar, cellAt, dropTarget, essentialSlot, essentialsLayout, isAwayFromHome} from '../sidebar_model.ts';
 
 function tab(id: string, url: string, extra: Record<string, unknown> = {}) {
   return {
@@ -93,4 +93,41 @@ test('drop targets: before/after a row keep its parent, inside goes into a folde
   assert.deepEqual(dropTarget(row('b'), 'after'), {parentId: 'f', index: 2});
   assert.deepEqual(dropTarget(row('f'), 'inside'), {parentId: 'f', index: 0});
   assert.deepEqual(dropTarget(row('c'), 'after'), {parentId: '', index: 2});
+});
+
+test('essentials layouts follow Zen by tile count', () => {
+  assert.deepEqual(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(essentialsLayout),
+      [0, 2, 0, 2, 3, 1, 0, 0, 1, 0, 0, 0]);
+});
+
+test('an essential slot is before the essential there, or after the last', () => {
+  const view = buildSidebar([
+    pinned('mail', 'https://mail', {essential: true}),
+    pinned('doc', 'https://doc'),
+    folder('f', [pinned('x', 'https://x'), pinned('cal', 'https://cal', {essential: true})]),
+  ], []);
+  const essentials = view.essentials;
+  assert.deepEqual(essentialSlot(essentials, 0, 3), {parentId: '', index: 0});
+  assert.deepEqual(essentialSlot(essentials, 1, 3), {parentId: 'f', index: 1});
+  assert.deepEqual(essentialSlot(essentials, 2, 3), {parentId: 'f', index: 2});
+  assert.deepEqual(essentialSlot([], 0, 3), {parentId: '', index: 3});
+});
+
+test('the cell under a point, kept inside the grid', () => {
+  // Two columns of 50×46 with a 4px gap; the second row has one cell.
+  const cells = [
+    {left: 0, top: 0, width: 50, height: 46},
+    {left: 54, top: 0, width: 50, height: 46},
+    {left: 0, top: 50, width: 50, height: 46},
+  ];
+  assert.equal(cellAt(cells, 10, 10), 0);
+  assert.equal(cellAt(cells, 60, 10), 1);
+  assert.equal(cellAt(cells, 10, 60), 2);
+  assert.equal(cellAt(cells, 52, 10), -1);
+  assert.equal(cellAt(cells, -30, -30), 0);
+  assert.equal(cellAt(cells, 500, 10), 1);
+  assert.equal(cellAt(cells, 10, 500), 2);
+  assert.equal(cellAt(cells, 80, 80), -1);
+  assert.equal(cellAt([], 0, 0), -1);
 });

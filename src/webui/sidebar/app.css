@@ -13,11 +13,15 @@
   --row-height: 34px;
   --row-radius: 8px;
   --indent: 14px;
+  /* Zen's --tab-min-height in #zen-essentials. */
+  --essential-height: 46px;
   --hover: var(--color-sys-state-hover-on-subtle, rgba(128, 128, 128, .15));
   --active: var(--color-sys-tonal-container, rgba(128, 128, 128, .28));
   --text: var(--color-sys-on-surface, CanvasText);
   --text-dim: var(--color-sys-on-surface-subtle, GrayText);
   --accent: var(--color-sys-primary, Highlight);
+  /* Zen's --zen-toolbar-element-bg. */
+  --element-bg: color-mix(in oklch, var(--text) 8%, transparent);
 
   color: var(--text);
   display: flex;
@@ -27,6 +31,12 @@
   overflow: hidden;
   position: relative;
   user-select: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --element-bg: color-mix(in oklch, var(--text) 15%, transparent);
+  }
 }
 
 /* Space strips side by side, moved with transforms (design, component 4). */
@@ -66,35 +76,124 @@
   padding: 4px 6px 12px;
 }
 
-/* Essentials: up to 12 tiles, icon only (design, section 2). */
+/* Essentials: up to 12 tiles, icon only, in Zen's grid (zen:tabs/zen-tabs/
+ * vertical-tabs.css, .zen-essentials-container, .tabbrowser-tab[zen-essential],
+ * #zen-essentials --tab-min-height). The padding is part of the drop zone, so
+ * a drag can hit the grid while it is empty. */
 .essentials {
+  --min-essentials-width-wrap: calc(var(--essential-height) + 4px);
   display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  margin-bottom: 8px;
+  gap: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(max(23.7%, var(--min-essentials-width-wrap)), 1fr));
+  margin-top: -4px;
   min-height: 8px;
+  padding-block: 4px 8px;
+  position: relative;
+}
+
+.essentials[layout='1'] {
+  grid-template-columns: repeat(auto-fit, minmax(max(30%, var(--min-essentials-width-wrap)), auto));
+}
+
+.essentials[layout='2'] {
+  grid-template-columns: repeat(auto-fit, minmax(max(23%, var(--min-essentials-width-wrap)), 1fr) minmax(max(23%, var(--min-essentials-width-wrap)), 1fr));
+}
+
+.essentials[layout='3'] {
+  grid-template-columns: repeat(auto-fit, minmax(max(25%, 48px), 1fr));
 }
 
 .essential {
   align-items: center;
-  aspect-ratio: 1;
-  background: var(--hover);
-  border-radius: 10px;
+  background: var(--element-bg);
+  /* Zen's --border-radius-medium in the sidebar. */
+  border-radius: 14px;
   display: flex;
+  height: var(--essential-height);
   justify-content: center;
-  max-height: 52px;
 }
 
 .essential:hover {
-  background: var(--active);
+  background: var(--hover);
 }
 
+/* Zen draws the selected essential as a selected tab. */
 .essential[active] {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  background: var(--active);
 }
 
 .essential[state='asleep'] .favicon {
   opacity: .5;
+}
+
+/* Where the dragged tab would land (Zen's fake essential tile), and the
+ * dragged essential itself, which Zen hides. */
+.essential.slot {
+  background: none;
+}
+
+.essential.dragging {
+  display: none;
+}
+
+/* zen:tabs/zen-essentials-promo.css: shown in empty Essentials while a tab is
+ * dragged over them. */
+.essentials-promo {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 0 1px 1px rgba(0, 0, 0, .1);
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  justify-content: center;
+  margin: 2px;
+  padding: 1.1rem 0;
+  text-align: center;
+  transition: background .1s;
+}
+
+.essentials-promo:not(.over) {
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+  outline: 1px dashed currentColor;
+}
+
+.essentials-promo > * {
+  max-width: 80%;
+  pointer-events: none;
+}
+
+.essentials-promo .svg {
+  height: 18px;
+  margin-bottom: 4px;
+  width: 18px;
+}
+
+.essentials-promo .promo-title {
+  font-weight: 600;
+}
+
+.essentials-promo .promo-sublabel {
+  font-size: smaller;
+  opacity: .8;
+}
+
+/* The drag image, drawn by the page: Chromium can't swap the image in the
+ * middle of a drag, as Zen turns it into a tile over Essentials (zen:drag-
+ * and-drop/ZenDragAndDrop.js, #makeDragImageEssential). Opacity as Blink
+ * draws drag images (drag_controller.cc, kDragImageAlpha). */
+#drag-ghost {
+  left: 0;
+  opacity: .75;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  z-index: 10;
+}
+
+#drag-ghost > * {
+  box-sizing: border-box;
 }
 
 .row {

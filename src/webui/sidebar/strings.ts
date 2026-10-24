@@ -36,7 +36,7 @@ export const strings = {
   remove: 'Удалить',
   // Zen's Russian strings (zen-general.ftl, zen-vertical-tabs.ftl).
   resetPinned: 'Сбросить закрепленную вкладку',
-  resetEssential: 'Сбросить вкладку Essentials',
+  resetEssential: 'Сбросить важную вкладку',
   replaceWithCurrent: 'Заменить текущим URL-адресом',
   resetPinButton: 'Сбросить и закрепить вкладку',
   backToPinned: 'Назад к закрепленному адресу',
@@ -44,8 +44,12 @@ export const strings = {
   unpin: 'Открепить',
   pin: 'Закрепить',
   copyLink: 'Копировать ссылку',
-  addToEssentials: 'В Essentials',
-  removeFromEssentials: 'Убрать из Essentials',
+  addToEssentials: 'Добавить в важное',
+  removeFromEssentials: 'Удалить из важного',
+  // Zen's Essentials promo (zen-essentials-promo-*), shown while a tab is
+  // dragged over empty Essentials.
+  essentialsPromoLabel: 'Добавить в важное',
+  essentialsPromoSublabel: 'Доступ к любимым вкладкам в один клик',
   close: 'Закрыть',
   clear: 'Очистить',
   cleared: 'Today очищен',

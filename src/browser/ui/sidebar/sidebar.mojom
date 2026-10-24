@@ -140,6 +140,8 @@ interface PageHandler {
   // A native context menu at (x, y) in the page, as Zen's; an empty label is a
   // separator. Returns the chosen label's index, or -1.
   ShowContextMenu(array<string> labels, int32 x, int32 y) => (int32 index);
+  // A trackpad tick, as Zen's when a drag changes its drop slot.
+  PlayHapticFeedback();
   // Cmd+S from the menu: compact mode on or off.
   ToggleCompactMode();
 

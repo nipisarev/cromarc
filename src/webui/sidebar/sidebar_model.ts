@@ -6,7 +6,7 @@ import type {TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 
 // asleep: no live tab, opening loads the home URL. away: the live tab left the
-// home URL (the row shows ↩).
+// home URL (the row shows Zen's reset button).
 export type PinnedState = 'live'|'asleep'|'away';
 
 interface RowBase {
@@ -123,4 +123,60 @@ export function dropTarget(row: TreeRow, position: DropPosition):
     parentId: row.parentId,
     index: position === 'after' ? row.index + 1 : row.index,
   };
+}
+
+// Tree::kMaxEssentials; Zen's zen.tabs.essentials.max.
+export const MAX_ESSENTIALS = 12;
+
+// Zen's layouts of the Essentials grid by tile count (zen:spaces/
+// ZenSpaceManager.mjs, updateTabsContainers: data-hack-type), 0 = the
+// default four columns.
+export function essentialsLayout(count: number): number {
+  if (count === 6 || count === 9) {
+    return 1;
+  }
+  if (count % 2 === 0 && count < 8) {
+    return 2;
+  }
+  return count === 5 ? 3 : 0;
+}
+
+// Where in the tree an item goes to become the essential at `index` of
+// `essentials` (the grid without the dragged item): the grid follows the
+// tree order.
+export function essentialSlot(
+    essentials: PinnedRow[], index: number,
+    rootSize: number): {parentId: string, index: number} {
+  const next = essentials[index];
+  if (next) {
+    return {parentId: next.parentId, index: next.index};
+  }
+  const last = essentials.at(-1);
+  return last ? {parentId: last.parentId, index: last.index + 1} :
+                {parentId: '', index: rootSize};
+}
+
+export interface Cell {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+// The grid cell under (x, y), as Zen's essentials drag (zen:drag-and-drop/
+// ZenDragAndDrop.js, #animateVerticalPinnedGridDragOver): the point is kept
+// inside the grid first; -1 in a gap between cells.
+export function cellAt(cells: Cell[], x: number, y: number): number {
+  if (!cells.length) {
+    return -1;
+  }
+  const left = Math.min(...cells.map(c => c.left));
+  const top = Math.min(...cells.map(c => c.top));
+  const right = Math.max(...cells.map(c => c.left + c.width));
+  const bottom = Math.max(...cells.map(c => c.top + c.height));
+  const px = Math.min(Math.max(x, left), right - 1);
+  const py = Math.min(Math.max(y, top), bottom - 1);
+  return cells.findIndex(
+      c => px >= c.left && px < c.left + c.width && py >= c.top &&
+          py < c.top + c.height);
 }

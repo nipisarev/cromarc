@@ -19,7 +19,7 @@ import './theme_editor.js';
 import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
 import {BrowserProxy} from './browser_proxy.js';
-import {buildSidebar, dropTarget} from './sidebar_model.js';
+import {buildSidebar, cellAt, dropTarget, essentialSlot, MAX_ESSENTIALS} from './sidebar_model.js';
 import type {SpaceEdit} from './space_editor.js';
 import {iconMask} from './space_icon.js';
 import {gradientOf, themeFromJson} from './theme_model.js';
@@ -46,6 +46,15 @@ export interface MenuItem {
 interface DragSource {
   kind: 'item'|'tab';
   id: string;
+  folder: boolean;
+  // Dragged out of the Essentials grid.
+  essential: boolean;
+  title: string;
+  // CSS image of its icon.
+  favicon: string;
+  // The grabbed point, from the dragged element's top left corner.
+  grabX: number;
+  grabY: number;
 }
 
 export interface DropIndicator {
@@ -80,6 +89,8 @@ export class SidebarAppElement extends CrLitElement {
       renaming_: {type: String},
       drop_: {type: Object},
       dropZone_: {type: String},
+      essentialsSlot_: {type: Number},
+      promoOver_: {type: Boolean},
       resetAccel_: {type: Boolean},
       strings: {type: Object},
       minutesLeft_: {type: Object},
@@ -110,6 +121,11 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor drop_: DropIndicator|null = null;
   // The space header or the end of the tree under a drag.
   protected accessor dropZone_: ''|'header'|'end' = '';
+  // Where in the Essentials grid the drag would land, -1 before it has been
+  // over the grid. As Zen's fake essential tile, it stays until the drag ends.
+  protected accessor essentialsSlot_: number = -1;
+  // The drag is over Zen's "Add to Essentials" promo.
+  protected accessor promoOver_: boolean = false;
   // Cmd is held over a reset button: its sublabel offers to separate.
   protected accessor resetAccel_: boolean = false;
   // Today tabs close to the archive: tab id → minutes left.
@@ -162,6 +178,17 @@ export class SidebarAppElement extends CrLitElement {
   // Bumped on every TabStripService snapshot; older observers go quiet.
   private generation_ = 0;
   private drag_: DragSource|null = null;
+  // The page's drag image (see #drag-ghost in app.css): its row and tile
+  // forms, and which one shows.
+  private ghostRow_: HTMLElement|null = null;
+  private ghostTile_: HTMLElement|null = null;
+  private ghostIsTile_ = false;
+  // Hides the native drag image.
+  private readonly blankImage_ = Object.assign(new Image(), {
+    src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+  });
+  // Essentials' positions before a render that moves them.
+  private tileRects_: Map<string, DOMRect>|null = null;
   // CDP tests can't click a native menu: they name the item to choose here
   // before opening the menu.
   testMenuChoice: string|null = null;
@@ -182,6 +209,13 @@ export class SidebarAppElement extends CrLitElement {
     router.onSwipe.addListener((swipe: Swipe) => this.onSwipe_(swipe));
     this.proxy_.handler.getSpaces().then(({spaces}) => this.setSpaces_(spaces));
     this.connectTabs_();
+    this.addEventListener('dragover', e => this.moveGhost_(e));
+    this.addEventListener('dragleave', e => {
+      // Out of the page: nothing there shows the drag image.
+      if (!e.relatedTarget && this.drag_) {
+        this.showGhost_(null);
+      }
+    });
   }
 
   override willUpdate(changed: PropertyValues<this>) {
@@ -190,6 +224,11 @@ export class SidebarAppElement extends CrLitElement {
         changed.has('tree_' as keyof SidebarAppElement) ||
         changed.has('minutesLeft_' as keyof SidebarAppElement)) {
       this.view_ = buildSidebar(this.tree_, this.tabs_, this.deferred_);
+    }
+    if (this.drag_ &&
+        changed.has('essentialsSlot_' as keyof SidebarAppElement)) {
+      this.tileRects_ = new Map(
+          [...this.tiles_()].map(([id, tile]) => [id, tile.getBoundingClientRect()]));
     }
   }
 
@@ -845,7 +884,10 @@ export class SidebarAppElement extends CrLitElement {
           {
             label: row.essential ? strings.removeFromEssentials :
                                    strings.addToEssentials,
-            action: () => h.setEssential(row.id, !row.essential),
+            action: () => row.essential ?
+                h.setEssential(row.id, false) :
+                this.addToEssentials_(
+                    row.id, 'item', this.view_.essentials.length),
           },
           {label: strings.rename, action: () => this.renaming_ = row.id},
           {label: strings.copyLink, action: () => this.copy_(row.homeUrl)},
@@ -864,7 +906,11 @@ export class SidebarAppElement extends CrLitElement {
     const h = this.proxy_.handler;
     this.showMenu_(e.clientX, e.clientY, [
       {label: strings.pin, action: () => h.pinTab(tab.id, '', this.rootSize_(), false)},
-      {label: strings.addToEssentials, action: () => h.pinTab(tab.id, '', this.rootSize_(), true)},
+      {
+        label: strings.addToEssentials,
+        action: () =>
+            this.addToEssentials_(tab.id, 'tab', this.view_.essentials.length),
+      },
       {label: strings.copyLink, action: () => this.copy_(tab.url)},
       {label: strings.close, action: () => this.proxy_.tabStrip.closeNodes([tab.id]).catch(() => {})},
     ]);
@@ -955,11 +1001,15 @@ export class SidebarAppElement extends CrLitElement {
       input?.focus();
       input?.select();
     }
+    if (this.tileRects_) {
+      this.animateTiles_(this.tileRects_);
+      this.tileRects_ = null;
+    }
   }
 
   // Drag and drop (Arc): a Today tab dropped into the tree is pinned there, a
-  // tree item moves, anything dropped on the Essentials grid becomes an
-  // essential, a pinned item dropped on Today is unpinned.
+  // tree item moves, a tab or pinned item dropped on the Essentials grid
+  // becomes an essential (Zen), a pinned item dropped on Today is unpinned.
 
   protected onDragstart_(e: DragEvent) {
     const el = e.currentTarget as HTMLElement;
@@ -968,15 +1018,161 @@ export class SidebarAppElement extends CrLitElement {
     if (!id) {
       return;
     }
-    this.drag_ = {kind, id};
+    const rect = el.getBoundingClientRect();
+    const tab = kind === 'tab' ? this.view_.today.find(t => t.id === id) : null;
+    const row = this.view_.rows.find(r => r.id === id);
+    const essential = this.view_.essentials.find(r => r.id === id);
+    const pinned = essential ?? (row?.kind === 'pinned' ? row : null);
+    const drag: DragSource = {
+      kind, id,
+      folder: row?.kind === 'folder',
+      essential: !!essential,
+      title: tab ? tab.title || tab.url : (essential ?? row)?.title ?? '',
+      favicon: tab ? this.faviconFor_(tab.url, tab) :
+          pinned ? this.faviconFor_(pinned.homeUrl, pinned.tab) : '',
+      grabX: e.clientX - rect.left,
+      grabY: e.clientY - rect.top,
+    };
+    this.drag_ = drag;
     e.dataTransfer!.effectAllowed = 'move';
     e.dataTransfer!.setData('text/plain', id);
+    e.dataTransfer!.setDragImage(this.blankImage_, 0, 0);
+    const x = e.clientX;
+    const y = e.clientY;
+    // Changing the page during dragstart can cancel the drag in Chromium.
+    setTimeout(() => {
+      if (this.drag_ !== drag) {
+        return;
+      }
+      this.ghostRow_ = this.ghostRowFor_(el, drag, rect);
+      this.ghostTile_ = this.ghostTileFor_(el, drag);
+      this.showGhost_(essential ? this.ghostTile_ : this.ghostRow_);
+      this.placeGhost_(x, y);
+      if (essential) {
+        // Zen hides the dragged essential and keeps its place open.
+        this.essentialsSlot_ = this.view_.essentials.indexOf(essential);
+      }
+    });
   }
 
   protected onDragend_() {
     this.drag_ = null;
     this.drop_ = null;
     this.dropZone_ = '';
+    this.essentialsSlot_ = -1;
+    this.promoOver_ = false;
+    this.showGhost_(null);
+    this.ghostRow_ = null;
+    this.ghostTile_ = null;
+  }
+
+  // The drag image (zen:drag-and-drop/ZenDragAndDrop.js): a copy of the
+  // dragged row or essential at the grabbed point; over Essentials, a tile.
+
+  private ghostRowFor_(el: HTMLElement, drag: DragSource, rect: DOMRect):
+      HTMLElement {
+    let row: HTMLElement;
+    let width = rect.width;
+    let height = rect.height;
+    if (drag.essential) {
+      // An essential takes the size of a row, as any tab there (Zen,
+      // #makeDragImageNonEssential).
+      row = document.createElement('div');
+      row.className = 'row pinned';
+      const favicon = document.createElement('span');
+      favicon.className = 'favicon';
+      favicon.style.backgroundImage = drag.favicon;
+      const title = document.createElement('span');
+      title.className = 'title';
+      title.textContent = drag.title;
+      row.append(favicon, title);
+      const tree = this.shadowRoot.querySelector<HTMLElement>('#tree');
+      width = tree?.clientWidth ?? width;
+      height = parseFloat(getComputedStyle(this).getPropertyValue('--row-height'));
+    } else {
+      row = this.ghostCopy_(el);
+    }
+    row.style.width = `${width}px`;
+    row.style.height = `${height}px`;
+    return row;
+  }
+
+  private ghostTileFor_(el: HTMLElement, drag: DragSource): HTMLElement {
+    if (drag.essential) {
+      const tile = this.ghostCopy_(el);
+      tile.classList.remove('dragging');
+      tile.style.width = `${el.offsetWidth}px`;
+      return tile;
+    }
+    // Zen's essential look for the dragged tab: selected, its icon only.
+    const tile = document.createElement('div');
+    tile.className = 'essential';
+    tile.toggleAttribute('active', true);
+    const favicon = document.createElement('span');
+    favicon.className = 'favicon';
+    favicon.style.backgroundImage = drag.favicon;
+    tile.append(favicon);
+    return tile;
+  }
+
+  private ghostCopy_(el: HTMLElement): HTMLElement {
+    const copy = el.cloneNode(true) as HTMLElement;
+    copy.removeAttribute('data-id');
+    copy.removeAttribute('draggable');
+    return copy;
+  }
+
+  private showGhost_(ghost: HTMLElement|null) {
+    const host = this.shadowRoot.querySelector<HTMLElement>('#drag-ghost');
+    host?.replaceChildren(...(ghost ? [ghost] : []));
+    this.ghostIsTile_ = !!ghost && ghost === this.ghostTile_;
+  }
+
+  // Over Essentials the dragged tab turns into a tile; it turns back into a
+  // row outside them (Zen, #makeDragImageEssential/NonEssential).
+  private moveGhost_(e: DragEvent) {
+    const drag = this.drag_;
+    if (!drag || !this.ghostRow_ || !this.ghostTile_) {
+      return;
+    }
+    const essentials = this.shadowRoot.querySelector('#essentials');
+    const overEssentials = !!essentials && this.canBeEssential_(drag) &&
+        e.composedPath().includes(essentials);
+    const ghost = overEssentials ? this.ghostTile_ : this.ghostRow_;
+    if (!ghost.isConnected) {
+      this.showGhost_(ghost);
+    }
+    if (overEssentials && !drag.essential) {
+      this.ghostTile_.style.width = `${this.tileWidth_()}px`;
+    }
+    this.placeGhost_(e.clientX, e.clientY);
+  }
+
+  private placeGhost_(x: number, y: number) {
+    const drag = this.drag_;
+    const host = this.shadowRoot.querySelector<HTMLElement>('#drag-ghost');
+    if (!drag || !host) {
+      return;
+    }
+    // A tab turned into a tile hangs off the cursor (Zen's -16, -16 drag
+    // image offset); anything else stays where it was grabbed.
+    const tile = this.ghostIsTile_ && !drag.essential;
+    const left = tile ? x + 16 : x - drag.grabX;
+    const top = tile ? y + 16 : y - drag.grabY;
+    host.style.transform = `translate(${left}px, ${top}px)`;
+  }
+
+  // Zen, #essentialTileRect: the slot's width, or with none yet, a tile as
+  // the grid would lay it out.
+  private tileWidth_(): number {
+    const essentials = this.shadowRoot.querySelector<HTMLElement>('#essentials');
+    const slot = essentials?.querySelector<HTMLElement>('.essential.slot');
+    if (slot) {
+      return slot.offsetWidth;
+    }
+    const height =
+        parseFloat(getComputedStyle(this).getPropertyValue('--essential-height'));
+    return Math.max((essentials?.clientWidth ?? 0) * .237, height + 4);
   }
 
   protected onZoneDragleave_(e: DragEvent) {
@@ -1035,29 +1231,158 @@ export class SidebarAppElement extends CrLitElement {
     const {parentId, index} = dropTarget(row, drop.position);
     if (drag.kind === 'tab') {
       this.proxy_.handler.pinTab(drag.id, parentId, index, false);
-    } else {
-      this.proxy_.handler.moveItem(drag.id, parentId, index);
+      return;
     }
+    // An essential dropped among pinned tabs becomes one (Zen,
+    // removeEssentials with unpin = false).
+    if (drag.essential) {
+      this.proxy_.handler.setEssential(drag.id, false);
+    }
+    this.proxy_.handler.moveItem(drag.id, parentId, index);
+  }
+
+  // Essentials (zen:drag-and-drop/ZenDragAndDrop.js,
+  // #animateVerticalPinnedGridDragOver; zen:tabs/ZenEssentialsPromo.mjs).
+
+  // Zen's canEssentialBeAdded: not a folder, and room left in the grid.
+  private canBeEssential_(drag: DragSource): boolean {
+    return !drag.folder &&
+        (drag.essential || this.view_.essentials.length < MAX_ESSENTIALS);
+  }
+
+  protected essentialsPromo_(): boolean {
+    return this.essentialsSlot_ >= 0 && this.view_.essentials.length === 0;
+  }
+
+  // The grid while a drag is over it: the other essentials with an empty slot
+  // where the drag would land (null), and the hidden dragged essential.
+  protected essentialCells_(): Array<PinnedRow|null> {
+    const essentials = this.view_.essentials;
+    if (this.essentialsSlot_ < 0 || !this.drag_) {
+      return essentials;
+    }
+    const dragged = essentials.find(e => e.id === this.drag_!.id);
+    const cells: Array<PinnedRow|null> = essentials.filter(e => e !== dragged);
+    cells.splice(Math.min(this.essentialsSlot_, cells.length), 0, null);
+    return dragged ? [...cells, dragged] : cells;
+  }
+
+  protected isDragged_(id: string): boolean {
+    return this.essentialsSlot_ >= 0 && this.drag_?.id === id;
   }
 
   protected onEssentialsDragover_(e: DragEvent) {
-    if (this.drag_) {
-      e.preventDefault();
+    const drag = this.drag_;
+    if (!drag || !this.canBeEssential_(drag)) {
+      return;
+    }
+    e.preventDefault();
+    if (this.essentialsSlot_ < 0) {
+      // The slot opens at the end of the grid (Zen's fake essential tile), or
+      // empty Essentials show the promo.
+      this.essentialsSlot_ = this.view_.essentials.length;
+      if (this.essentialsSlot_ > 0) {
+        this.proxy_.handler.playHapticFeedback();
+      }
+      return;
+    }
+    if (!this.essentialsPromo_()) {
+      this.moveEssentialsSlot_(e, drag);
+    }
+  }
+
+  // The slot moves to the cell under the dragged tile's centre: an essential
+  // keeps the point it was grabbed at, a tab is a tile at the cursor (Zen).
+  private moveEssentialsSlot_(e: DragEvent, drag: DragSource) {
+    const grid = this.shadowRoot.querySelector<HTMLElement>('#essentials');
+    const slot = grid?.querySelector<HTMLElement>('.essential.slot');
+    if (!grid || !slot) {
+      return;
+    }
+    const cells = [...grid.querySelectorAll<HTMLElement>(
+        '.essential:not(.dragging)')];
+    const box = grid.getBoundingClientRect();
+    const x = e.clientX - box.left + slot.offsetWidth / 2 -
+        (drag.essential ? drag.grabX : 0);
+    const y = e.clientY - box.top + slot.offsetHeight / 2 -
+        (drag.essential ? drag.grabY : 0);
+    const index = cellAt(cells.map(cell => ({
+      left: cell.offsetLeft,
+      top: cell.offsetTop,
+      width: cell.offsetWidth,
+      height: cell.offsetHeight,
+    })), x, y);
+    if (index >= 0 && index !== this.essentialsSlot_) {
+      this.essentialsSlot_ = index;
+      this.proxy_.handler.playHapticFeedback();
+    }
+  }
+
+  protected onPromoDragover_() {
+    this.promoOver_ = true;
+  }
+
+  protected onPromoDragleave_(e: DragEvent) {
+    if (!(e.currentTarget as Node).contains(e.relatedTarget as Node | null)) {
+      this.promoOver_ = false;
     }
   }
 
   protected onEssentialsDrop_(e: DragEvent) {
     e.preventDefault();
     const drag = this.drag_;
+    const slot = this.essentialsSlot_;
     this.onDragend_();
-    if (!drag) {
+    if (!drag || !this.canBeEssential_(drag)) {
       return;
     }
-    if (drag.kind === 'tab') {
-      this.proxy_.handler.pinTab(drag.id, '', this.rootSize_(), true);
-    } else {
-      this.proxy_.handler.setEssential(drag.id, true);
+    this.addToEssentials_(
+        drag.id, drag.kind, slot >= 0 ? slot : this.view_.essentials.length);
+  }
+
+  // `id` becomes the essential at `index` of the grid without it.
+  private addToEssentials_(id: string, kind: 'item'|'tab', index: number) {
+    const others = this.view_.essentials.filter(e => e.id !== id);
+    const isEssential = others.length < this.view_.essentials.length;
+    if (!isEssential && others.length >= MAX_ESSENTIALS) {
+      return;
     }
+    const slot = essentialSlot(others, index, this.rootSize_());
+    const h = this.proxy_.handler;
+    if (kind === 'tab') {
+      h.pinTab(id, slot.parentId, slot.index, true);
+      return;
+    }
+    if (!isEssential) {
+      h.setEssential(id, true);
+    }
+    h.moveItem(id, slot.parentId, slot.index);
+  }
+
+  // Essentials step aside with Zen's transform transition while a tab is
+  // dragged (vertical-tabs.css, #tabbrowser-tabs[movingtab]: transform 0.1s
+  // ease-in-out), here from where they were before the render.
+  private animateTiles_(before: Map<string, DOMRect>) {
+    for (const [id, tile] of this.tiles_()) {
+      const from = before.get(id);
+      if (!from) {
+        continue;
+      }
+      const to = tile.getBoundingClientRect();
+      const dx = from.left - to.left;
+      const dy = from.top - to.top;
+      if (dx || dy) {
+        tile.animate(
+            [{transform: `translate(${dx}px, ${dy}px)`}, {transform: 'none'}],
+            {duration: 100, easing: 'ease-in-out'});
+      }
+    }
+  }
+
+  private tiles_(): Map<string, HTMLElement> {
+    const tiles = this.shadowRoot.querySelectorAll<HTMLElement>(
+        '#essentials .essential[data-id]');
+    return new Map([...tiles].map(tile => [tile.dataset['id']!, tile]));
   }
 
   protected onTreeEndDragover_(e: DragEvent) {

@@ -46,10 +46,14 @@ source_set("impl") {
     "sidebar_page_handler.h",
     "sidebar_ui.cc",
     "sidebar_view.cc",
+    "haptic_feedback.h",
     "space_input.h",
   ]
   if (is_mac) {
-    sources += [ "space_input_mac.mm" ]
+    sources += [
+      "haptic_feedback_mac.mm",
+      "space_input_mac.mm",
+    ]
     frameworks = [
       "AppKit.framework",
       "Carbon.framework",

@@ -11,6 +11,7 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
+#include "build/build_config.h"
 #include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
@@ -47,6 +48,10 @@
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
+
+#if BUILDFLAG(IS_MAC)
+#include "cromarc/browser/ui/sidebar/haptic_feedback.h"
+#endif
 
 namespace cromarc {
 
@@ -347,6 +352,12 @@ void SidebarPageHandler::ShowContextMenu(const std::vector<std::string>& labels,
 
 void SidebarPageHandler::OnContextMenuDone() {
   context_menu_.reset();
+}
+
+void SidebarPageHandler::PlayHapticFeedback() {
+#if BUILDFLAG(IS_MAC)
+  PerformHapticFeedback();
+#endif
 }
 
 void SidebarPageHandler::SetCollapsed(const std::string& id, bool collapsed) {
