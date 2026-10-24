@@ -7,36 +7,74 @@
  * #scheme=relative
  * #css_wrapper_metadata_end */
 
-/* Sizes follow Zen's vertical tabs (zen:tabs/zen-tabs/vertical-tabs.css):
- * 8px row radius, 6px toolbox padding, 14px indent per folder level. */
+/* Zen's sidebar on macOS. Colours: zen:common/styles/zen-theme.css and
+ * zen:spaces/zen-workspaces.css (zen-workspace); sizes: zen:tabs/zen-tabs/
+ * vertical-tabs.css over Firefox 158's tabs.css (--tab-min-height 36px,
+ * nova off), whose chrome font is message-box, 11px on macOS. */
 :host {
-  --row-height: 34px;
-  --row-radius: 8px;
+  color-scheme: light dark;
+  --zen-primary-color: var(--color-sys-primary, AccentColor);
+  --zen-branding-bg: light-dark(#e2e2e2, #101010);
+  --zen-branding-bg-reverse: light-dark(#101010, #e2e2e2);
+  --zen-colors-primary: light-dark(
+      color-mix(in srgb, var(--zen-primary-color) 50%, black 50%),
+      color-mix(in srgb, var(--zen-primary-color) 20%, var(--zen-branding-bg) 80%));
+  /* ZenGradientGenerator getToolbarColor. */
+  --text: light-dark(rgba(0, 0, 0, .9), rgba(255, 255, 255, .9));
+  --text-dim: color-mix(in srgb, var(--text) 70%, transparent);
+  --zen-toolbar-element-bg: light-dark(
+      color-mix(in oklch, var(--text) 8%, transparent),
+      color-mix(in oklch, var(--text) 15%, transparent));
+  --hover: color-mix(in srgb, var(--zen-branding-bg-reverse) 7%, transparent);
+  --pressed: color-mix(in srgb, var(--zen-branding-bg-reverse) 10%, transparent);
+  --tab-selected: light-dark(
+      color-mix(in srgb, rgba(255, 255, 255, .8) 98%, var(--zen-primary-color)),
+      color-mix(in srgb, rgba(255, 255, 255, .18) 95%, var(--zen-primary-color)));
+  --tab-selected-shadow: 0 .8px 1.5px 0 light-dark(rgba(0, 0, 0, .15), rgba(0, 0, 0, .05));
+  --themed-icon-fill: light-dark(
+      color-mix(in srgb, var(--zen-primary-color) 50%, black),
+      color-mix(in srgb, var(--zen-colors-primary) 15%, #ebebeb));
+  /* zen:folders/zen-folders.css. */
+  --zen-folder-behind-bgcolor: light-dark(
+      color-mix(in srgb, var(--zen-primary-color) 60%, gray),
+      color-mix(in srgb, var(--zen-primary-color) 60%, #c1c1c1));
+  --zen-folder-front-bgcolor: light-dark(
+      color-mix(in srgb, var(--zen-primary-color), white 70%),
+      color-mix(in srgb, var(--zen-primary-color), black 40%));
+  --zen-folder-stroke: light-dark(
+      color-mix(in srgb, var(--zen-primary-color) 50%, black),
+      color-mix(in srgb, var(--zen-colors-primary) 15%, #ebebeb));
+  --accent: var(--zen-primary-color);
+  /* --zen-toolbox-padding, --tab-min-height, --tab-margin-block,
+   * --border-radius-medium, --zen-folder-indent, --tab-padding-inline,
+   * --toolbarbutton-padding-inner. */
+  --toolbox-padding: 6px;
+  --row-height: 36px;
+  --row-margin: 2px;
+  --row-radius: 14px;
   --indent: 14px;
-  /* Zen's --tab-min-height in #zen-essentials. */
+  --row-padding: 6px;
+  --icon-gap: 10px;
   --essential-height: 46px;
-  --hover: var(--color-sys-state-hover-on-subtle, rgba(128, 128, 128, .15));
-  --active: var(--color-sys-tonal-container, rgba(128, 128, 128, .28));
-  --text: var(--color-sys-on-surface, CanvasText);
-  --text-dim: var(--color-sys-on-surface-subtle, GrayText);
-  --accent: var(--color-sys-primary, Highlight);
-  /* Zen's --zen-toolbar-element-bg. */
-  --element-bg: color-mix(in oklch, var(--text) 8%, transparent);
 
   color: var(--text);
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  font-family: 'SF Pro', ui-sans-serif, system-ui, sans-serif;
+  font-size: 13.75px;
   height: 100%;
   overflow: hidden;
   position: relative;
   user-select: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :host {
-    --element-bg: color-mix(in oklch, var(--text) 15%, transparent);
-  }
+/* Zen's squircles (zen-theme.css, layout.css.corner-shape.enabled). */
+.row,
+.essential,
+.space-header::before,
+button {
+  /* stylelint-disable-next-line property-no-unknown, declaration-property-value-no-unknown, function-no-unknown */
+  corner-shape: superellipse(1.3);
 }
 
 /* Space strips side by side, moved with transforms (design, component 4). */
@@ -72,8 +110,58 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 0 var(--toolbox-padding);
+}
+
+/* Pinned and Today scroll under Essentials and the space header, as Zen's
+ * workspace arrowscrollbox. */
+.tabs {
+  container-type: scroll-state;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-inline: calc(-1 * var(--toolbox-padding));
+  min-height: 0;
   overflow-y: auto;
-  padding: 4px 6px 12px;
+  padding: 0 var(--toolbox-padding) 12px;
+  scrollbar-color: color-mix(in srgb, currentColor 35%, transparent) transparent;
+}
+
+/* A line where the list goes on past the edge (zen-workspaces.css). */
+.tabs::before,
+.tabs::after {
+  background: light-dark(rgba(0, 0, 0, .08), rgba(255, 255, 255, .08));
+  content: '';
+  flex-shrink: 0;
+  height: 1px;
+  inset-inline: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: sticky;
+  transition: opacity .1s;
+  z-index: 1;
+}
+
+.tabs::before {
+  margin-bottom: -1px;
+  top: 0;
+}
+
+.tabs::after {
+  bottom: 0;
+  margin-top: auto;
+}
+
+@container scroll-state(scrollable: top) {
+  .tabs::before {
+    opacity: 1;
+  }
+}
+
+@container scroll-state(scrollable: bottom) {
+  .tabs::after {
+    opacity: 1;
+  }
 }
 
 /* Essentials: up to 12 tiles, icon only, in Zen's grid (zen:tabs/zen-tabs/
@@ -83,11 +171,11 @@
 .essentials {
   --min-essentials-width-wrap: calc(var(--essential-height) + 4px);
   display: grid;
+  flex-shrink: 0;
   gap: 4px;
   grid-template-columns: repeat(auto-fit, minmax(max(23.7%, var(--min-essentials-width-wrap)), 1fr));
-  margin-top: -4px;
   min-height: 8px;
-  padding-block: 4px 8px;
+  padding-block: 6px 2px;
   position: relative;
 }
 
@@ -103,27 +191,63 @@
   grid-template-columns: repeat(auto-fit, minmax(max(25%, 48px), 1fr));
 }
 
+/* The tile is the tab's background: 2px inside its grid cell. */
 .essential {
   align-items: center;
-  background: var(--element-bg);
-  /* Zen's --border-radius-medium in the sidebar. */
-  border-radius: 14px;
+  background: var(--zen-toolbar-element-bg);
+  border-radius: var(--row-radius);
   display: flex;
   height: var(--essential-height);
   justify-content: center;
+  margin: var(--row-margin);
+  overflow: hidden;
+  position: relative;
+  transition: scale .1s ease;
 }
 
 .essential:hover {
-  background: var(--hover);
+  background: light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .2));
 }
 
-/* Zen draws the selected essential as a selected tab. */
+.essential:active {
+  scale: .985;
+}
+
+/* The selected essential: its icon blurred behind a light plate
+ * (zen.theme.essentials-favicon-bg, on by default). */
 .essential[active] {
-  background: var(--active);
+  --essential-selected-bg: light-dark(rgba(255, 255, 255, .85),
+      color-mix(in srgb, var(--zen-primary-color), rgba(132, 132, 132, .85) 40%));
+  background: transparent;
+  isolation: isolate;
 }
 
-.essential[state='asleep'] .favicon {
-  opacity: .5;
+.essential[active]:hover {
+  --essential-selected-bg: light-dark(rgba(255, 255, 255, .8),
+      color-mix(in srgb, var(--zen-primary-color), rgba(132, 132, 132, .85) 30%));
+}
+
+.essential[active]::after {
+  background-image: var(--essential-icon);
+  background-position: center;
+  background-size: contain;
+  content: '';
+  filter: blur(20px);
+  inset: -50%;
+  position: absolute;
+  z-index: -2;
+}
+
+.essential[active]::before {
+  background: var(--essential-selected-bg);
+  border-radius: calc(var(--row-radius) - 2px);
+  content: '';
+  /* stylelint-disable-next-line property-no-unknown, declaration-property-value-no-unknown, function-no-unknown */
+  corner-shape: superellipse(1.3);
+  inset: 2px;
+  position: absolute;
+  transition: background .1s ease-in-out;
+  z-index: -1;
 }
 
 /* Where the dragged tab would land (Zen's fake essential tile), and the
@@ -196,33 +320,50 @@
   box-sizing: border-box;
 }
 
+/* A tab: the row is its background, 2px inside the tab's box; a folder level
+ * moves the whole tab in by 14px. */
 .row {
   align-items: center;
   border-radius: var(--row-radius);
   box-sizing: border-box;
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
   height: var(--row-height);
-  padding-inline: calc(8px + var(--depth, 0) * var(--indent)) 6px;
+  margin: var(--row-margin);
+  margin-inline-start: calc(var(--row-margin) + var(--depth, 0) * var(--indent));
+  padding-inline: var(--row-padding);
   position: relative;
+  transition: scale .1s ease;
 }
 
 .row:hover {
   background: var(--hover);
 }
 
+.row:active {
+  scale: .985;
+}
+
 .row[active] {
-  background: var(--active);
+  background: var(--tab-selected);
+  box-shadow: var(--tab-selected-shadow);
+}
+
+/* The tab's icon: 16px, a third of the inner padding before it, all of it
+ * after. */
+.favicon,
+.row > .svg {
+  border-radius: 4px;
+  flex-shrink: 0;
+  height: 16px;
+  margin-inline: calc(var(--icon-gap) / 3) var(--icon-gap);
+  width: 16px;
 }
 
 .favicon {
   background-position: center;
   background-repeat: no-repeat;
   background-size: 16px;
-  flex-shrink: 0;
-  height: 16px;
-  width: 16px;
 }
 
 .title {
@@ -243,12 +384,6 @@
   padding: 2px 4px;
 }
 
-/* Pinned item states: asleep is dimmed (design, section 1). */
-.pinned[state='asleep'] .favicon,
-.pinned[state='asleep'] .title {
-  opacity: .5;
-}
-
 .pinned .label {
   display: flex;
   flex: 1;
@@ -264,15 +399,15 @@
   align-self: stretch;
   border-radius: var(--row-radius) 0 0 var(--row-radius);
   height: auto;
-  margin-inline-start: -6px;
-  padding-inline: 6px 8px;
+  margin-inline: calc(-1 * var(--row-padding)) 8px;
+  padding-inline: calc(var(--row-padding) + var(--icon-gap) / 3 - 2px) calc(var(--icon-gap) - 2px);
   position: relative;
   width: auto;
 }
 
 .reset-pin::after {
   /* Zen: light-dark(rgba(66, 61, 61, .3), rgba(255, 255, 255, .3)). */
-  background: color-mix(in srgb, var(--text) 30%, transparent);
+  background: light-dark(rgba(66, 61, 61, .3), rgba(255, 255, 255, .3));
   border-radius: 2px;
   content: '';
   height: 16px;
@@ -284,7 +419,7 @@
 }
 
 .reset-pin .favicon {
-  border-radius: 4px;
+  margin: 0;
   opacity: 0;
 }
 
@@ -305,7 +440,8 @@
 }
 
 .pinned[state='away'] .favicon.current {
-  left: calc(8px + var(--depth, 0) * var(--indent));
+  left: calc(var(--row-padding) + var(--icon-gap) / 3);
+  margin: 0;
   pointer-events: none;
   position: absolute;
   top: 50%;
@@ -339,63 +475,74 @@ button {
   background: none;
   border: none;
   border-radius: 6px;
-  color: var(--text-dim);
+  color: inherit;
   display: flex;
   flex-shrink: 0;
-  font-size: 14px;
-  height: 22px;
+  font: inherit;
   justify-content: center;
   padding: 0;
-  width: 22px;
 }
 
-button:hover {
-  background: var(--active);
-  color: var(--text);
+button[hidden],
+[hidden] {
+  display: none !important;
 }
 
+/* Zen's icons are masks in the text colour. */
+.svg {
+  background: currentColor;
+  display: inline-block;
+  height: 16px;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  width: 16px;
+}
+
+/* The close button (Zen's .tab-close-button): 28px, shown on hover. */
 .row .close {
+  border-radius: 8px;
+  height: 28px;
+  margin-inline-end: -2px;
+  padding: 4px;
   visibility: hidden;
+  width: 28px;
+}
+
+.row .close .svg {
+  height: 20px;
+  width: 20px;
 }
 
 .row:hover .close {
   visibility: visible;
 }
 
-/* Folders. */
-.chevron {
-  border-block: 4px solid transparent;
-  border-inline-start: 5px solid var(--text-dim);
-  flex-shrink: 0;
-  height: 0;
-  margin-inline: 2px -2px;
-  transition: transform 120ms ease;
-  width: 0;
+.row .close:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
-.folder:not([collapsed]) .chevron {
-  transform: rotate(90deg);
+.row .close:hover:active {
+  background: color-mix(in srgb, currentColor 20%, transparent);
 }
 
-.folder-icon {
-  background: var(--text-dim);
-  border-radius: 2px 4px 3px 3px;
-  flex-shrink: 0;
-  height: 11px;
-  opacity: .7;
-  position: relative;
-  width: 15px;
+/* Folders (zen:folders/zen-folders.css): Zen's folder icon where the tab's
+ * icon would be, the name in semibold. */
+.folder {
+  font-weight: 600;
 }
 
-.folder-icon::before {
-  background: inherit;
-  border-radius: 2px 2px 0 0;
-  content: '';
-  height: 3px;
-  left: 0;
+.folder cromarc-folder-icon {
+  left: 3px;
+  pointer-events: none;
   position: absolute;
-  top: -2px;
-  width: 7px;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.folder .title,
+.folder .rename {
+  margin-inline-start: 28px;
 }
 
 /* Drop indicators while dragging. */
@@ -405,54 +552,110 @@ button:hover {
   border-radius: 1px;
   content: '';
   height: 2px;
-  left: calc(8px + var(--depth, 0) * var(--indent));
+  left: var(--row-padding);
   position: absolute;
-  right: 6px;
+  right: var(--row-padding);
 }
 
 .drop-before::before {
-  top: -1px;
+  top: -3px;
 }
 
 .drop-after::after {
-  bottom: -1px;
+  bottom: -3px;
 }
 
 .drop-inside {
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 
-#tree-end {
-  flex-shrink: 0;
-  height: 10px;
+/* Flex, so the tabs' 2px margins add up as in Zen instead of collapsing. */
+#tree {
+  display: flex;
+  flex-direction: column;
 }
 
-/* Where a drop on the separator or the Today header lands: after the last
-   pinned item (zen:drag-and-drop/ZenDragAndDrop.js, the separator). */
+#tree-end {
+  flex-shrink: 0;
+  height: 6px;
+}
+
+/* Where a drop on the separator lands: after the last pinned item
+   (zen:drag-and-drop/ZenDragAndDrop.js, the separator). */
 #tree-end.over {
   box-shadow: inset 0 2px 0 var(--accent);
 }
 
 /* zen:tabs/zen-tabs/vertical-tabs.css #zen-dragover-background. */
-.space-header.over {
+.space-header.over::before {
   background: var(--accent);
-  border-radius: var(--row-radius);
 }
 
+/* Between pinned and the rest (.pinned-tabs-container-separator): a line
+ * whose Clear button only shows while the pointer is over the sidebar. */
 .separator {
-  border-top: 1px solid var(--hover);
+  align-items: center;
+  --separator-color: light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .1));
+  display: flex;
   flex-shrink: 0;
-  margin: 6px 8px;
+  height: 22px;
+  padding: 0 5px;
 }
 
+.separator .line {
+  background: var(--separator-color);
+  flex: 1;
+  height: 1px;
+  margin-inline-start: 4px;
+}
+
+.separator .clear {
+  background: linear-gradient(var(--separator-color), var(--separator-color))
+      0 50% / calc(100% - 4px) 1px no-repeat;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  gap: 2px;
+  height: 100%;
+  padding-inline: 8px 0;
+  pointer-events: none;
+}
+
+.separator .clear > * {
+  opacity: 0;
+  transition: opacity .15s;
+}
+
+.separator .clear .svg {
+  height: 10px;
+  transition: transform .15s ease-in-out, opacity .15s;
+  width: 10px;
+}
+
+:host(:hover) .separator .clear {
+  background-image: none;
+  pointer-events: auto;
+}
+
+:host(:hover) .separator .clear > * {
+  opacity: .5;
+}
+
+.separator .clear:hover > * {
+  opacity: 1;
+}
+
+.separator .clear:hover:active .svg {
+  transform: translateY(2px);
+}
+
+.snapshot .separator .line {
+  margin-inline-end: 0;
+}
+
+/* Zen's "+ New Tab" (#tabs-newtab-button), first among the tabs. */
 .new-tab {
   color: var(--text-dim);
-}
-
-.plus {
-  font-size: 15px;
-  text-align: center;
-  width: 16px;
 }
 
 #today {
@@ -462,52 +665,102 @@ button:hover {
   min-height: 40px;
 }
 
-/* Space header above the tree (zen:spaces/ZenSpace.mjs). */
+/* The space's name over its tabs (zen-workspaces.css,
+ * .zen-current-workspace-indicator): full sidebar width, 44px. */
 .space-header {
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  font-weight: 600;
-  gap: 8px;
-  height: 30px;
-  padding-inline: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 9px;
+  height: 44px;
+  margin-inline: calc(-1 * var(--toolbox-padding));
+  padding-inline: calc(3px + 8px + var(--toolbox-padding)) 12px;
+  position: relative;
 }
 
-.space-header:has(.space-name:empty) {
+.space-header::before {
+  border-radius: var(--row-radius);
+  content: '';
+  height: calc(100% - 8px);
+  left: calc(var(--toolbox-padding) + 2px);
+  pointer-events: none;
+  position: absolute;
+  top: 4px;
+  width: calc(100% - var(--toolbox-padding) * 2.5);
+}
+
+.sidebar:not(.snapshot) .space-header:hover::before {
+  background: var(--hover);
+}
+
+.space-header > * {
+  position: relative;
+}
+
+.space-header .space-icon {
+  color: light-dark(rgba(0, 0, 0, .8), rgba(255, 255, 255, .8));
+  font-size: 16px;
+  height: 16px;
+  padding-top: 2px;
+  width: 16px;
+}
+
+.space-header .space-icon .svg {
+  background: var(--themed-icon-fill);
+}
+
+.space-header .space-icon[no-icon] {
   display: none;
+}
+
+.space-name {
+  color: var(--text-dim);
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .space-icon {
   align-items: center;
   display: flex;
   justify-content: center;
-  width: 16px;
+  line-height: 0;
 }
 
-/* Zen's icons are masks in the text colour. */
-.svg {
-  background: currentColor;
-  display: inline-block;
+/* Zen's space actions button, shown on hover. */
+.space-menu-button {
+  border-radius: 10px;
+  height: 26px;
+  margin-inline-end: -1px;
+  opacity: 0;
+  padding: 6px;
+  transition: opacity .1s;
+  visibility: hidden;
+  width: 26px;
+}
+
+.space-menu-button .svg {
   height: 14px;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain;
   width: 14px;
 }
 
-.space-menu-button {
-  margin-inline-start: auto;
-  opacity: 0;
+.space-header:hover .space-menu-button {
+  opacity: 1;
+  visibility: visible;
 }
 
-.space-header:hover .space-menu-button {
-  opacity: .7;
+.space-menu-button:hover {
+  background: var(--hover);
 }
 
 /* The space form takes the strip's place (zen:spaces/ZenSpaceCreation.mjs). */
 #space-editor {
   background: var(--color-sys-surface, Canvas);
-  bottom: 36px;
+  bottom: 44px;
   inset-inline: 0;
   position: absolute;
   top: 0;
@@ -517,7 +770,7 @@ button:hover {
 #delete-space {
   background: var(--color-sys-surface, Canvas);
   border-radius: 10px;
-  bottom: 44px;
+  bottom: 52px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
   inset-inline: 8px;
   padding: 12px;
@@ -546,46 +799,138 @@ button:hover {
   color: white;
 }
 
-/* Space switcher at the bottom (design, UI section 5). */
-#switcher {
+/* The bottom row (#zen-sidebar-foot-buttons): the Library, the spaces in
+ * the middle, "+" at the end. */
+#foot {
   align-items: center;
   display: flex;
   flex-shrink: 0;
   gap: 4px;
-  height: 36px;
-  padding-inline: 8px;
+  justify-content: space-between;
+  padding: 6px var(--toolbox-padding);
 }
 
-#switcher:empty {
-  display: none;
+/* Toolbar buttons: a 20px icon in 6px of padding (macOS). */
+.foot-button {
+  border-radius: 6px;
+  height: 32px;
+  width: 32px;
+}
+
+.foot-button:hover,
+.foot-button[selected] {
+  background: var(--hover);
+}
+
+.foot-button:hover:active {
+  background: var(--pressed);
+}
+
+.foot-button > .svg {
+  height: 20px;
+  width: 20px;
+}
+
+/* Zen's library icon: 36 frames that play on hover
+ * (zen-library-widget.css, zen-animations.css). */
+.library-sprite {
+  height: 18px;
+  overflow: clip;
+  pointer-events: none;
+  scale: 1.08;
+  width: 18px;
+}
+
+.library-sprite::before {
+  background: currentColor;
+  content: '';
+  display: block;
+  height: 100%;
+  mask: url(sidebar/ui_icons/library-sprite.svg) 0 0 / 100% 100% no-repeat;
+  width: calc(36 * 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .library-sprite::before {
+    animation: library-unhover .3s steps(36, jump-none);
+  }
+
+  #library-button:hover .library-sprite::before {
+    animation: library-hover .35s steps(36, jump-none) forwards;
+  }
+}
+
+@keyframes library-hover {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-35 / 36 * 100%));
+  }
+}
+
+@keyframes library-unhover {
+  from {
+    transform: translateX(calc(-35 / 36 * 100%));
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Spaces (#zen-workspaces-button): grey until hovered or current. */
+#switcher {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: .5ch;
+  justify-content: center;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .space-button {
-  align-items: center;
-  display: flex;
+  filter: grayscale(1);
   font-size: 15px;
-  height: 28px;
-  justify-content: center;
-  width: 28px;
+  height: 32px;
+  opacity: .7;
+  transition: filter .2s, opacity .2s, transform .2s;
+  width: 32px;
 }
 
-#add-space {
+.space-button[current],
+.space-button:hover {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+.space-button:hover {
+  background: var(--zen-toolbar-element-bg);
+}
+
+.space-button .svg {
+  background: currentColor;
   opacity: .6;
 }
 
-#library-button {
-  margin-inline-start: auto;
-  opacity: .7;
+.space-button[current] .svg {
+  background: var(--themed-icon-fill);
+  opacity: 1;
 }
 
-#library-button[selected] {
-  background: var(--active);
-  opacity: 1;
+.space-button .space-icon[no-icon] {
+  background: light-dark(rgba(0, 0, 0, .4), rgba(255, 255, 255, .4));
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
 }
 
 #theme-editor {
   background: var(--color-sys-surface, Canvas);
-  bottom: 36px;
+  bottom: 44px;
   inset-inline: 0;
   overflow-y: auto;
   position: absolute;
@@ -595,7 +940,7 @@ button:hover {
 /* The Library slides over the sidebar from the left (zen:library). */
 #library {
   background: var(--color-sys-surface, Canvas);
-  bottom: 36px;
+  bottom: 44px;
   inset-inline: 0;
   position: absolute;
   top: 0;
@@ -638,34 +983,30 @@ button:hover {
   stroke-linecap: round;
 }
 
-#add-swipe span {
-  font-size: 18px;
+#add-swipe .svg {
+  height: 18px;
+  width: 18px;
 }
 
-#add-swipe[ready] span {
-  color: var(--accent);
+#add-swipe[ready] .svg {
+  background: var(--accent);
 }
 
-.space-button[current] {
-  background: var(--active);
-}
-
-.snapshot .row:hover {
+.snapshot .row:hover,
+.snapshot .row:active {
   background: none;
+  scale: none;
 }
 
-/* Section headers: Needs attention, Today. */
+/* Needs attention (design, UI section 4). */
 .section-header {
   align-items: center;
-  color: var(--text-dim);
   display: flex;
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
   height: 26px;
-  justify-content: space-between;
   padding-inline: 8px 4px;
-  text-transform: uppercase;
 }
 
 .section-header.attention {
@@ -673,14 +1014,14 @@ button:hover {
 }
 
 button.text {
+  border-radius: 6px;
   font-size: 12px;
   height: 22px;
   padding: 0 8px;
-  width: auto;
 }
 
-button[hidden] {
-  display: none;
+button.text:hover {
+  background: var(--hover);
 }
 
 .attention .title {
@@ -720,7 +1061,7 @@ button[hidden] {
   align-items: center;
   background: var(--color-sys-inverse-surface, #333);
   border-radius: 8px;
-  bottom: 12px;
+  bottom: 52px;
   color: var(--color-sys-inverse-on-surface, #fff);
   display: flex;
   gap: 8px;

@@ -44,7 +44,7 @@ for (const p of ['a.html', 'b.html']) {
 }
 const sb = await until(sidebar);
 check('setup: two pages in Today', (await until(async () => (await pages()).length === 2 && await evaluate(sb, `${R}.querySelectorAll('.row.today[data-kind="tab"]').length >= 2`))) === true);
-const clear = `[...${R}.querySelectorAll('.section-header button')].find(b => b.textContent.trim() === 'Очистить')`;
+const clear = `[...${R}.querySelectorAll('.separator .clear')].find(b => b.textContent.trim() === 'Очистить')`;
 await evaluate(sb, `${clear}.click(), true`);
 check('Clear closes Today but the last tab', !!(await until(async () => (await pages()).length < 2)), JSON.stringify(await pages()));
 check('…the toast offers undo', !!(await until(() => evaluate(sb, `!!${R}.querySelector('#toast button')`))));

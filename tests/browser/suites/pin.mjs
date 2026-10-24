@@ -71,9 +71,9 @@ let r = await drag('Beta', '.space-header', `${root}.querySelector('.space-heade
 check('a Today tab drag starts', r.started);
 check('the space header lights up under the drag', r.highlighted === true);
 check('dropped on the space header: pinned', JSON.stringify(await pinned()) === '["Beta"]', JSON.stringify(await pinned()));
-r = await drag('Alpha', '#sidebar > .section-header:not(.attention)', `${root}.querySelector('#tree-end').classList.contains('over')`);
-check('over the Today header the landing line shows', r.highlighted === true);
-check('dropped on the Today header: pinned after the last one', JSON.stringify(await pinned()) === '["Beta","Alpha"]', JSON.stringify(await pinned()));
+r = await drag('Alpha', '#sidebar .separator', `${root}.querySelector('#tree-end').classList.contains('over')`);
+check('over the separator the landing line shows', r.highlighted === true);
+check('dropped on the separator: pinned after the last one', JSON.stringify(await pinned()) === '["Beta","Alpha"]', JSON.stringify(await pinned()));
 check('the highlight is gone after the drop', await evaluate(`!${root}.querySelector('.over')`));
 ws.close();
 console.log(`${results.filter(Boolean).length}/${results.length}`);

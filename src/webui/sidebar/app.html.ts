@@ -10,7 +10,7 @@ import {essentialsLayout} from './sidebar_model.js';
 export function getHtml(this: SidebarAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
-<div id="viewport" style="background: ${this.tint_}">
+<div id="viewport">
   ${this.stripSpaces_.map((space, index) => html`
   <div class="strip" style="${this.stripStyle_(index)}">
   ${space.current ? html`
@@ -35,6 +35,7 @@ export function getHtml(this: SidebarAppElement) {
               data-id="${e.id}" data-kind="item"
               draggable="true" title="${e.title}" state="${e.state}"
               ?active="${this.isActive_(e.tab)}"
+              style="--essential-icon: ${this.faviconFor_(e.homeUrl, e.tab)}"
               @click="${this.onItemClick_}"
               @contextmenu="${this.onItemContextmenu_}"
               @dragstart="${this.onDragstart_}" @dragend="${this.onDragend_}">
@@ -47,16 +48,19 @@ export function getHtml(this: SidebarAppElement) {
           @dragover="${this.onHeaderDragover_}"
           @dragleave="${this.onZoneDragleave_}"
           @drop="${this.onHeaderDrop_}">
-        <span class="space-icon">
-          <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}"
-              ?hidden="${!this.iconMask_(space.icon)}"></span>
-          ${this.iconText_(space.icon)}
-        </span>
+        <span class="space-icon" ?no-icon="${!space.icon}">${
+            this.iconMask_(space.icon) ? html`
+            <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}">
+            </span>` : html`${space.icon}`}</span>
         <span class="space-name" @dblclick="${this.onSpaceNameDblclick_}">${
             space.name}</span>
-        <button class="space-menu-button" title="${this.strings.editSpace}"
-            @click="${this.onSpaceMenuClick_}">⋯</button>
+        <button class="space-menu-button" title="${this.strings.spaceActions}"
+            @click="${this.onSpaceMenuClick_}">
+          <span class="svg" style="mask-image: url(sidebar/ui_icons/menu.svg)">
+          </span>
+        </button>
       </div>
+      <div id="tabs" class="tabs">
       <div id="tree" role="tree">
         ${this.view_.rows.map(row => row.kind === 'folder' ? html`
           <div class="row folder ${this.dropClass_(row.id)}" data-id="${row.id}"
@@ -66,8 +70,7 @@ export function getHtml(this: SidebarAppElement) {
               @contextmenu="${this.onItemContextmenu_}"
               @dragstart="${this.onDragstart_}" @dragend="${this.onDragend_}"
               @dragover="${this.onRowDragover_}" @drop="${this.onRowDrop_}">
-            <span class="chevron"></span>
-            <span class="folder-icon"></span>
+            <cromarc-folder-icon ?open="${!row.collapsed}"></cromarc-folder-icon>
             ${this.renaming_ === row.id ? html`
               <input class="rename" .value="${row.title}"
                   @keydown="${this.onRenameKeydown_}"
@@ -108,7 +111,9 @@ export function getHtml(this: SidebarAppElement) {
               </span>`}
             ${row.tab ? html`
               <button class="close" title="${this.strings.close}"
-                  data-tab="${row.tab.id}" @click="${this.onCloseTabClick_}">×
+                  data-tab="${row.tab.id}" @click="${this.onCloseTabClick_}">
+                <span class="svg"
+                    style="mask-image: url(sidebar/ui_icons/close.svg)"></span>
               </button>` : nothing}
           </div>`)}
         <div id="tree-end" class="${this.dropZone_ === 'end' ? 'over' : ''}"
@@ -116,9 +121,18 @@ export function getHtml(this: SidebarAppElement) {
             @dragleave="${this.onZoneDragleave_}"
             @drop="${this.onTreeEndDrop_}"></div>
       </div>
-      <div class="separator" @dragover="${this.onTreeEndDragover_}"
+      <div class="separator" ?hidden="${this.view_.today.length === 0}"
+          @dragover="${this.onTreeEndDragover_}"
           @dragleave="${this.onZoneDragleave_}"
-          @drop="${this.onTreeEndDrop_}"></div>
+          @drop="${this.onTreeEndDrop_}">
+        <span class="line"></span>
+        <button class="clear" title="${this.strings.clearTooltip}"
+            @click="${this.onClearClick_}">
+          <span class="svg" style="mask-image: url(sidebar/ui_icons/clear.svg)">
+          </span>
+          <span>${this.strings.clear}</span>
+        </button>
+      </div>
       ${this.view_.attention.length ? html`
         <div class="section-header attention">⚠ ${this.strings.needsAttention}</div>
         ${this.view_.attention.map(tab => html`
@@ -138,15 +152,9 @@ export function getHtml(this: SidebarAppElement) {
             <button class="text" @click="${this.onKeepClick_}">${
                 this.strings.keep}</button>
           </div>`)}` : nothing}
-      <div class="section-header" @dragover="${this.onTreeEndDragover_}"
-          @dragleave="${this.onZoneDragleave_}"
-          @drop="${this.onTreeEndDrop_}">
-        <span>${this.strings.today}</span>
-        <button class="text" ?hidden="${this.view_.today.length === 0}"
-            @click="${this.onClearClick_}">${this.strings.clear}</button>
-      </div>
       <div class="row new-tab" @click="${this.onNewTabClick_}">
-        <span class="plus">＋</span>
+        <span class="svg" style="mask-image: url(sidebar/ui_icons/add.svg)">
+        </span>
         <span class="title">${this.strings.newTab}</span>
       </div>
       <div id="today" @dragover="${this.onTodayDragover_}"
@@ -163,9 +171,13 @@ export function getHtml(this: SidebarAppElement) {
             </span>
             <span class="title">${tab.title || tab.url}</span>
             <button class="close" title="${this.strings.close}"
-                data-tab="${tab.id}" @click="${this.onCloseTabClick_}">×</button>
+                data-tab="${tab.id}" @click="${this.onCloseTabClick_}">
+              <span class="svg"
+                  style="mask-image: url(sidebar/ui_icons/close.svg)"></span>
+            </button>
             <span class="countdown" style="width: ${this.countdown_(tab)}"></span>
           </div>`)}
+      </div>
       </div>
     </div>` : html`
     <div class="sidebar snapshot">
@@ -179,19 +191,18 @@ export function getHtml(this: SidebarAppElement) {
           </div>`)}
       </div>
       <div class="space-header">
-        <span class="space-icon">
-          <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}"
-              ?hidden="${!this.iconMask_(space.icon)}"></span>
-          ${this.iconText_(space.icon)}
-        </span>
+        <span class="space-icon" ?no-icon="${!space.icon}">${
+            this.iconMask_(space.icon) ? html`
+            <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}">
+            </span>` : html`${space.icon}`}</span>
         <span class="space-name">${space.name}</span>
       </div>
+      <div class="tabs">
       ${this.snapshotOf_(space.id).view.rows.map(row => row.kind === 'folder' ?
         html`
           <div class="row folder" style="--depth: ${row.depth}"
               ?collapsed="${row.collapsed}">
-            <span class="chevron"></span>
-            <span class="folder-icon"></span>
+            <cromarc-folder-icon ?open="${!row.collapsed}"></cromarc-folder-icon>
             <span class="title">${row.title}</span>
           </div>` : html`
           <div class="row pinned" state="asleep" style="--depth: ${row.depth}">
@@ -200,8 +211,15 @@ export function getHtml(this: SidebarAppElement) {
             </span>
             <span class="title">${row.title}</span>
           </div>`)}
-      <div class="separator"></div>
-      <div class="section-header"><span>${this.strings.today}</span></div>
+      <div class="separator"
+          ?hidden="${this.snapshotOf_(space.id).today.length === 0}">
+        <span class="line"></span>
+      </div>
+      <div class="row new-tab">
+        <span class="svg" style="mask-image: url(sidebar/ui_icons/add.svg)">
+        </span>
+        <span class="title">${this.strings.newTab}</span>
+      </div>
       ${this.snapshotOf_(space.id).today.map(t => html`
         <div class="row today">
           <span class="favicon"
@@ -209,6 +227,7 @@ export function getHtml(this: SidebarAppElement) {
           </span>
           <span class="title">${t.title || t.url}</span>
         </div>`)}
+      </div>
     </div>`}
   </div>`)}
 </div>
@@ -251,25 +270,31 @@ ${this.deleting_ ? html`
       <button @click="${this.onDeleteCancelClick_}">${this.strings.cancel}</button>
     </div>
   </div>` : nothing}
-<div id="switcher">
-  ${this.spaces_.map(space => html`
-    <button class="space-button" ?current="${space.current}"
-        title="${space.name}" data-space="${space.id}" draggable="true"
-        @click="${this.onSpaceClick_}"
-        @contextmenu="${this.onSpaceContextmenu_}"
-        @dragstart="${this.onSpaceDragstart_}"
-        @dragover="${this.onSpaceDragover_}"
-        @drop="${this.onSpaceDrop_}">
-      <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}"
-          ?hidden="${!this.iconMask_(space.icon)}"></span>
-      ${this.iconText_(space.icon)}
-    </button>`)}
-  <button id="add-space" class="space-button" title="${this.strings.newSpace}"
-      ?hidden="${!this.spaces_.length}"
-      @click="${this.onAddSpaceClick_}">＋</button>
-  <button id="library-button" class="space-button"
+<div id="foot">
+  <button id="library-button" class="foot-button"
       title="${this.strings.library}" ?selected="${this.libraryOpen_}"
-      @click="${this.onLibraryClick_}">🗃</button>
+      @click="${this.onLibraryClick_}">
+    <span class="library-sprite"></span>
+  </button>
+  <div id="switcher">
+    ${this.spaces_.map(space => html`
+      <button class="space-button" ?current="${space.current}"
+          title="${space.name}" data-space="${space.id}" draggable="true"
+          @click="${this.onSpaceClick_}"
+          @contextmenu="${this.onSpaceContextmenu_}"
+          @dragstart="${this.onSpaceDragstart_}"
+          @dragover="${this.onSpaceDragover_}"
+          @drop="${this.onSpaceDrop_}">
+        <span class="space-icon" ?no-icon="${!space.icon}">${
+            this.iconMask_(space.icon) ? html`
+            <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}">
+            </span>` : html`${space.icon}`}</span>
+      </button>`)}
+  </div>
+  <button id="create-new" class="foot-button" title="${this.strings.createNew}"
+      @click="${this.onCreateNewClick_}">
+    <span class="svg" style="mask-image: url(sidebar/ui_icons/add.svg)"></span>
+  </button>
 </div>
 ${this.addProgress_ > 0 ? html`
   <div id="add-swipe" ?ready="${this.addProgress_ >= 1}"
@@ -279,7 +304,7 @@ ${this.addProgress_ > 0 ? html`
       <circle class="arc" cx="18" cy="18" r="16" pathLength="100"
           stroke-dasharray="${this.addSwipeArc_()}"></circle>
     </svg>
-    <span>＋</span>
+    <span class="svg" style="mask-image: url(sidebar/ui_icons/add.svg)"></span>
   </div>` : nothing}
 ${this.libraryShown_ ? html`
   <cromarc-library id="library" ?dragging="${this.libraryDrag_ >= 0}"

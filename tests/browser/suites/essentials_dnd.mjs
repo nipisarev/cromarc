@@ -112,7 +112,8 @@ check('it left Today', !(await evaluate(`!!${todayRow('Alpha')}`)));
 check('no promo, slot or drag image after the drop', await evaluate(`!${root}.querySelector('.essentials-promo, .essential.slot, #drag-ghost > *')`));
 const grid = await rect(`${root}.querySelector('#essentials')`);
 const one = await rect(essentialTile('Alpha'));
-check('one essential spans the grid (Zen auto-fit)', Math.abs(one.w - grid.w) < 2, `${one.w} vs ${grid.w}`);
+// The tile is the tab's background, 2px inside its cell on each side.
+check('one essential spans the grid (Zen auto-fit)', Math.abs(one.w + 4 - grid.w) < 2, `${one.w} vs ${grid.w}`);
 check('tile height 46px', Math.round(one.h) === 46, `${one.h}`);
 
 // 2. Non-empty grid: the slot opens at the end, then follows the drag.

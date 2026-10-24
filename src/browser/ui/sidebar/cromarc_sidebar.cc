@@ -11,7 +11,10 @@
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/frame_separator.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/tabs/shared/tab_strip_combo_button.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_bottom_container.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.h"  // nogncheck: as above
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/views/view.h"
 #include "ui/views/view_utils.h"
@@ -23,9 +26,23 @@ void InstallSidebar(views::View* parent,
                     BrowserWindowInterface* browser) {
   native_tab_list->SetVisible(false);
   for (views::View* child : parent->children()) {
-    // Its only button, New Tab, is in the sidebar's list.
-    if (views::IsViewClass<VerticalTabStripBottomContainer>(child)) {
+    // Its only button, New Tab, is in the sidebar's list. The line under the
+    // top buttons isn't in Zen.
+    if (views::IsViewClass<VerticalTabStripBottomContainer>(child) ||
+        views::IsViewClass<FrameSeparator>(child)) {
       child->SetVisible(false);
+    }
+  }
+  // Zen's top row holds the window buttons and its compact mode button, our
+  // collapse button: tab groups and tab search go (search stays in the
+  // command bar).
+  for (views::View* child : parent->parent()->children()) {
+    if (views::IsViewClass<VerticalTabStripTopContainer>(child)) {
+      for (views::View* button : child->children()) {
+        if (views::IsViewClass<TabStripComboButton>(button)) {
+          button->SetVisible(false);
+        }
+      }
     }
   }
   for (views::View* child : parent->children()) {

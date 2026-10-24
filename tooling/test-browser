@@ -92,8 +92,10 @@ launch() {
   esac
   "$binary" "${args[@]}" about:blank >"$log" 2>&1 &
   browser=$!
+  # Up once its window's sidebar is: the suites start from the window.
   for _ in $(seq 1 60); do
-    curl -s -m 2 "http://127.0.0.1:$port/json/version" >/dev/null && return 0
+    curl -s -m 2 "http://127.0.0.1:$port/json/list" 2>/dev/null |
+      grep -q 'chrome://cromarc-sidebar' && sleep 1 && return 0
     sleep 1
   done
   return 1

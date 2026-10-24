@@ -13,7 +13,7 @@
 namespace cromarc {
 
 // Per-space settings live in the space's own profile prefs.
-// Emoji or short text shown for the space; "" = first letter of its name.
+// Emoji or "icon:<name>" shown for the space; "" = none (Zen's no-icon).
 inline constexpr char kSpaceIconPref[] = "cromarc.space.icon";
 // Position among spaces; -1 = after the ordered ones, by name.
 inline constexpr char kSpaceOrderPref[] = "cromarc.space.order";

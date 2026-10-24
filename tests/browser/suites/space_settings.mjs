@@ -51,7 +51,8 @@ const firstName = (await spacesOf(first)).find(s => s.current).name;
 console.log('first space:', firstName);
 
 // Create through the form, with an icon from Zen's set.
-await evaluate(first, `${APP}.shadowRoot.querySelector('#add-space').click()`);
+// Zen's "+" menu (a native menu, chosen through testMenuChoice).
+await evaluate(first, `${APP}.testMenuChoice = 'Создать пространство'; ${APP}.shadowRoot.querySelector('#create-new').click()`);
 const formOpen = await until(() => evaluate(first, `!!${APP}.shadowRoot.querySelector('cromarc-space-editor')`));
 check('"+" opens the space form', !!formOpen);
 await evaluate(first, `(async () => {

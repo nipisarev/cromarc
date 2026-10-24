@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 24 Oct 2026 23:54:41 +0200
+Subject: [PATCH] Cromarc H12: the collapse button shows the sidebar icon
+
+Collapsing the vertical tab strip is Cromarc's compact mode, and Zen's
+compact mode button shows its sidebar icon in both states; the button
+takes kDockToLeftIcon instead of the menu open and close icons.
+
+diff --git a/chrome/browser/ui/tabs/vertical_tab_strip_state_controller_impl.cc b/chrome/browser/ui/tabs/vertical_tab_strip_state_controller_impl.cc
+index 76487de5df187..c793eae6037b4 100644
+--- a/chrome/browser/ui/tabs/vertical_tab_strip_state_controller_impl.cc
++++ b/chrome/browser/ui/tabs/vertical_tab_strip_state_controller_impl.cc
+@@ -348,11 +348,9 @@ void VerticalTabStripStateControllerImpl::UpdateCollapseActionItem() {
+   const bool is_collapsed =
+       GetCollapseState() != VerticalTabStripCollapseState::kExpanded;
+ 
+-  const gfx::VectorIcon& icon = (is_collapsed == base::i18n::IsRTL())
+-                                    ? features::IsRoundedIconsEnabled()
+-                                          ? views::kMenuOpenIcon
+-                                          : views::kMenuOpenOldIcon
+-                                    : views::kMenuCloseCustomIcon;
++  // Cromarc: Zen's compact mode button keeps its sidebar icon either way
++  // (zen-icons/icons.css, #zen-toggle-compact-mode).
++  const gfx::VectorIcon& icon = kDockToLeftIcon;
+ 
+   const auto& text =
+       is_collapsed ? IDS_EXPAND_VERTICAL_TABS : IDS_COLLAPSE_VERTICAL_TABS;

@@ -32,7 +32,7 @@ constexpr int kAlwaysOpenCommand = 1000;
 
 // A space's icon for a text menu: emoji or letter, nothing for Zen's icons.
 std::u16string TextIcon(const std::string& icon) {
-  return icon.starts_with("icon:")
+  return icon.empty() || icon.starts_with("icon:")
              ? std::u16string()
              : base::StrCat({base::UTF8ToUTF16(icon), u"  "});
 }

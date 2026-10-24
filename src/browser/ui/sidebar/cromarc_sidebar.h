@@ -25,8 +25,10 @@ inline constexpr int kPageSeparation = 8;
 inline constexpr float kPageCornerRadius = 5;
 
 // Hook H2, called by the vertical tab strip region right after it adds its
-// native tab list to `parent`: hides that list and the New Tab button under
-// it and puts the Cromarc sidebar after the list. Safe to call again when the region re-adds its list.
+// native tab list to `parent`: hides that list, the New Tab button under it,
+// the line and the tab groups / tab search buttons above it, and puts the
+// Cromarc sidebar after the list. Safe to call again when the region re-adds
+// its list.
 void InstallSidebar(views::View* parent,
                     views::View* native_tab_list,
                     BrowserWindowInterface* browser);

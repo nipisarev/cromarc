@@ -13,6 +13,7 @@ import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_a
 import {TabStripObservation} from '/tab_strip_api/tab_strip_observation.js';
 import type {TabStripObserver} from '/tab_strip_api/tab_strip_observer.js';
 
+import './folder_icon.js';
 import './library.js';
 import './space_editor.js';
 import './theme_editor.js';
@@ -99,7 +100,6 @@ export class SidebarAppElement extends CrLitElement {
       spaces_: {type: Array},
       snapshots_: {type: Object},
       stripX_: {type: Array},
-      tint_: {type: String},
       editor_: {type: Object},
       deleting_: {type: Object},
       icloud_: {type: Object},
@@ -139,7 +139,7 @@ export class SidebarAppElement extends CrLitElement {
   // Horizontal position of every strip, in % of the sidebar width.
   protected accessor stripX_: number[] = [];
   // Background tint: the space's colour, blended while switching.
-  protected accessor tint_: string = 'transparent';
+  private tint_ = 'transparent';
   protected accessor editor_: SpaceEditorState|null = null;
   // The space whose deletion waits for confirmation.
   protected accessor deleting_: Space|null = null;
@@ -285,6 +285,17 @@ export class SidebarAppElement extends CrLitElement {
   private setTint_(from: number[], to: number[], progress: number) {
     this.tintRgb_ = from.map((v, i) => v + (to[i]! - v) * progress);
     this.tint_ = `rgba(${this.tintRgb_.map(Math.round).join(', ')}, 0.16)`;
+    // Under the whole sidebar, the bottom row too.
+    this.style.background = this.tint_;
+    // Zen's --zen-primary-color: the theme's first colour, the accent
+    // without one (ZenGradientGenerator).
+    const space = this.spaces_[this.currentIndex_];
+    const primary = themeFromJson(space?.theme ?? '').colors[0];
+    if (primary) {
+      this.style.setProperty('--zen-primary-color', `rgb(${primary.join(', ')})`);
+    } else {
+      this.style.removeProperty('--zen-primary-color');
+    }
   }
 
   // The other spaces' content, for their strips while switching.
@@ -474,10 +485,6 @@ export class SidebarAppElement extends CrLitElement {
     return iconMask(icon);
   }
 
-  protected iconText_(icon: string): string {
-    return iconMask(icon) ? '' : icon;
-  }
-
   protected onLibraryClick_() {
     this.libraryOpen_ ? this.closeLibrary_() : this.openLibrary_();
   }
@@ -512,6 +519,17 @@ export class SidebarAppElement extends CrLitElement {
     clearTimeout(this.libraryTimer_);
     // After the slide out (library.css).
     this.libraryTimer_ = setTimeout(() => this.libraryShown_ = false, 250);
+  }
+
+  // Zen's "+" at the bottom (zenCreateNewPopup); split view isn't here.
+  protected onCreateNewClick_(e: MouseEvent) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    this.showMenu_(rect.left, rect.top, [
+      {label: strings.newSpace, action: () => this.onAddSpaceClick_()},
+      {label: strings.createFolder, action: () => this.createFolder_('')},
+      {label: '', action: () => {}},
+      {label: strings.newTab, action: () => this.onNewTabClick_()},
+    ]);
   }
 
   protected async onAddSpaceClick_() {
@@ -610,10 +628,7 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   private editSpace_(space: Space, pickerOpen: boolean) {
-    // The first letter stands in for no icon.
-    const icon = [...space.name][0]?.toUpperCase() === space.icon ? '' :
-                                                                    space.icon;
-    this.editor_ = {id: space.id, name: space.name, icon, pickerOpen};
+    this.editor_ = {id: space.id, name: space.name, icon: space.icon, pickerOpen};
   }
 
   protected onSpaceEditDone_(e: CustomEvent<SpaceEdit>) {

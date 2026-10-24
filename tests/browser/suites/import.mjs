@@ -55,7 +55,8 @@ async function openImport() {
   await send(tab, 'Page.navigate', {url: 'chrome://cromarc-import'});
   return until(async () => {
     const t = await importPage();
-    return t && (await evaluate(t, `${APP} && !${APP}.loading_`)) && t;
+    // Loaded, and rendered.
+    return t && (await evaluate(t, `${APP} && !${APP}.loading_ && ${APP}.updateComplete`)) && t;
   });
 }
 

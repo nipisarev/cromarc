@@ -41,6 +41,7 @@ Issues and pull requests are closed for now.
 - [Chromium](https://www.chromium.org/) (BSD-3-Clause)
 - [Zen Browser](https://github.com/zen-browser/desktop) (MPL-2.0): reference for spaces, sidebar and tab behavior
 - [Brave](https://github.com/brave/brave-core) (MPL-2.0): approach to maintaining a Chromium fork
+- [Ionicons](https://ionic.io/ionicons) (MIT): space and sidebar icons, the set Zen's space picker uses ([license](third_party/ionicons/LICENSE))
 - [Stedding](https://github.com/ysalitrynskyi/stedding-browser) (BSD-3-Clause): build tooling the scripts in `tooling/` are adapted from ([license](third_party/stedding/LICENSE))
 
 ## License

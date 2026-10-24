@@ -9,10 +9,8 @@
 #include <utility>
 
 #include "base/functional/bind.h"
-#include "base/i18n/char_iterator.h"
 #include "base/json/json_reader.h"
 #include "base/values.h"
-#include "base/strings/utf_string_conversion_utils.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "chrome/browser/browser_process.h"
@@ -61,16 +59,6 @@ constexpr base::TimeDelta kWarmWindowsDelay = base::Seconds(30);
 
 ProfileAttributesStorage& Storage() {
   return g_browser_process->profile_manager()->GetProfileAttributesStorage();
-}
-
-std::string FirstLetter(const std::u16string& name) {
-  base::i18n::UTF16CharIterator it(name);
-  if (it.end()) {
-    return "?";
-  }
-  std::u16string letter;
-  base::WriteUnicodeCharacter(it.get(), &letter);
-  return base::UTF16ToUTF8(letter);
 }
 
 bool IsVisible(BrowserWindowInterface* browser) {
@@ -161,9 +149,6 @@ std::vector<SpaceController::Space> SpaceController::GetSpaces() {
       space.icon = profile->GetPrefs()->GetString(kSpaceIconPref);
       space.theme = profile->GetPrefs()->GetString(kSpaceThemePref);
       order = profile->GetPrefs()->GetInteger(kSpaceOrderPref);
-    }
-    if (space.icon.empty()) {
-      space.icon = FirstLetter(space.name);
     }
     spaces.push_back({std::move(space), order});
   }

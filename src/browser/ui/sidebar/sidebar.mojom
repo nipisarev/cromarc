@@ -160,7 +160,7 @@ interface PageHandler {
   SwitchToSpace(string id);
 
   // Space settings (design, UI section 11). `icon`: an emoji, "icon:<name>"
-  // for one of Zen's icons, or "" for the name's first letter.
+  // for one of Zen's icons, or "" for none (Zen's no-icon).
   CreateSpace(string name, string icon);
   RenameSpace(string id, string name);
   SetSpaceIcon(string id, string icon);
