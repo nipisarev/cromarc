@@ -119,6 +119,18 @@ interface PageHandler {
   GetSpaceSnapshot(string id) => (SpaceSnapshot? snapshot);
   // End of the switch animation: the space's window takes this one's place.
   SwitchToSpace(string id);
+
+  // Space settings (design, UI section 11). `icon`: an emoji, "icon:<name>"
+  // for one of Zen's icons, or "" for the name's first letter.
+  CreateSpace(string name, string icon);
+  RenameSpace(string id, string name);
+  SetSpaceIcon(string id, string icon);
+  ReorderSpaces(array<string> ids);
+  // Closes the space's live tabs: Today's go to the archive, pinned ones
+  // sleep.
+  SleepSpace(string id);
+  // False for the last space.
+  DeleteSpace(string id) => (bool deleted);
 };
 
 interface Page {

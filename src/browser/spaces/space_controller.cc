@@ -5,6 +5,7 @@
 #include "cromarc/browser/spaces/space_controller.h"
 
 #include <algorithm>
+#include <array>
 #include <utility>
 
 #include "base/functional/bind.h"
@@ -16,7 +17,12 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_attributes_entry.h"
 #include "chrome/browser/profiles/profile_attributes_storage.h"
+#include "chrome/browser/profiles/delete_profile_helper.h"
+#include "chrome/browser/profiles/profile_avatar_icon_util.h"
 #include "chrome/browser/profiles/profile_manager.h"
+#include "chrome/browser/profiles/profile_metrics.h"
+#include "chrome/browser/themes/theme_service.h"
+#include "chrome/browser/themes/theme_service_factory.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"
@@ -35,6 +41,13 @@
 namespace cromarc {
 
 namespace {
+
+// New spaces' colours, in turn: distinct hues until the theme editor.
+constexpr auto kNewSpaceColors = std::to_array<SkColor>({
+    SkColorSetRGB(0x6B, 0x40, 0xD9), SkColorSetRGB(0x1F, 0x9E, 0x8F),
+    SkColorSetRGB(0xE0, 0x7A, 0x2E), SkColorSetRGB(0xD9, 0x40, 0x7A),
+    SkColorSetRGB(0x3B, 0x82, 0xF6), SkColorSetRGB(0x5C, 0xA8, 0x3D),
+});
 
 // Session restore brings windows back during the first seconds; only then are
 // inactive spaces' windows hidden.
@@ -363,6 +376,113 @@ BrowserWindowInterface* SpaceController::GetVisibleSpaceWindow() {
         return true;
       });
   return found;
+}
+
+void SpaceController::WithProfile(const std::string& id,
+                                  base::OnceCallback<void(Profile*)> callback) {
+  if (Profile* profile = GetLoadedProfile(id)) {
+    std::move(callback).Run(profile);
+    return;
+  }
+  g_browser_process->profile_manager()->LoadProfileByPath(
+      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id),
+      /*incognito=*/false, std::move(callback));
+}
+
+void SpaceController::CreateSpace(BrowserWindowInterface* from,
+                                  const std::u16string& name,
+                                  const std::string& icon) {
+  ProfileManager::CreateMultiProfileAsync(
+      name, profiles::GetPlaceholderAvatarIndex(), /*is_hidden=*/false,
+      base::BindOnce(&SpaceController::OnSpaceCreated,
+                     weak_factory_.GetWeakPtr(), from->GetSessionID(), icon));
+}
+
+void SpaceController::OnSpaceCreated(SessionID from_id,
+                                     std::string icon,
+                                     Profile* profile) {
+  if (!profile) {
+    return;
+  }
+  profile->GetPrefs()->SetString(kSpaceIconPref, icon);
+  profile->GetPrefs()->SetInteger(kSpaceOrderPref,
+                                  static_cast<int>(GetSpaces().size()));
+  ThemeServiceFactory::GetForProfile(profile)
+      ->SetUserColorAndBrowserColorVariant(
+          kNewSpaceColors[(GetSpaces().size() - 1) % kNewSpaceColors.size()],
+          ui::mojom::BrowserColorVariant::kTonalSpot);
+  NotifySpacesChanged();
+  SwitchToLoaded(from_id, profile);
+}
+
+void SpaceController::RenameSpace(const std::string& id,
+                                  const std::u16string& name) {
+  ProfileAttributesEntry* entry = Storage().GetProfileAttributesWithPath(
+      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id));
+  if (entry && !name.empty()) {
+    // Notifies through OnProfileNameChanged.
+    entry->SetLocalProfileName(name, /*is_default_name=*/false);
+  }
+}
+
+void SpaceController::SetSpaceIcon(const std::string& id,
+                                   const std::string& icon) {
+  WithProfile(id, base::BindOnce(
+                      [](base::WeakPtr<SpaceController> self, std::string icon,
+                         Profile* profile) {
+                        if (self && profile) {
+                          profile->GetPrefs()->SetString(kSpaceIconPref, icon);
+                          self->NotifySpacesChanged();
+                        }
+                      },
+                      weak_factory_.GetWeakPtr(), icon));
+}
+
+void SpaceController::ReorderSpaces(const std::vector<std::string>& ids) {
+  for (size_t i = 0; i < ids.size(); ++i) {
+    WithProfile(ids[i],
+                base::BindOnce(
+                    [](base::WeakPtr<SpaceController> self, int order,
+                       bool last, Profile* profile) {
+                      if (!self || !profile) {
+                        return;
+                      }
+                      profile->GetPrefs()->SetInteger(kSpaceOrderPref, order);
+                      if (last) {
+                        self->NotifySpacesChanged();
+                      }
+                    },
+                    weak_factory_.GetWeakPtr(), static_cast<int>(i),
+                    i + 1 == ids.size()));
+  }
+}
+
+bool SpaceController::DeleteSpace(BrowserWindowInterface* from,
+                                  const std::string& id) {
+  const std::vector<Space> spaces = GetSpaces();
+  auto it = std::ranges::find(spaces, id, &Space::id);
+  if (spaces.size() < 2 || it == spaces.end()) {
+    return false;
+  }
+  const base::FilePath path = it->path;
+  auto schedule = base::BindOnce(
+      [](base::FilePath path, BrowserWindowInterface*) {
+        g_browser_process->profile_manager()
+            ->GetDeleteProfileHelper()
+            .MaybeScheduleProfileForDeletion(
+                path, base::DoNothing(),
+                ProfileMetrics::DELETE_PROFILE_SETTINGS);
+      },
+      path);
+  if (IdOf(from->GetProfile()) != id) {
+    std::move(schedule).Run(nullptr);
+    return true;
+  }
+  // Leave first, so the deleted space's window is a hidden one when it
+  // closes and takes no other window with it.
+  const Space& neighbour = it + 1 != spaces.end() ? *(it + 1) : *(it - 1);
+  ShowSpace(neighbour.id, std::move(schedule));
+  return true;
 }
 
 void SpaceController::OnSwipe(BrowserWindowInterface* browser,

@@ -78,6 +78,13 @@ class SidebarPageHandler : public mojom::PageHandler,
   void GetSpaceSnapshot(const std::string& id,
                         GetSpaceSnapshotCallback callback) override;
   void SwitchToSpace(const std::string& id) override;
+  void CreateSpace(const std::string& name, const std::string& icon) override;
+  void RenameSpace(const std::string& id, const std::string& name) override;
+  void SetSpaceIcon(const std::string& id, const std::string& icon) override;
+  void ReorderSpaces(const std::vector<std::string>& ids) override;
+  void SleepSpace(const std::string& id) override;
+  void DeleteSpace(const std::string& id,
+                   DeleteSpaceCallback callback) override;
 
   // SpaceController::Sidebar:
   void OnSpacesChanged() override;

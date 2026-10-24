@@ -29,6 +29,7 @@ source_set("spaces") {
     "//chrome/browser:browser_process",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/profiles:profile_manager",
+    "//chrome/browser/themes",
     "//chrome/browser/ui/browser_window",
     "//components/pref_registry",
     "//components/prefs",

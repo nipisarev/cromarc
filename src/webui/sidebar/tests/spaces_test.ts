@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {circularDiff, isAnimatedStrip, neighbourIndex, spring, stripTransform, SwipeState} from '../spaces.ts';
+import {circularDiff, isAnimatedStrip, moveSpace, neighbourIndex, spring, stripTransform, SwipeState} from '../spaces.ts';
 
 const near = (a: number, b: number, eps = 1e-3) =>
     assert.ok(Math.abs(a - b) < eps, `${a} ≉ ${b}`);
@@ -64,4 +64,12 @@ test('only strips between the old and the new space animate', () => {
   // Going left from 0 to 4 (the short way round): strips 0 and 4.
   assert.deepEqual([0, 1, 2, 3, 4].map(i => isAnimatedStrip(i, 0, 4, 5)),
                    [true, false, false, false, true]);
+});
+
+test('dragging a space onto another takes its place', () => {
+  assert.deepEqual(moveSpace(['a', 'b', 'c'], 'a', 'c'), ['b', 'c', 'a']);
+  assert.deepEqual(moveSpace(['a', 'b', 'c'], 'c', 'a'), ['c', 'a', 'b']);
+  assert.deepEqual(moveSpace(['a', 'b', 'c'], 'b', 'c'), ['a', 'c', 'b']);
+  assert.equal(moveSpace(['a', 'b'], 'a', 'a'), null);
+  assert.equal(moveSpace(['a', 'b'], 'x', 'a'), null);
 });

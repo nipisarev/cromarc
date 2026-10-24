@@ -12,14 +12,26 @@ import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_a
 import {TabStripObservation} from '/tab_strip_api/tab_strip_observation.js';
 import type {TabStripObserver} from '/tab_strip_api/tab_strip_observer.js';
 
+import './space_editor.js';
+
 import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
 import {BrowserProxy} from './browser_proxy.js';
 import {buildSidebar, dropTarget} from './sidebar_model.js';
-import {circularDiff, isAnimatedStrip, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
+import type {SpaceEdit} from './space_editor.js';
+import {iconMask} from './space_icon.js';
+import {circularDiff, isAnimatedStrip, neighbourIndex, moveSpace, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
 import {strings} from './strings.js';
 import {TabListModel} from './tab_list_model.js';
+
+// The space form open over the strip: a new space, or `id`'s settings.
+export interface SpaceEditorState {
+  id: string;
+  name: string;
+  icon: string;
+  pickerOpen: boolean;
+}
 
 export interface MenuItem {
   label: string;
@@ -77,6 +89,8 @@ export class SidebarAppElement extends CrLitElement {
       snapshots_: {type: Object},
       stripX_: {type: Array},
       tint_: {type: String},
+      editor_: {type: Object},
+      deleting_: {type: Object},
     };
   }
 
@@ -99,6 +113,10 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor stripX_: number[] = [];
   // Background tint: the space's colour, blended while switching.
   protected accessor tint_: string = 'transparent';
+  protected accessor editor_: SpaceEditorState|null = null;
+  // The space whose deletion waits for confirmation.
+  protected accessor deleting_: Space|null = null;
+  private draggedSpace_ = '';
   private deferred_: Set<string> = new Set();
   private clearedTimer_ = 0;
   private swipe_: SwipeState|null = null;
@@ -313,6 +331,127 @@ export class SidebarAppElement extends CrLitElement {
     const id = (e.currentTarget as HTMLElement).dataset['space'];
     if (id) {
       this.switchTo_(id);
+    }
+  }
+
+  protected iconMask_(icon: string): string {
+    return iconMask(icon);
+  }
+
+  protected iconText_(icon: string): string {
+    return iconMask(icon) ? '' : icon;
+  }
+
+  protected onAddSpaceClick_() {
+    this.editor_ = {id: '', name: '', icon: '', pickerOpen: false};
+  }
+
+  protected onSpaceMenuClick_(e: MouseEvent) {
+    const space = this.spaces_.find(s => s.current);
+    if (space) {
+      this.openSpaceMenu_(space, e.clientX, e.clientY);
+    }
+  }
+
+  protected onSpaceContextmenu_(e: MouseEvent) {
+    e.preventDefault();
+    const id = (e.currentTarget as HTMLElement).dataset['space'];
+    const space = this.spaces_.find(s => s.id === id);
+    if (space) {
+      this.openSpaceMenu_(space, e.clientX, e.clientY);
+    }
+  }
+
+  protected onSpaceNameDblclick_() {
+    const space = this.spaces_.find(s => s.current);
+    if (space) {
+      this.editSpace_(space, false);
+    }
+  }
+
+  // Zen's space context menu (zen-workspaces-panel-*).
+  private openSpaceMenu_(space: Space, x: number, y: number) {
+    this.menu_ = {
+      x,
+      y,
+      items: [
+        {label: strings.editSpace, action: () => this.editSpace_(space, false)},
+        {label: strings.changeIcon, action: () => this.editSpace_(space, true)},
+        {
+          label: strings.sleepSpace,
+          action: () => this.proxy_.handler.sleepSpace(space.id),
+        },
+        ...(this.spaces_.length > 1 ?
+                [{
+                  label: strings.deleteSpace,
+                  action: () => this.deleting_ = space,
+                }] :
+                []),
+      ],
+    };
+  }
+
+  private editSpace_(space: Space, pickerOpen: boolean) {
+    // The first letter stands in for no icon.
+    const icon = [...space.name][0]?.toUpperCase() === space.icon ? '' :
+                                                                    space.icon;
+    this.editor_ = {id: space.id, name: space.name, icon, pickerOpen};
+  }
+
+  protected onSpaceEditDone_(e: CustomEvent<SpaceEdit>) {
+    const editor = this.editor_;
+    this.editor_ = null;
+    if (!editor) {
+      return;
+    }
+    const {name, icon} = e.detail;
+    if (!editor.id) {
+      this.proxy_.handler.createSpace(name, icon);
+      return;
+    }
+    if (name !== editor.name) {
+      this.proxy_.handler.renameSpace(editor.id, name);
+    }
+    if (icon !== editor.icon) {
+      this.proxy_.handler.setSpaceIcon(editor.id, icon);
+    }
+  }
+
+  protected onSpaceEditCancel_() {
+    this.editor_ = null;
+  }
+
+  protected async onDeleteConfirmClick_() {
+    const space = this.deleting_;
+    this.deleting_ = null;
+    if (space) {
+      await this.proxy_.handler.deleteSpace(space.id);
+    }
+  }
+
+  protected onDeleteCancelClick_() {
+    this.deleting_ = null;
+  }
+
+  protected onSpaceDragstart_(e: DragEvent) {
+    this.draggedSpace_ = (e.currentTarget as HTMLElement).dataset['space']!;
+    e.dataTransfer!.effectAllowed = 'move';
+  }
+
+  protected onSpaceDragover_(e: DragEvent) {
+    if (this.draggedSpace_) {
+      e.preventDefault();
+    }
+  }
+
+  protected onSpaceDrop_(e: DragEvent) {
+    e.preventDefault();
+    const target = (e.currentTarget as HTMLElement).dataset['space']!;
+    const ids = moveSpace(
+        this.spaces_.map(s => s.id), this.draggedSpace_, target);
+    this.draggedSpace_ = '';
+    if (ids) {
+      this.proxy_.handler.reorderSpaces(ids);
     }
   }
 

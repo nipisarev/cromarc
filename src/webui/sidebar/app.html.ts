@@ -32,8 +32,15 @@ export function getHtml(this: SidebarAppElement) {
           </div>`)}
       </div>
       <div class="space-header">
-        <span class="space-icon">${space.icon}</span>
-        <span class="space-name">${space.name}</span>
+        <span class="space-icon">
+          <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}"
+              ?hidden="${!this.iconMask_(space.icon)}"></span>
+          ${this.iconText_(space.icon)}
+        </span>
+        <span class="space-name" @dblclick="${this.onSpaceNameDblclick_}">${
+            space.name}</span>
+        <button class="space-menu-button" title="${this.strings.editSpace}"
+            @click="${this.onSpaceMenuClick_}">⋯</button>
       </div>
       <div id="tree" role="tree">
         ${this.view_.rows.map(row => row.kind === 'folder' ? html`
@@ -140,7 +147,11 @@ export function getHtml(this: SidebarAppElement) {
           </div>`)}
       </div>
       <div class="space-header">
-        <span class="space-icon">${space.icon}</span>
+        <span class="space-icon">
+          <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}"
+              ?hidden="${!this.iconMask_(space.icon)}"></span>
+          ${this.iconText_(space.icon)}
+        </span>
         <span class="space-name">${space.name}</span>
       </div>
       ${this.snapshotOf_(space.id).view.rows.map(row => row.kind === 'folder' ?
@@ -169,11 +180,39 @@ export function getHtml(this: SidebarAppElement) {
     </div>`}
   </div>`)}
 </div>
+${this.editor_ ? html`
+  <cromarc-space-editor id="space-editor" ?creating="${!this.editor_.id}"
+      .name="${this.editor_.name}" .icon="${this.editor_.icon}"
+      .pickerOpen="${this.editor_.pickerOpen}"
+      @space-edit-done="${this.onSpaceEditDone_}"
+      @space-edit-cancel="${this.onSpaceEditCancel_}">
+  </cromarc-space-editor>` : nothing}
+${this.deleting_ ? html`
+  <div id="delete-space" role="alertdialog">
+    <div class="title">${this.strings.deleteSpaceTitle}</div>
+    <p>${this.strings.deleteSpaceBody(this.deleting_.name)}</p>
+    <div class="buttons">
+      <button class="danger" @click="${this.onDeleteConfirmClick_}">${
+          this.strings.delete}</button>
+      <button @click="${this.onDeleteCancelClick_}">${this.strings.cancel}</button>
+    </div>
+  </div>` : nothing}
 <div id="switcher">
   ${this.spaces_.map(space => html`
     <button class="space-button" ?current="${space.current}"
-        title="${space.name}" data-space="${space.id}"
-        @click="${this.onSpaceClick_}">${space.icon}</button>`)}
+        title="${space.name}" data-space="${space.id}" draggable="true"
+        @click="${this.onSpaceClick_}"
+        @contextmenu="${this.onSpaceContextmenu_}"
+        @dragstart="${this.onSpaceDragstart_}"
+        @dragover="${this.onSpaceDragover_}"
+        @drop="${this.onSpaceDrop_}">
+      <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}"
+          ?hidden="${!this.iconMask_(space.icon)}"></span>
+      ${this.iconText_(space.icon)}
+    </button>`)}
+  <button id="add-space" class="space-button" title="${this.strings.newSpace}"
+      ?hidden="${!this.spaces_.length}"
+      @click="${this.onAddSpaceClick_}">＋</button>
 </div>
 ${this.cleared_.length ? html`
   <div id="toast" role="status">

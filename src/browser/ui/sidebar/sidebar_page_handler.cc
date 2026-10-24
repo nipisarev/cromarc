@@ -10,6 +10,8 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
+#include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/common/webui_url_constants.h"
 #include "chrome/browser/profiles/profile.h"
@@ -348,6 +350,57 @@ void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
 
 void SidebarPageHandler::SwitchToSpace(const std::string& id) {
   SpaceController::Get()->SwitchTo(browser_, id);
+}
+
+void SidebarPageHandler::CreateSpace(const std::string& name,
+                                     const std::string& icon) {
+  SpaceController::Get()->CreateSpace(browser_, base::UTF8ToUTF16(name), icon);
+}
+
+void SidebarPageHandler::RenameSpace(const std::string& id,
+                                     const std::string& name) {
+  SpaceController::Get()->RenameSpace(id, base::UTF8ToUTF16(name));
+}
+
+void SidebarPageHandler::SetSpaceIcon(const std::string& id,
+                                      const std::string& icon) {
+  SpaceController::Get()->SetSpaceIcon(id, icon);
+}
+
+void SidebarPageHandler::ReorderSpaces(const std::vector<std::string>& ids) {
+  SpaceController::Get()->ReorderSpaces(ids);
+}
+
+void SidebarPageHandler::SleepSpace(const std::string& id) {
+  // A space whose profile is not loaded has nothing live.
+  Profile* profile = SpaceController::Get()->GetLoadedProfile(id);
+  LifecycleService* lifecycle = profile ? LifecycleService::Get(profile) : nullptr;
+  TreeService* tree = profile ? TreeService::Get(profile) : nullptr;
+  if (!lifecycle || !tree) {
+    return;
+  }
+  for (BrowserWindowInterface* window : GetAllBrowserWindowInterfaces()) {
+    if (window->GetProfile() != profile ||
+        window->GetType() != BrowserWindowInterface::TYPE_NORMAL) {
+      continue;
+    }
+    // The window keeps a new tab; the rest goes.
+    window->OpenGURL(GURL(chrome::kChromeUINewTabURL),
+                     WindowOpenDisposition::NEW_FOREGROUND_TAB);
+    TabStripModel* model = window->GetTabStripModel();
+    for (int i = model->count() - 1; i >= 0; --i) {
+      if (tree->GetItemForTab(model->GetTabAtIndex(i))) {
+        model->CloseWebContentsAt(i,
+                                  TabCloseTypes::CLOSE_CREATE_HISTORICAL_TAB);
+      }
+    }
+    lifecycle->ClearToday(window);
+  }
+}
+
+void SidebarPageHandler::DeleteSpace(const std::string& id,
+                                     DeleteSpaceCallback callback) {
+  std::move(callback).Run(SpaceController::Get()->DeleteSpace(browser_, id));
 }
 
 void SidebarPageHandler::OnSpacesChanged() {

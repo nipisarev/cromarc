@@ -25,6 +25,7 @@
   font-size: 13px;
   height: 100%;
   overflow: hidden;
+  position: relative;
   user-select: none;
 }
 
@@ -270,8 +271,68 @@ button:hover {
 }
 
 .space-icon {
-  text-align: center;
+  align-items: center;
+  display: flex;
+  justify-content: center;
   width: 16px;
+}
+
+/* Zen's icons are masks in the text colour. */
+.svg {
+  background: currentColor;
+  display: inline-block;
+  height: 14px;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  width: 14px;
+}
+
+.space-menu-button {
+  margin-inline-start: auto;
+  opacity: 0;
+}
+
+.space-header:hover .space-menu-button {
+  opacity: .7;
+}
+
+/* The space form takes the strip's place (zen:spaces/ZenSpaceCreation.mjs). */
+#space-editor {
+  background: var(--color-sys-surface, Canvas);
+  bottom: 36px;
+  inset-inline: 0;
+  position: absolute;
+  top: 0;
+}
+
+#delete-space {
+  background: var(--color-sys-surface, Canvas);
+  border-radius: 10px;
+  bottom: 44px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
+  inset-inline: 8px;
+  padding: 12px;
+  position: absolute;
+}
+
+#delete-space .title {
+  font-weight: 600;
+}
+
+#delete-space .buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+#delete-space button {
+  padding: 6px 12px;
+}
+
+#delete-space .danger {
+  background: var(--color-sys-error, #d93025);
+  color: white;
 }
 
 /* Space switcher at the bottom (design, UI section 5). */
@@ -289,9 +350,16 @@ button:hover {
 }
 
 .space-button {
+  align-items: center;
+  display: flex;
   font-size: 15px;
   height: 28px;
+  justify-content: center;
   width: 28px;
+}
+
+#add-space {
+  opacity: .6;
 }
 
 .space-button[current] {

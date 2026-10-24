@@ -107,3 +107,17 @@ export function spring(from: number, to: number, duration: number):
     return to - Math.exp(-w * t) * (delta + w * delta * t);
   };
 }
+
+// The space order after dragging `dragged` onto `target`: it takes the
+// target's place. Null when nothing moves.
+export function moveSpace(
+    ids: string[], dragged: string, target: string): string[]|null {
+  const from = ids.indexOf(dragged);
+  const to = ids.indexOf(target);
+  if (from < 0 || to < 0 || from === to) {
+    return null;
+  }
+  const result = ids.filter(id => id !== dragged);
+  result.splice(to, 0, dragged);
+  return result;
+}

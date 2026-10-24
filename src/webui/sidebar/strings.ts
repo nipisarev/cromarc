@@ -8,6 +8,17 @@ export const strings = {
   newFolder: 'Новая папка',
   importFromArc: 'Перенести из Arc…',
   hideSidebar: 'Скрыть сайдбар  ⌘S',
+  // Zen's space menu (zen-workspaces-panel-*).
+  editSpace: 'Изменить space…',
+  changeIcon: 'Сменить иконку…',
+  sleepSpace: 'Усыпить space',
+  deleteSpace: 'Удалить space…',
+  deleteSpaceTitle: 'Удалить space?',
+  deleteSpaceBody: (name: string) =>
+      `Удалить «${name}»? Вкладки, история, расширения и данные сайтов этого space пропадут. Это нельзя отменить.`,
+  delete: 'Удалить',
+  cancel: 'Отмена',
+  newSpace: 'Создать space',
   today: 'Today',
   rename: 'Переименовать',
   remove: 'Удалить',
