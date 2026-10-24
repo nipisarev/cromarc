@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 24 Oct 2026 04:25:39 +0200
+Subject: [PATCH] Cromarc H7: Cromarc's name and app icon
+
+
+diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
+index d98c86e5dace9..59641d968c9f7 100644
+--- a/chrome/BUILD.gn
++++ b/chrome/BUILD.gn
+@@ -670,12 +670,12 @@ if (is_win) {
+   }
+ 
+   bundle_data("chrome_app_icon") {
+-    sources = [ "app/theme/$branding_path_component/mac/app.icns" ]
++    sources = [ "//cromarc/branding/mac/app.icns" ]  # Cromarc
+     outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+   }
+ 
+   bundle_data("chrome_asset_catalog") {
+-    sources = [ "app/theme/$branding_path_component/mac/Assets.car" ]
++    sources = [ "//cromarc/branding/mac/Assets.car" ]  # Cromarc
+     outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+   }
+ 
+diff --git a/chrome/app/theme/chromium/BRANDING b/chrome/app/theme/chromium/BRANDING
+index f8363d5b294fe..470b6722111b7 100644
+--- a/chrome/app/theme/chromium/BRANDING
++++ b/chrome/app/theme/chromium/BRANDING
+@@ -1,10 +1,10 @@
+-COMPANY_FULLNAME=The Chromium Authors
+-COMPANY_SHORTNAME=The Chromium Authors
+-PRODUCT_FULLNAME=Chromium
+-PRODUCT_SHORTNAME=Chromium
+-PRODUCT_INSTALLER_FULLNAME=Chromium Installer
+-PRODUCT_INSTALLER_SHORTNAME=Chromium Installer
+-COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Chromium Authors. All rights reserved.
++COMPANY_FULLNAME=Cromarc
++COMPANY_SHORTNAME=Cromarc
++PRODUCT_FULLNAME=Cromarc
++PRODUCT_SHORTNAME=Cromarc
++PRODUCT_INSTALLER_FULLNAME=Cromarc Installer
++PRODUCT_INSTALLER_SHORTNAME=Cromarc Installer
++COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Chromium Authors and Cromarc contributors. All rights reserved.
+ MAC_BUNDLE_ID=org.chromium.Chromium
+ MAC_CREATOR_CODE=Cr24
+ MAC_TEAM_ID=

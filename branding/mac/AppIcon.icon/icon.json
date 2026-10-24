@@ -1,0 +1,35 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "extended-srgb:0.42000,0.25000,0.85000,1.00000",
+      "extended-srgb:0.12000,0.09000,0.36000,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "dot.svg",
+          "name": "dot",
+          "glass": true
+        },
+        {
+          "image-name": "arc.svg",
+          "name": "arc",
+          "glass": true
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.2
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

@@ -43,7 +43,9 @@ bool CompactMode::Toggle(BrowserWindowInterface* browser) {
   if (!sidebar || !controller || !controller->ShouldDisplayVerticalTabs()) {
     return false;
   }
-  controller->RequestCollapse(!controller->IsCollapsed());
+  // Collapsing counts as collapsed: Cmd+S during the animation turns back.
+  controller->RequestCollapse(controller->GetCollapseState() ==
+                              tabs::VerticalTabStripCollapseState::kExpanded);
   return true;
 }
 

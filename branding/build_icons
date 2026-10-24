@@ -1,0 +1,24 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Rebuilds the app icon: icon sources (make_icon.py), bitmaps for macOS
+# before 26 (render_png.swift), then Chromium's compile_car.py, into
+# src/branding/mac/{app.icns,Assets.car}, which hook H7 bundles.
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+root="$(dirname "$here")"
+. "$root/tooling/lib.sh"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+python3 -I "$here/make_icon.py" "$here/mac"
+swiftc -O "$here/render_png.swift" -o "$work/render_png"
+cp -R "$CHROMIUM_SRC/chrome/app/theme/chromium/mac/Assets.xcassets" "$work/"
+"$work/render_png" "$here/mac/flat.svg" "$work/Assets.xcassets/AppIcon.appiconset"
+cp -R "$here/mac/AppIcon.icon" "$work/"
+(cd "$CHROMIUM_SRC" && python3 tools/mac/icons/compile_car.py "$work/Assets.xcassets")
+mkdir -p "$root/src/branding/mac"
+cp "$work/app.icns" "$work/Assets.car" "$root/src/branding/mac/"
+log "icon written to src/branding/mac"

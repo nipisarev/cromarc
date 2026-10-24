@@ -19,7 +19,7 @@ Needs full Xcode and about 100 GB free disk. The Chromium tree lives outside thi
 tooling/bootstrap        # depot_tools in ~/depot_tools
 tooling/sync             # Chromium at the tag in CHROMIUM_VERSION
 tooling/apply            # src/ -> chromium/src/cromarc, patches/hooks -> branch cromarc-work
-tooling/build release    # out/release/Chromium.app
+tooling/build release    # out/release/Cromarc.app
 tooling/check            # shellcheck, tooling tests, WebUI unit tests
 ```
 
