@@ -10,7 +10,7 @@ export function getHtml(this: ThemeEditorElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
 <div id="editor" @keydown="${this.onKeydown_}">
-  <div class="title">Тема space</div>
+  <div class="title">Изменить тему</div>
   <div id="wheel" @pointerdown="${this.onWheelPointerdown_}"
       @pointermove="${this.onWheelPointermove_}"
       @pointerup="${this.onWheelPointerup_}">
@@ -23,7 +23,7 @@ export function getHtml(this: ThemeEditorElement) {
       'Тяните точки; щелчок — ещё цвет (до 3), двойной щелчок — убрать.' :
       'Щёлкните по кругу, чтобы выбрать цвет.'}</p>
   <button id="harmony" ?hidden="${this.points_.length < 2}"
-      @click="${this.onHarmonyClick_}">${this.harmonyLabel_() || 'Своя'} ⟳</button>
+      @click="${this.onHarmonyClick_}">${this.harmonyLabel_()} ⟳</button>
   <label>Прозрачность
     <input id="opacity" type="range" min="${this.minOpacity_}"
         max="${this.maxOpacity_}" step="0.01" .value="${String(this.theme.opacity)}"

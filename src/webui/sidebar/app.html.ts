@@ -10,7 +10,7 @@ import {essentialsLayout} from './sidebar_model.js';
 export function getHtml(this: SidebarAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
-<div id="viewport" ?editing="${!!this.editor_}">
+<div id="viewport" ?editing="${!!this.editor_ || !!this.themeEditor_}">
   ${this.stripSpaces_.map((space, index) => html`
   <div class="strip" style="${this.stripStyle_(index)}">
   ${space.current ? html`

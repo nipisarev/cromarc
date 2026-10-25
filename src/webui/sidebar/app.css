@@ -796,8 +796,9 @@ button[hidden],
   background: var(--hover);
 }
 
-/* The space form takes the strip's place, on the sidebar's own background
- * (zen:spaces/ZenSpaceCreation.mjs hides the space while it shows). */
+/* The space form and the theme editor take the strip's place, on the
+ * window's background (zen:spaces/ZenSpaceCreation.mjs hides the space while
+ * it shows). */
 #viewport[editing] {
   visibility: hidden;
 }
@@ -971,8 +972,8 @@ button[hidden],
   width: 8px;
 }
 
+/* On the window's background, which shows the theme being edited. */
 #theme-editor {
-  background: var(--color-sys-surface, Canvas);
   bottom: 44px;
   inset-inline: 0;
   overflow-y: auto;

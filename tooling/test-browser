@@ -85,7 +85,7 @@ launch() {
   is_daily "$name" ||
     args+=("--enable-features=DcheckIsFatal,PartitionAllocDanglingPtr")
   case "$name" in
-    theme) args+=(--cromarc-test-log-background) ;;
+    theme | compact) args+=(--cromarc-test-log-background) ;;
     import) args+=(--cromarc-arc-sidebar="$fixtures/arc_sidebar.json") ;;
     import_export)
       args+=(--cromarc-arc-sidebar="$work/no-arc.json"
@@ -126,9 +126,11 @@ run() {
   fi
   CROMARC_TEST_LOG="$log" node "$script" "$port" "$browser" >"$out" 2>&1 &
   local runner=$!
-  (sleep 300 && kill "$runner" 2>/dev/null) &
+  # Off the output, so a pipe on this script closes when the suites end.
+  (sleep 300 && kill "$runner" 2>/dev/null) >/dev/null 2>&1 &
   local watchdog=$!
   wait "$runner" || status=$?
+  pkill -P "$watchdog" sleep 2>/dev/null || true
   kill "$watchdog" 2>/dev/null || true
   wait "$watchdog" 2>/dev/null || true
   stop

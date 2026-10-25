@@ -80,4 +80,23 @@ check('…and Chrome\'s colour for the profile follows the first colour', !!colo
 check('the editor closes and the window keeps the saved theme', !(await evaluate(sb, `!!${ED}`)) &&
     !!(await paintedSoon(/colors=2 texture=0\.6 preview=0/)), painted());
 check('…painted by the browser, not the sidebar', (await stripBg()).startsWith('none | rgba(0, 0, 0, 0)'), await stripBg());
+check('the harmony is saved with the theme', JSON.parse(saved.theme).harmony === 'singleAnalogous', saved.theme);
+
+// Open again: the editor goes on from the saved harmony and lets the theme
+// show behind it.
+await evaluate(sb, `(async () => {
+  const app = ${APP};
+  app.testMenuChoice = 'тему';
+  app.openSpaceMenu_(app.spaces_.find(s => s.current), 10, 10);
+  await app.updateComplete;
+})()`);
+await until(() => evaluate(sb, `!!${ED}`));
+check('…and restored when the editor opens again', await evaluate(sb, `${ED}.harmony_`) === 'singleAnalogous',
+    await evaluate(sb, `${ED}.harmony_`));
+check('the editor is clear over the window\'s theme, the tabs hidden', await evaluate(sb, `(() => {
+  const root = ${APP}.shadowRoot;
+  return getComputedStyle(root.querySelector('#theme-editor')).backgroundColor === 'rgba(0, 0, 0, 0)' &&
+      getComputedStyle(root.querySelector('#viewport')).visibility === 'hidden';
+})()`));
+await evaluate(sb, `${ED}.shadowRoot.querySelector('#done').click()`);
 process.exit(results.every(Boolean) ? 0 : 1);

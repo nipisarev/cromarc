@@ -6,7 +6,7 @@ import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 
 import {getCss} from './theme_editor.css.js';
 import {getHtml} from './theme_editor.html.js';
-import {colorAt, HARMONIES, harmonyPoints, MAX_COLORS, MAX_OPACITY, MIN_OPACITY, pointOf} from './theme_model.js';
+import {colorAt, DEFAULT_THEME, HARMONIES, harmonyPoints, MAX_COLORS, MAX_OPACITY, MIN_OPACITY, pointOf} from './theme_model.js';
 import type {Point, Scheme, SpaceTheme} from './theme_model.js';
 
 // The colour wheel's size in px.
@@ -39,8 +39,7 @@ export class ThemeEditorElement extends CrLitElement {
     };
   }
 
-  accessor theme: SpaceTheme =
-      {colors: [], opacity: 0.4, texture: 0, scheme: 'auto'};
+  accessor theme: SpaceTheme = {...DEFAULT_THEME};
   protected accessor points_: Point[] = [];
   protected accessor harmony_: string = '';
   protected accessor minOpacity_: number = MIN_OPACITY;
@@ -50,6 +49,8 @@ export class ThemeEditorElement extends CrLitElement {
   override connectedCallback() {
     super.connectedCallback();
     this.points_ = this.theme.colors.map(c => pointOf(c, WHEEL));
+    // The saved harmony, so the toggle goes on from it.
+    this.harmony_ = this.theme.harmony;
   }
 
   protected dotStyle_(point: Point, index: number): string {
@@ -57,15 +58,17 @@ export class ThemeEditorElement extends CrLitElement {
     return `left: ${point.x}px; top: ${point.y}px; background: rgb(${r}, ${g}, ${b})`;
   }
 
+  // Zen's names (zen-panel-ui-gradient-generator-algo-*); free dots are
+  // "floating".
   protected harmonyLabel_(): string {
     const labels: Record<string, string> = {
-      complementary: 'Комплементарная',
-      singleAnalogous: 'Аналоговая',
-      splitComplementary: 'Расщеплённая',
-      analogous: 'Аналоговая',
+      complementary: 'Комплементарное',
+      singleAnalogous: 'Аналоговое',
+      splitComplementary: 'Раздельное',
+      analogous: 'Аналоговое',
       triadic: 'Триада',
     };
-    return labels[this.harmony_] ?? '';
+    return labels[this.harmony_] ?? 'Плавающее';
   }
 
   protected onWheelPointerdown_(e: PointerEvent) {
@@ -100,8 +103,7 @@ export class ThemeEditorElement extends CrLitElement {
     } else {
       const points = [...this.points_];
       points[this.dragging_] = point;
-      this.harmony_ = '';
-      this.setPoints_(points);
+      this.setPoints_(points, '');
     }
   }
 
@@ -158,7 +160,10 @@ export class ThemeEditorElement extends CrLitElement {
     this.points_ = points;
     this.harmony_ = harmony ??
         HARMONIES.find(h => h.angles.length + 1 === points.length)?.type ?? '';
-    this.change_({colors: points.map(p => colorAt(p, WHEEL))});
+    this.change_({
+      colors: points.map(p => colorAt(p, WHEEL)),
+      harmony: this.harmony_,
+    });
   }
 
   private change_(change: Partial<SpaceTheme>) {

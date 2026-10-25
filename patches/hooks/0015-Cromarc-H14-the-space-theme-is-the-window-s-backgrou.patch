@@ -80,7 +80,7 @@ index 818924fc76681..a658afa867ecb 100644
    tint_view_.layer.backgroundColor =
        [NSColor colorWithSRGBRed:r green:g blue:b alpha:a].CGColor;
 diff --git a/chrome/browser/ui/views/frame/custom_corners_background.cc b/chrome/browser/ui/views/frame/custom_corners_background.cc
-index 824f76b00e3d0..cc98ab2e958c0 100644
+index 824f76b00e3d0..5745cfb8cb117 100644
 --- a/chrome/browser/ui/views/frame/custom_corners_background.cc
 +++ b/chrome/browser/ui/views/frame/custom_corners_background.cc
 @@ -36,6 +36,7 @@
@@ -91,12 +91,14 @@ index 824f76b00e3d0..cc98ab2e958c0 100644
  
  namespace {
  // Radius of the corner blur used for the glass frame.
-@@ -313,6 +314,10 @@ void CustomCornersBackground::Paint(gfx::Canvas* canvas,
+@@ -313,6 +314,12 @@ void CustomCornersBackground::Paint(gfx::Canvas* canvas,
    if (!visible_) {
      return;
    }
-+  // Cromarc: the space theme under the window shows through.
-+  if (cromarc::ThemesWindow(&browser_view())) {
++  // Cromarc: the space theme under the window shows through, or Cromarc
++  // paints the floating sidebar.
++  if (cromarc::PaintChromeBackground(canvas, view, GetBackgroundPath(),
++                                     &browser_view())) {
 +    return;
 +  }
  

@@ -4,6 +4,8 @@
 
 // Compact mode: the sidebar collapses to nothing, flashes for a background tab,
 // and comes back.
+import {readFileSync} from 'node:fs';
+
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -50,6 +52,23 @@ check('collapsed: the sidebar is gone', (await until(async () => (await width())
 const pageCompact = await until(async () => { const w = await pageWidth(); return w > pageBefore && w; });
 console.log('page in compact', pageCompact);
 check('the page takes the window', pageCompact >= pageBefore + before - 2, `${pageCompact} vs ${pageBefore}+${before}`);
+
+// A tab opened in the background flashes the sidebar over the page (Zen's
+// flashSidebar); floating, it gets Zen's opaque toolbar background, which
+// the browser says it painted (--cromarc-test-log-background).
+const floatingPainted = () => /cromarc floating sidebar:/.test(readFileSync(process.env.CROMARC_TEST_LOG, 'utf8'));
+const browserWs = (await (await fetch(`${base}/json/version`)).json()).webSocketDebuggerUrl;
+const openInBackground = () => new Promise(resolve => {
+  const ws = new WebSocket(browserWs);
+  ws.onopen = () => ws.send(JSON.stringify({id: 1, method: 'Target.createTarget', params: {url: 'data:text/html,<title>later</title>later', background: true}}));
+  ws.onmessage = () => { ws.close(); resolve(); };
+});
+let flashed = false;
+for (let i = 0; i < 3 && !flashed; i++) {
+  await openInBackground();
+  flashed = !!(await until(floatingPainted, 3000));
+}
+check('flashed over the page, the sidebar has an opaque background', flashed);
 
 await evaluate(await sidebar(), `document.querySelector('cromarc-sidebar-app').proxy_.handler.toggleCompactMode()`);
 check('toggled back: the sidebar returns', (await until(async () => (await width()) > 100 && (await pageWidth()) < pageCompact, 10000)) === true,

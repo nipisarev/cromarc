@@ -26,7 +26,9 @@
 #include "cc/paint/paint_shader.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/grit/cromarc_resources.h"
 #include "components/prefs/pref_service.h"
 #include "cromarc/browser/spaces/space_prefs.h"
@@ -34,13 +36,17 @@
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "cromarc/browser/ui/sidebar/window_background.h"
 #include "third_party/skia/include/core/SkBitmap.h"
+#include "third_party/skia/include/core/SkPath.h"
 #include "third_party/skia/include/effects/SkGradient.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/color/color_id.h"
 #include "ui/color/color_provider.h"
 #include "ui/gfx/canvas.h"
+#include "ui/gfx/scoped_canvas.h"
 #include "ui/gfx/codec/png_codec.h"
 #include "ui/gfx/color_utils.h"
+#include "ui/views/view.h"
+#include "ui/views/view_utils.h"
 #include "ui/views/widget/widget.h"
 
 namespace cromarc {
@@ -271,6 +277,64 @@ void PaintTheme(gfx::Canvas* canvas,
   }
 }
 
+// getToolbarModifiedBaseRaw without acrylic (zen.theme.acrylic-sidebar off).
+SkColor ToolbarBase(bool dark) {
+  return dark ? SkColorSetRGB(23, 23, 26) : SkColorSetRGB(240, 240, 244);
+}
+
+// #getSingleRGBColor(color, forToolbar): the colour at 90% over the toolbar
+// base, opaque.
+SkColor4f ToolbarColorOf(SkColor color, bool dark) {
+  return SkColor4f::FromColor(Blend(color, ToolbarBase(dark), 90));
+}
+
+// getGradient(colors, forToolbar) over `box`.
+void PaintToolbarTheme(gfx::Canvas* canvas,
+                       const gfx::Rect& bounds,
+                       const gfx::RectF& box,
+                       const Theme& theme,
+                       bool dark) {
+  std::vector<SkColor4f> colors;
+  for (SkColor color : theme.colors) {
+    colors.push_back(ToolbarColorOf(color, dark));
+  }
+  switch (colors.size()) {
+    case 0:
+      canvas->DrawColor(ToolbarBase(dark));
+      break;
+    case 1:
+      canvas->DrawColor(colors[0].toSkColor());
+      break;
+    case 2:
+      Fill(canvas, bounds,
+           Linear(box, kRotation, {0, colors[1]}, {1, colors[0]}));
+      break;
+    default:
+      Fill(canvas, bounds,
+           Radial(box, 0, 0, {0.1f, colors[0]},
+                  {0.7f, Transparent(colors[0])}));
+      Fill(canvas, bounds,
+           Radial(box, 0.95f, 0, {0, colors[1]},
+                  {0.75f, Transparent(colors[1])}));
+      Fill(canvas, bounds,
+           Linear(box, -5, {0.1f, colors[2]}, {0.8f, Transparent(colors[2])}));
+      break;
+  }
+}
+
+bool IsDark(const views::View* view) {
+  const ui::ColorProvider* colors = view->GetColorProvider();
+  return colors && color_utils::IsDark(colors->GetColor(ui::kColorFrameActive));
+}
+
+std::string ThemeJson(BrowserView* browser_view) {
+  SidebarView* sidebar = SidebarView::ForBrowser(browser_view->browser());
+  return sidebar && sidebar->theme_preview()
+             ? *sidebar->theme_preview()
+             : browser_view->GetProfile()->GetPrefs()->GetString(
+                   kSpaceThemePref);
+}
+
 }  // namespace
 
 bool ThemesWindow(const BrowserView* browser_view) {
@@ -285,14 +349,9 @@ void PaintWindowBackground(gfx::Canvas* canvas,
     return;
   }
   // The browser's light or dark, which a space theme can set.
-  const ui::ColorProvider* colors = browser_view->GetColorProvider();
-  const bool dark =
-      colors && color_utils::IsDark(colors->GetColor(ui::kColorFrameActive));
+  const bool dark = IsDark(browser_view);
   SidebarView* sidebar = SidebarView::ForBrowser(browser_view->browser());
-  const Theme theme = ParseTheme(
-      sidebar && sidebar->theme_preview()
-          ? *sidebar->theme_preview()
-          : browser_view->GetProfile()->GetPrefs()->GetString(kSpaceThemePref));
+  const Theme theme = ParseTheme(ThemeJson(browser_view));
   const std::optional<SidebarView::Blend> blend =
       sidebar ? sidebar->theme_blend() : std::nullopt;
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(kLogBackgroundSwitch)) {
@@ -314,6 +373,49 @@ void PaintWindowBackground(gfx::Canvas* canvas,
   canvas->SaveLayerAlpha(base::ClampRound<uint8_t>(255 * progress));
   PaintTheme(canvas, bounds, ParseTheme(blend->theme), dark);
   canvas->Restore();
+}
+
+bool PaintChromeBackground(gfx::Canvas* canvas,
+                           const views::View* view,
+                           const SkPath& path,
+                           const BrowserView* const_browser_view) {
+  if (!ThemesWindow(const_browser_view)) {
+    return false;
+  }
+  // CustomCornersBackground holds the browser view as const; its window is
+  // read only here.
+  BrowserView* browser_view = const_cast<BrowserView*>(const_browser_view);
+  // Collapsed is compact mode, where the region only shows floating.
+  auto* controller =
+      tabs::VerticalTabStripStateController::From(browser_view->browser());
+  if (!views::IsViewClass<VerticalTabStripRegionView>(view) || !controller ||
+      !controller->IsCollapsed()) {
+    return true;
+  }
+  // Zen's .zen-toolbar-background in compact mode (zen-compact-mode.css): an
+  // opaque base, the toolbar gradient laid out on the whole window
+  // (background-attachment: fixed) and a light 1px edge.
+  const bool dark = IsDark(view);
+  gfx::ScopedCanvas scoped(canvas);
+  canvas->ClipPath(path, true);
+  const gfx::Rect bounds = view->GetLocalBounds();
+  canvas->DrawColor(dark ? SkColorSetRGB(0x13, 0x13, 0x13)
+                         : SkColorSetRGB(0xe9, 0xe9, 0xe9));
+  gfx::RectF window(view->GetWidget()->GetRootView()->bounds());
+  views::View::ConvertRectToTarget(view->GetWidget()->GetRootView(), view,
+                                   &window);
+  const Theme theme = ParseTheme(ThemeJson(browser_view));
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(kLogBackgroundSwitch)) {
+    LOG(ERROR) << "cromarc floating sidebar: colors=" << theme.colors.size();
+  }
+  PaintToolbarTheme(canvas, bounds, window, theme, dark);
+  cc::PaintFlags edge;
+  edge.setStyle(cc::PaintFlags::kStroke_Style);
+  edge.setStrokeWidth(2);
+  edge.setAntiAlias(true);
+  edge.setColor(SkColorSetA(SK_ColorWHITE, 0x26));
+  canvas->DrawPath(path, edge);
+  return true;
 }
 
 void RepaintWindowBackground(BrowserWindowInterface* browser) {

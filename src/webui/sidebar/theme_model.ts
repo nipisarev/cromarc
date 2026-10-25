@@ -14,6 +14,9 @@ export interface SpaceTheme {
   opacity: number;
   texture: number;
   scheme: Scheme;
+  // How the dots follow the first one (a HARMONIES type); "" when they move
+  // freely, Zen's "floating". Zen keeps it with the colours (algorithm).
+  harmony: string;
 }
 
 export interface Point {
@@ -26,7 +29,7 @@ export const MAX_COLORS = 3;
 export const MIN_OPACITY = 0.3;
 export const MAX_OPACITY = 0.8;
 export const DEFAULT_THEME: SpaceTheme =
-    {colors: [], opacity: 0.4, texture: 0, scheme: 'auto'};
+    {colors: [], opacity: 0.4, texture: 0, scheme: 'auto', harmony: ''};
 
 // Zen's colorHarmonies: the angles of the other dots from the first one.
 export const HARMONIES = [
@@ -197,6 +200,7 @@ export function themeFromJson(json: string): SpaceTheme {
                         Math.max(MIN_OPACITY, Number(value.opacity) || 0.4)),
       texture: Math.min(1, Math.max(0, Number(value.texture) || 0)),
       scheme: ['light', 'dark'].includes(value.scheme) ? value.scheme : 'auto',
+      harmony: HARMONIES.some(h => h.type === value.harmony) ? value.harmony : '',
     };
   } catch {
     return {...DEFAULT_THEME};

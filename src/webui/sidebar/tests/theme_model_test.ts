@@ -64,4 +64,6 @@ test('stored themes are read defensively', () => {
   assert.equal(theme.opacity, 0.8);
   assert.equal(theme.scheme, 'dark');
   assert.equal(themeFromJson('nope').colors.length, 0);
+  assert.equal(themeFromJson('{"harmony":"triadic"}').harmony, 'triadic');
+  assert.equal(themeFromJson('{"harmony":"bogus"}').harmony, '');
 });

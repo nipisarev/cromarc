@@ -9,6 +9,7 @@
 
 class BrowserView;
 class BrowserWindowInterface;
+class SkPath;
 
 namespace gfx {
 class Canvas;
@@ -52,6 +53,15 @@ bool ThemesWindow(const BrowserView* browser_view);
 void PaintWindowBackground(gfx::Canvas* canvas,
                            const gfx::Rect& bounds,
                            BrowserView* browser_view);
+
+// Hook H14, from CustomCornersBackground (toolbar, top container, tab strip
+// region): true when Cromarc paints `view`'s background inside `path`
+// instead, which is nothing but for the sidebar floating over the page in
+// compact mode, which gets Zen's opaque toolbar background.
+bool PaintChromeBackground(gfx::Canvas* canvas,
+                           const views::View* view,
+                           const SkPath& path,
+                           const BrowserView* browser_view);
 
 }  // namespace cromarc
 
