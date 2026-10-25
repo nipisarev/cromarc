@@ -96,6 +96,10 @@ launch() {
       args+=(--cromarc-arc-sidebar="$work/no-arc.json"
         --cromarc-arc-export="$fixtures/arc_export.md") ;;
   esac
+  # Downloads go to the profile's own folder, never to ~/Downloads.
+  mkdir -p "$profile/Default" "$profile/downloads"
+  printf '{"download":{"default_directory":"%s","prompt_for_download":false},"savefile":{"default_directory":"%s"}}\n' \
+    "$profile/downloads" "$profile/downloads" >"$profile/Default/Preferences"
   "$binary" "${args[@]}" about:blank >"$log" 2>&1 &
   browser=$!
   # Up once its window's sidebar is: the suites start from the window.
@@ -129,7 +133,8 @@ run() {
     echo "FAIL  $name: the browser did not start ($log)"
     return 1
   fi
-  CROMARC_TEST_LOG="$log" node "$script" "$port" "$browser" >"$out" 2>&1 &
+  CROMARC_TEST_LOG="$log" CROMARC_TEST_DOWNLOADS="$work/$name/downloads" \
+    node "$script" "$port" "$browser" >"$out" 2>&1 &
   local runner=$!
   # Off the output, so a pipe on this script closes when the suites end.
   (sleep 300 && kill "$runner" 2>/dev/null) >/dev/null 2>&1 &
