@@ -104,6 +104,9 @@ await evaluate(first, `${APP}.proxy_.handler.toggleCompactMode(), true`);
 check('back from compact in one window', !!(await until(async () => isShown(await pageWidth('first-page')))),
     String(await pageWidth('first-page')));
 const secondId = await evaluate(first, `${APP}.spaces_.find(s => s.name === 'Second').id`);
+// Headless, a window off screen plays the animation in a few slow frames
+// (947 for 600 ms, then 852); one on screen is done by now.
+await until(async () => isShown(await pageWidth('second-page')), 5000);
 await evaluate(first, `${APP}.proxy_.handler.prepareSpaceSwitch('${secondId}'), true`);
 await until(async () => await pageVisibility('second-page') === 'visible', 5000);
 const preparedBack = await sample(() => pageWidth('second-page'), 500);
