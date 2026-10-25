@@ -148,6 +148,15 @@ void SidebarView::SetThemeBlend(std::optional<Blend> blend) {
   RepaintWindowBackground(browser_);
 }
 
+void SidebarView::SetLibraryWidth(int width) {
+  if (library_width_ == width) {
+    return;
+  }
+  library_width_ = width;
+  // The region asks for it from its preferred size.
+  PreferredSizeChanged();
+}
+
 bool SidebarView::HandleKeyboardEvent(
     content::WebContents* source,
     const input::NativeWebKeyboardEvent& event) {

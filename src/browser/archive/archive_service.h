@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "base/callback_list.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
 #include "base/threading/sequence_bound.h"
@@ -51,9 +52,14 @@ class ArchiveService : public KeyedService {
   void Remove(int64_t id);
   void RemoveUrl(const GURL& url);
 
+  // After every change, for the Library on screen.
+  base::CallbackListSubscription RegisterOnChanged(
+      base::RepeatingClosure callback);
+
  private:
   const raw_ptr<PrefService> prefs_;
   base::SequenceBound<Archive> archive_;
+  base::RepeatingClosureList on_changed_;
 };
 
 }  // namespace cromarc

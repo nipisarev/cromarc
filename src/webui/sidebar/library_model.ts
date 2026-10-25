@@ -2,77 +2,131 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-export interface ArchivedLike {
-  closedAt: number;
-  reason: string;
+// What the Library's lists are made of, after zen:library/sections/
+// ZenLibraryHistorySection.mjs and ZenLibrarySearchSection.mjs.
+
+export const MS_PER_DAY = 86400000;
+// ZenLibrarySearchSection's PAGE_SIZE and WHEN_DAYS; the history section
+// reads 120 days back when no time is chosen.
+export const PAGE_SIZE = 100;
+export const WHEN_DAYS: Record<string, number> = {today: 1, week: 7, month: 30};
+export const HISTORY_DAYS_OLD = 120;
+
+// A row of the history section: a page from history, or a closed tab from
+// the space's archive (`archiveId`).
+export interface Visit {
+  url: string;
+  title: string;
+  time: number;
+  archiveId?: bigint;
 }
 
-export interface DayGroup<T> {
-  label: string;
-  tabs: T[];
+// A titled run of rows: a day (`day`), a site (`site`, '' for pages that
+// have none), or none at all.
+export interface VisitGroup {
+  key: string;
+  day?: number;
+  site?: string;
+  visits: Visit[];
 }
 
-const MONTHS = [
-  'янв.', 'февр.', 'марта', 'апр.', 'мая', 'июня',
-  'июля', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.',
-];
-
-function startOfDay(time: number): number {
+export function startOfDay(time: number): number {
   const date = new Date(time);
   date.setHours(0, 0, 0, 0);
   return date.getTime();
 }
 
-// "Сегодня", "Вчера", then "12 окт." (with the year when it is not this one).
-export function dayLabel(time: number, now: number): string {
-  const days = Math.round((startOfDay(now) - startOfDay(time)) / 86400000);
-  if (days === 0) {
-    return 'Сегодня';
-  }
-  if (days === 1) {
-    return 'Вчера';
-  }
-  const date = new Date(time);
-  const year = date.getFullYear() === new Date(now).getFullYear() ?
-      '' :
-      ` ${date.getFullYear()}`;
-  return `${date.getDate()} ${MONTHS[date.getMonth()]}${year}`;
-}
-
-// The archive by day, in the order given (newest first).
-export function groupByDay<T extends ArchivedLike>(
-    tabs: T[], now: number): Array<DayGroup<T>> {
-  const groups: Array<DayGroup<T>> = [];
-  for (const tab of tabs) {
-    const label = dayLabel(tab.closedAt, now);
+// Newest first, as they come.
+export function groupByDay(visits: Visit[]): VisitGroup[] {
+  const groups: VisitGroup[] = [];
+  for (const visit of visits) {
+    const day = startOfDay(visit.time);
     const last = groups[groups.length - 1];
-    if (last && last.label === label) {
-      last.tabs.push(tab);
+    if (last && last.day === day) {
+      last.visits.push(visit);
     } else {
-      groups.push({label, tabs: [tab]});
+      groups.push({key: `day-${day}`, day, visits: [visit]});
     }
   }
   return groups;
 }
 
-// Why the tab was archived, as the design's archive mock words it.
-export function reasonLabel(reason: string): string {
-  switch (reason) {
-    case 'idle':
-      return 'авто, 12 ч простоя';
-    case 'clear':
-      return '«Очистить»';
-    case 'folder':
-      return 'папка удалена';
-    case 'little':
-      return 'Little-окно';
-    default:
-      return reason;
+// Firefox's formatURIStringForDisplay for the site of an http(s) page.
+export function siteOf(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return '';
+    }
+    return parsed.hostname.replace(/^www\./, '');
+  } catch {
+    return '';
   }
 }
 
-export function timeLabel(time: number): string {
-  const date = new Date(time);
-  return `${String(date.getHours()).padStart(2, '0')}:${
-      String(date.getMinutes()).padStart(2, '0')}`;
+// By site name, pages without a site last.
+export function groupBySite(visits: Visit[]): VisitGroup[] {
+  const bySite = new Map<string, Visit[]>();
+  for (const visit of visits) {
+    const site = siteOf(visit.url);
+    const same = bySite.get(site);
+    if (same) {
+      same.push(visit);
+    } else {
+      bySite.set(site, [visit]);
+    }
+  }
+  return [...bySite]
+      .sort(([one], [other]) => {
+        if (!one || !other) {
+          return one ? -1 : 1;
+        }
+        return one.localeCompare(other);
+      })
+      .map(([site, visits]) => ({key: `site-${site}`, site, visits}));
+}
+
+const relativeDay = new Intl.RelativeTimeFormat('ru', {numeric: 'auto'});
+const mediumDate = new Intl.DateTimeFormat('ru', {dateStyle: 'medium'});
+const visitDate =
+    new Intl.DateTimeFormat('ru', {dateStyle: 'medium', timeStyle: 'short'});
+
+// "Сегодня", "Вчера", "3 дня назад" up to six days, then the date.
+export function formatDay(day: number, now: number): string {
+  const daysAgo = Math.round((startOfDay(now) - day) / MS_PER_DAY);
+  const formatted = daysAgo <= 6 ? relativeDay.format(-daysAgo, 'day') :
+                                   mediumDate.format(day);
+  return formatted.charAt(0).toLocaleUpperCase() + formatted.slice(1);
+}
+
+export function formatVisitTime(time: number): string {
+  return visitDate.format(time);
+}
+
+export function formatUrl(url: string): string {
+  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+}
+
+// Closed tabs read the way history is (ZenLibraryHistorySection's
+// #closedTabs): within the time, matching the search, sorted.
+export function arrangeClosed(
+    visits: Visit[], sort: string, daysOld: number, query: string,
+    now: number): VisitGroup[] {
+  const cutoff = now - daysOld * MS_PER_DAY;
+  const needle = query.toLowerCase();
+  const shown =
+      visits
+          .filter(visit => visit.time >= cutoff)
+          .filter(
+              visit => !needle ||
+                  `${visit.title} ${visit.url}`.toLowerCase().includes(needle))
+          .sort((a, b) => b.time - a.time);
+  switch (sort) {
+    case 'site':
+      return groupBySite(shown);
+    case 'lastvisited':
+      return [{key: 'all', visits: shown}];
+    default:
+      return groupByDay(shown);
+  }
 }

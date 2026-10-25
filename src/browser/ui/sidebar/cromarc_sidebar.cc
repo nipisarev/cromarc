@@ -55,6 +55,12 @@ void InstallSidebar(views::View* parent,
   parent->AddChildViewAt(std::make_unique<SidebarView>(browser), *index + 1);
 }
 
+int RegionWidth(BrowserWindowInterface* browser, int width) {
+  SidebarView* sidebar = SidebarView::ForBrowser(browser);
+  return sidebar && sidebar->library_width() > 0 ? sidebar->library_width()
+                                                 : width;
+}
+
 gfx::Insets PageInsets(BrowserView* browser_view) {
   BrowserWindowInterface* browser = browser_view->browser();
   ExclusiveAccessManager* manager = ExclusiveAccessManager::From(browser);

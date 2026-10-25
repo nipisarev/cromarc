@@ -2,29 +2,89 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
+import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 
-import type {ArchivedTab, LinkRoute, Space} from '../sidebar.mojom-webui.js';
+import type {Space} from '../sidebar.mojom-webui.js';
 
 import {BrowserProxy} from './browser_proxy.js';
 import {getCss} from './library.css.js';
 import {getHtml} from './library.html.js';
-import {groupByDay, reasonLabel, timeLabel} from './library_model.js';
-import type {DayGroup} from './library_model.js';
+import {libraryStrings} from './library_strings.js';
+import {spriteUrl} from './library_sprites.js';
+import {showMenu} from './menu.js';
+import type {MenuItem} from './menu.js';
+import './library_history.js';
+import './library_routing.js';
 
-const LIMIT = 200;
+export interface LibraryTab {
+  id: string;
+  label: string;
+}
 
-const MATCH_LABELS: Record<string, string> = {
-  'contains': 'содержит',
-  'equal-to': 'равно',
-  'regex': 'regex',
-};
+// What a section of the Library may want to hear (zen:library/ZenLibrary.mjs
+// calls them on the section element).
+export interface LibrarySection extends HTMLElement {
+  onShown?(): void;
+  onEscape?(): boolean;
+  onLibraryOpened?(): void;
+  onLibraryClosing?(): void;
+}
 
-// The Library (design, UI section 10), after Zen's ZenLibrary: Cromarc's
-// archive first, by day, searchable; the link rules (Zen's space routing
-// section); History and Downloads open Chrome's pages. Fires
-// `library-close`.
+export interface LibraryConfirm {
+  title: string;
+  message: string;
+  accept: string;
+  resolve: (accepted: boolean) => void;
+}
+
+// zen:library/ZenLibrary.mjs zenLibrarySections, in its order; the ones not
+// here yet are still to come over.
+const SECTIONS: LibraryTab[] = [
+  {id: 'space-routing', label: libraryStrings.routing},
+  {id: 'history', label: libraryStrings.history},
+];
+const LAST_TAB_KEY = 'cromarc.library.lastTab';
+const HIDDEN_TABS_KEY = 'cromarc.library.hiddenTabs';
+const CLOSED_TABS_KEY = 'cromarc.library.closedTabs';
+const TOAST_MS = 3000;
+// Clear history (ZenLibraryHistorySection's CLEAR_RANGES).
+const HOUR = 3600000;
+interface ClearRange {
+  label: string;
+  hours: number;
+  sinceMidnight?: boolean;
+}
+const CLEAR_RANGES: ClearRange[] = [
+  {label: libraryStrings.clearLastHour, hours: 1},
+  {label: libraryStrings.clearLast12Hours, hours: 12},
+  {label: libraryStrings.clearToday, hours: 0, sinceMidnight: true},
+  {label: libraryStrings.clearLastWeek, hours: 24 * 7},
+  {label: libraryStrings.clearLastMonth, hours: 24 * 30},
+  {label: '', hours: 0},
+  {label: libraryStrings.clearAll, hours: 0},
+];
+
+function readStorage(key: string): string|null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Not kept: the Library starts as it would the first time.
+  }
+}
+
+// The Library (zen:library/ZenLibrary.mjs): a rail of sections down the side,
+// the chosen one beside it. Its sections draw into this element's shadow
+// root, styled by library.css as Zen styles them all from zen-library.css.
+// Fires `library-close`.
 export class LibraryElement extends CrLitElement {
   static get is() {
     return 'cromarc-library';
@@ -41,134 +101,307 @@ export class LibraryElement extends CrLitElement {
   static override get properties() {
     return {
       spaces: {type: Array},
-      section_: {type: String},
-      query_: {type: String},
-      groups_: {type: Array},
-      loaded_: {type: Boolean},
-      routes_: {type: Array},
-      defaultRoute_: {type: String},
-      matchLabels_: {type: Object},
+      open: {type: Boolean, reflect: true},
+      primary: {type: String},
+      activeTab_: {type: String},
+      customizing_: {type: Boolean},
+      hiddenTabs_: {type: Array},
+      mounted_: {type: Array},
+      animatingTab_: {type: String},
+      closedTabs_: {type: Boolean},
+      toast_: {type: String},
+      confirm_: {type: Object},
+      spriteColors_: {type: Object},
+      strings: {type: Object},
     };
   }
 
   accessor spaces: Space[] = [];
-  protected accessor section_: 'archive'|'links' = 'archive';
-  protected accessor routes_: LinkRoute[] = [];
-  protected accessor defaultRoute_: string = '';
-  protected accessor matchLabels_: Record<string, string> = MATCH_LABELS;
-  protected accessor query_: string = '';
-  protected accessor groups_: Array<DayGroup<ArchivedTab>> = [];
-  protected accessor loaded_: boolean = false;
+  accessor open: boolean = false;
+  accessor primary: string = '';
+  protected accessor activeTab_: string = 'history';
+  protected accessor customizing_: boolean = false;
+  protected accessor hiddenTabs_: string[] = [];
+  protected accessor mounted_: string[] = [];
+  protected accessor animatingTab_: string = '';
+  // The history section lists the archive: its tab reads "Архив".
+  protected accessor closedTabs_: boolean = false;
+  protected accessor toast_: string = '';
+  protected accessor confirm_: LibraryConfirm|null = null;
+  protected accessor spriteColors_ = {stroke: '', fill: ''};
+  protected accessor strings: typeof libraryStrings = libraryStrings;
   private readonly proxy_ = BrowserProxy.getInstance();
-  private request_ = 0;
+  private toastTimer_ = 0;
+  private readonly scheme_ = window.matchMedia('(prefers-color-scheme: dark)');
+  private readonly onSchemeChange_ = () => this.readSpriteColors_();
+  private readonly onDocumentKeydown_ = (e: KeyboardEvent) =>
+      this.onEscapeKey_(e);
+
+  constructor() {
+    super();
+    const last = readStorage(LAST_TAB_KEY) ?? 'history';
+    this.activeTab_ =
+        SECTIONS.some(section => section.id === last) ? last : 'history';
+    this.hiddenTabs_ = (readStorage(HIDDEN_TABS_KEY) ?? '')
+                           .split(',')
+                           .filter(id => SECTIONS.some(s => s.id === id));
+    this.closedTabs_ = readStorage(CLOSED_TABS_KEY) === '1';
+    this.mounted_ = [this.activeTab_];
+  }
 
   override connectedCallback() {
     super.connectedCallback();
-    this.search_();
+    this.scheme_.addEventListener('change', this.onSchemeChange_);
+    document.addEventListener('keydown', this.onDocumentKeydown_);
   }
 
-  protected faviconFor_(tab: ArchivedTab): string {
-    return getFaviconForPageURL(tab.url, false);
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.scheme_.removeEventListener('change', this.onSchemeChange_);
+    document.removeEventListener('keydown', this.onDocumentKeydown_);
+    clearTimeout(this.toastTimer_);
   }
 
-  protected subtitleFor_(tab: ArchivedTab): string {
-    return `${reasonLabel(tab.reason)} · ${timeLabel(tab.closedAt)}`;
+  override updated(changed: PropertyValues<this>) {
+    super.updated(changed);
+    if (changed.has('primary') || !this.spriteColors_.stroke) {
+      this.readSpriteColors_();
+    }
+    if (changed.has('activeTab_' as keyof LibraryElement)) {
+      this.section_(this.activeTab_)?.onShown?.();
+    }
+    if (changed.has('open')) {
+      const section = this.section_(this.activeTab_);
+      this.open ? section?.onLibraryOpened?.() :
+                  section?.onLibraryClosing?.();
+      if (!this.open) {
+        this.customizing_ = false;
+      }
+    }
   }
 
-  protected onSearchInput_(e: Event) {
-    this.query_ = (e.target as HTMLInputElement).value;
-    this.search_();
-  }
-
-  protected onRestoreClick_(e: Event) {
-    const id = (e.currentTarget as HTMLElement).dataset['id'];
-    const tab = this.groups_.flatMap(g => g.tabs)
-                    .find(t => String(t.id) === id);
-    if (!tab) {
+  // Zen's sprite colours: the accent button colour, filled with a lighter
+  // (or darker) mix of it on the chosen tab.
+  private readSpriteColors_() {
+    const probe = this.shadowRoot?.querySelector<HTMLElement>('#sprite-probe');
+    if (!probe) {
       return;
     }
-    this.proxy_.handler.restoreFromArchive(tab.id, tab.url);
-    this.groups_ = this.groups_
-                       .map(g => ({...g, tabs: g.tabs.filter(t => t !== tab)}))
-                       .filter(g => g.tabs.length);
+    const style = getComputedStyle(probe);
+    const colors = {stroke: style.color, fill: style.backgroundColor};
+    if (colors.stroke !== this.spriteColors_.stroke ||
+        colors.fill !== this.spriteColors_.fill) {
+      this.spriteColors_ = colors;
+    }
   }
 
-  protected onArchiveClick_() {
-    this.section_ = 'archive';
+  private section_(id: string): LibrarySection|null {
+    return this.shadowRoot?.querySelector<LibrarySection>(
+               `.section[data-section="${id}"]`) ??
+        null;
   }
 
-  protected async onLinksClick_() {
-    this.section_ = 'links';
-    await this.loadRoutes_();
+  // Template helpers.
+
+  protected railTabs_(): LibraryTab[] {
+    return SECTIONS.filter(
+        section => this.customizing_ || !this.hiddenTabs_.includes(section.id));
   }
 
-  protected spaceName_(id: string): string {
-    return this.spaces.find(s => s.id === id)?.name ?? id;
+  protected tabLabel_(tab: LibraryTab): string {
+    return tab.id === 'history' && this.closedTabs_ ? this.strings.archive :
+                                                      tab.label;
   }
 
-  protected async onDefaultRouteChange_(e: Event) {
-    await this.proxy_.handler.setDefaultRoute(
-        (e.target as HTMLSelectElement).value);
-    await this.loadRoutes_();
+  protected isHidden_(id: string): boolean {
+    return this.hiddenTabs_.includes(id);
   }
 
-  protected async onAddRouteClick_() {
-    const root = this.shadowRoot;
-    const reference =
-        root.querySelector<HTMLInputElement>('#route-reference')!.value.trim();
-    if (!reference) {
+  protected isMounted_(id: string): boolean {
+    return this.mounted_.includes(id);
+  }
+
+  protected spriteFor_(id: string): string {
+    if (!this.spriteColors_.stroke) {
+      return '';
+    }
+    const active = id === this.activeTab_;
+    return spriteUrl(
+        id, this.spriteColors_.stroke,
+        active ? this.spriteColors_.fill : 'transparent',
+        () => this.requestUpdate());
+  }
+
+  // The rail.
+
+  protected onTabClick_(e: Event) {
+    const id = (e.currentTarget as HTMLElement).dataset['section'];
+    if (!id || this.customizing_ || id === this.activeTab_) {
       return;
     }
-    this.proxy_.handler.addRoute(
-        reference, root.querySelector<HTMLSelectElement>('#route-match')!.value,
-        root.querySelector<HTMLSelectElement>('#route-space')!.value);
-    root.querySelector<HTMLInputElement>('#route-reference')!.value = '';
-    await this.loadRoutes_();
+    this.select_(id);
+    this.animatingTab_ = id;
   }
 
-  protected async onRemoveRouteClick_(e: Event) {
-    this.proxy_.handler.removeRoute(
-        (e.currentTarget as HTMLElement).dataset['id']!);
-    await this.loadRoutes_();
+  private select_(id: string) {
+    this.activeTab_ = id;
+    if (!this.mounted_.includes(id)) {
+      this.mounted_ = [...this.mounted_, id];
+    }
+    writeStorage(LAST_TAB_KEY, id);
   }
 
-  private async loadRoutes_() {
-    const {routes, defaultExternal} = await this.proxy_.handler.getRoutes();
-    this.routes_ = routes;
-    this.defaultRoute_ = defaultExternal;
+  protected onTabToggleClick_(e: Event) {
+    e.stopPropagation();
+    const id = (e.currentTarget as HTMLElement).dataset['section'];
+    if (!id) {
+      return;
+    }
+    let hidden = this.hiddenTabs_;
+    if (hidden.includes(id)) {
+      hidden = hidden.filter(other => other !== id);
+    } else {
+      // The rail is of no use with nothing left in it.
+      if (SECTIONS.length - hidden.length < 2) {
+        return;
+      }
+      hidden = [...hidden, id];
+    }
+    this.hiddenTabs_ = hidden;
+    writeStorage(HIDDEN_TABS_KEY, hidden.join(','));
+    if (hidden.includes(this.activeTab_)) {
+      const next = SECTIONS.find(section => !hidden.includes(section.id));
+      if (next) {
+        this.select_(next.id);
+      }
+    }
   }
 
-  protected onHistoryClick_() {
-    this.openPage_('chrome://history/');
+  // Right clicking a tab offers what its section has for all it lists, and
+  // the way to the page it stands in for (Zen: tabMenu, legacyLibraryView).
+  protected onTabContextmenu_(e: MouseEvent) {
+    const id = (e.currentTarget as HTMLElement).dataset['section'];
+    if (id !== 'history') {
+      return;
+    }
+    e.preventDefault();
+    const items: MenuItem[] = [
+      {
+        label: this.strings.historyClear,
+        items: CLEAR_RANGES.map(range => ({
+                                  label: range.label,
+                                  action: () => this.clearHistory_(range),
+                                })),
+      },
+      {label: ''},
+      {
+        label: this.strings.openLegacyHistory,
+        action: () => this.openPage('chrome://history/'),
+      },
+    ];
+    showMenu(e.clientX, e.clientY, items);
   }
 
-  protected onDownloadsClick_() {
-    this.openPage_('chrome://downloads/');
+  private async clearHistory_(range: ClearRange) {
+    const accepted = await this.confirm(
+        this.strings.clearPromptTitle, this.strings.clearPromptMessage,
+        this.strings.clearPromptAccept);
+    if (!accepted) {
+      return;
+    }
+    let begin = 0;
+    if (range.sinceMidnight) {
+      const midnight = new Date();
+      midnight.setHours(0, 0, 0, 0);
+      begin = midnight.getTime();
+    } else if (range.hours) {
+      begin = Date.now() - range.hours * HOUR;
+    }
+    this.proxy_.handler.clearHistory(begin);
   }
+
+  // The footer.
 
   protected onCloseClick_() {
     this.fire('library-close');
   }
 
-  protected onKeydown_(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
+  protected onCustomizeClick_() {
+    this.customizing_ = !this.customizing_;
+  }
+
+  // For the sections.
+
+  // Opens `url` in a tab and closes the Library; with `background` the tab
+  // stays behind and the Library open, saying so.
+  openPage(url: string, background = false) {
+    if (background) {
+      this.fire('library-keep-open');
+    }
+    this.proxy_.handler.openUrl(url, background);
+    if (background) {
+      this.showToast(this.strings.openedInBackground);
+    } else {
       this.fire('library-close');
     }
   }
 
-  private openPage_(url: string) {
-    this.proxy_.tabStrip.createTabAt(null, url).catch(() => {});
-    this.fire('library-close');
+  showToast(text: string) {
+    clearTimeout(this.toastTimer_);
+    this.toast_ = text;
+    this.toastTimer_ = setTimeout(() => this.toast_ = '', TOAST_MS);
   }
 
-  private async search_() {
-    const request = ++this.request_;
-    const {tabs} = await this.proxy_.handler.searchArchive(this.query_, LIMIT);
-    if (request !== this.request_) {
+  // Zen asks with Services.prompt.confirmEx; here the question comes up over
+  // the Library.
+  confirm(title: string, message: string, accept: string): Promise<boolean> {
+    this.confirm_?.resolve(false);
+    return new Promise(resolve => {
+      this.confirm_ = {title, message, accept, resolve};
+    });
+  }
+
+  protected onConfirmAcceptClick_() {
+    this.confirm_?.resolve(true);
+    this.confirm_ = null;
+  }
+
+  protected onConfirmCancelClick_() {
+    this.confirm_?.resolve(false);
+    this.confirm_ = null;
+  }
+
+  // The history section switched between history and the archive.
+  protected onClosedTabsChanged_(e: CustomEvent<boolean>) {
+    this.closedTabs_ = e.detail;
+    writeStorage(CLOSED_TABS_KEY, e.detail ? '1' : '0');
+  }
+
+  closedTabs(): boolean {
+    return this.closedTabs_;
+  }
+
+  // ZenLibrary.onKeyDown: Escape first goes to the section (an open filter
+  // panel), then shuts the Library, unless the keyboard is busy in it
+  // outside its search box.
+  private onEscapeKey_(e: KeyboardEvent) {
+    if (!this.open || e.key !== 'Escape') {
       return;
     }
-    this.groups_ = groupByDay(tabs, Date.now());
-    this.loaded_ = true;
+    if (this.confirm_) {
+      this.onConfirmCancelClick_();
+      e.preventDefault();
+      return;
+    }
+    if (this.section_(this.activeTab_)?.onEscape?.()) {
+      e.preventDefault();
+      return;
+    }
+    const focused = this.shadowRoot?.activeElement;
+    if (focused && !focused.closest('.search-box')) {
+      return;
+    }
+    this.fire('library-close');
   }
 }
 

@@ -23,15 +23,20 @@ import {getHtml} from './app.html.js';
 import {BrowserProxy} from './browser_proxy.js';
 import {buildSidebar, cellAt, dropTarget, essentialSlot, MAX_ESSENTIALS, pageTitleFor} from './sidebar_model.js';
 import type {SpaceEdit} from './space_editor.js';
+import {setTestMenuChoice, showMenu, testMenuChoice} from './menu.js';
+import type {MenuItem} from './menu.js';
 import {iconMask} from './space_icon.js';
 import {themeFromJson} from './theme_model.js';
 import type {SpaceTheme} from './theme_model.js';
+import {LIBRARY_SPRING, physicalSpring} from './motion.js';
 import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, librarySwipeProgress, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
 import {strings} from './strings.js';
 import {TabListModel} from './tab_list_model.js';
 
 const PINS_COLLAPSED_KEY = 'cromarc.pinsCollapsed';
+// zen-library.css: the Library is at least 418px wide, its rail 110px of it.
+const LIBRARY_WIDTH = 418;
 
 // The space form open over the strip: a new space, or `id`'s settings.
 export interface SpaceEditorState {
@@ -41,10 +46,6 @@ export interface SpaceEditorState {
   pickerOpen: boolean;
 }
 
-export interface MenuItem {
-  label: string;
-  action: () => void;
-}
 
 // What is being dragged: a tree item (pinned or folder) or a Today tab.
 interface DragSource {
@@ -110,6 +111,8 @@ export class SidebarAppElement extends CrLitElement {
       libraryShown_: {type: Boolean},
       libraryOpen_: {type: Boolean},
       libraryDrag_: {type: Number},
+      libraryProgress_: {type: Number},
+      primary_: {type: String},
       addProgress_: {type: Number},
       pinsCollapsed_: {type: Boolean},
     };
@@ -161,6 +164,11 @@ export class SidebarAppElement extends CrLitElement {
   // How far a swipe has pulled the Library in, 0–1; -1 when no swipe does.
   // How far open the Library is while a swipe moves it.
   protected accessor libraryDrag_: number|null = null;
+  // How far out the Library is (Zen's openProgress), past 1 as its spring
+  // overshoots.
+  protected accessor libraryProgress_: number = 0;
+  // The space's primary colour, for the Library's icons.
+  protected accessor primary_: string = '';
   // Zen's add-space swipe past the last space: 1 is ready.
   protected accessor addProgress_: number = 0;
   // Zen's collapsible pins: the space header folds the pinned tabs away.
@@ -173,7 +181,13 @@ export class SidebarAppElement extends CrLitElement {
   private libraryBefore_ = 0;
   // The space whose window is being made ready for a switch, -1 for none.
   private prepared_ = -1;
-  private libraryTimer_ = 0;
+  private libraryAnimation_ = 0;
+  // The sidebar's width as the Library came out: the sidebar keeps it under
+  // the Library while the column widens.
+  private toolboxWidth_ = 0;
+  // A tab opening closes the Library (Zen's onTabOpen), but not one it opens
+  // in the background itself (keepOpenWhile).
+  private keepLibraryOpenUntil_ = 0;
   private deferred_: Set<string> = new Set();
   private clearedTimer_ = 0;
   private swipe_: SwipeState|null = null;
@@ -203,7 +217,13 @@ export class SidebarAppElement extends CrLitElement {
   private tileRects_: Map<string, DOMRect>|null = null;
   // CDP tests can't click a native menu: they name the item to choose here
   // before opening the menu.
-  testMenuChoice: string|null = null;
+  // For browser tests (menu.ts).
+  set testMenuChoice(choice: string|null) {
+    setTestMenuChoice(choice);
+  }
+  get testMenuChoice(): string|null {
+    return testMenuChoice();
+  }
 
   override connectedCallback() {
     super.connectedCallback();
@@ -388,6 +408,7 @@ export class SidebarAppElement extends CrLitElement {
     } else {
       this.style.removeProperty('--zen-primary-color');
     }
+    this.primary_ = primary ? primary.join(',') : '';
   }
 
   // The other spaces' content, for their strips while switching.
@@ -429,6 +450,9 @@ export class SidebarAppElement extends CrLitElement {
         // the Library open, every swipe moves the Library.
         this.edgeAction_ = this.libraryOpen_ ? 'library' : null;
         this.libraryBefore_ = this.libraryOpen_ ? 1 : 0;
+        if (this.libraryOpen_) {
+          cancelAnimationFrame(this.libraryAnimation_);
+        }
         this.edgeAllowed_ = {
           library: this.libraryOpen_ || current === 0,
           add: current === count - 1 && !this.editor_,
@@ -444,13 +468,13 @@ export class SidebarAppElement extends CrLitElement {
         const offset = this.swipeOffset_;
         if (!this.edgeAction_ && offset > 0 && this.edgeAllowed_.library) {
           this.edgeAction_ = 'library';
-          this.libraryShown_ = true;
         } else if (!this.edgeAction_ && offset < 0 && this.edgeAllowed_.add) {
           this.edgeAction_ = 'add';
         }
         if (this.edgeAction_ === 'library') {
           this.libraryDrag_ = librarySwipeProgress(
               this.libraryBefore_, offset, this.offsetWidth);
+          this.setLibraryProgress_(this.libraryDrag_);
           return;
         }
         if (this.edgeAction_ === 'add') {
@@ -485,7 +509,7 @@ export class SidebarAppElement extends CrLitElement {
           const open = swipe.direction !== 0 ? swipe.direction === -1 :
                                                (this.libraryDrag_ ?? 0) >= 0.5;
           this.libraryDrag_ = null;
-          open ? this.openLibrary_() : this.closeLibrary_();
+          this.animateLibrary_(open ? 1 : 0);
           return;
         }
         if (action === 'add') {
@@ -580,9 +604,7 @@ export class SidebarAppElement extends CrLitElement {
     setTimeout(() => {
       // Zen's Library belongs to the window on screen, not to a space: it
       // doesn't wait here for the space to come back.
-      clearTimeout(this.libraryTimer_);
-      this.libraryOpen_ = false;
-      this.libraryShown_ = false;
+      this.closeLibraryNow_();
       this.rest_();
     }, 300);
   }
@@ -606,9 +628,24 @@ export class SidebarAppElement extends CrLitElement {
     this.closeLibrary_();
   }
 
+  protected onLibraryKeepOpen_() {
+    this.keepLibraryOpenUntil_ = Date.now() + 2000;
+  }
+
   protected libraryStyle_(): string {
-    const reveal = this.libraryDrag_ ?? (this.libraryOpen_ ? 1 : 0);
-    return `transform: translateX(${(reveal - 1) * 100}%)`;
+    return `width: ${LIBRARY_WIDTH}px; transform: translateX(${
+        (this.libraryProgress_ - 1) * 100}%)`;
+  }
+
+  // Zen's toolbox under the Library: it fades and shrinks a little as the
+  // Library comes over it, keeping its width while the column widens.
+  protected toolboxStyle_(): string {
+    if (!this.libraryShown_) {
+      return '';
+    }
+    const progress = Math.min(1, Math.max(0, this.libraryProgress_) * 3);
+    return `width: ${this.toolboxWidth_}px; opacity: ${1 - progress}; ` +
+        `scale: ${1 - progress * 0.04}`;
   }
 
   protected addSwipeArc_(): string {
@@ -621,16 +658,65 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   private openLibrary_() {
-    clearTimeout(this.libraryTimer_);
-    this.libraryShown_ = true;
-    this.libraryOpen_ = true;
+    this.animateLibrary_(1);
   }
 
   private closeLibrary_() {
+    this.animateLibrary_(0);
+  }
+
+  // zen:library/ZenLibrary.mjs openProgress: the column takes the Library's
+  // width as it comes out, moving the page aside.
+  private setLibraryProgress_(progress: number) {
+    if (!this.libraryShown_) {
+      this.toolboxWidth_ = this.offsetWidth;
+      this.libraryShown_ = true;
+    }
+    this.libraryProgress_ = progress;
+    const out = Math.max(0, progress);
+    this.proxy_.handler.setLibraryWidth(
+        out > 0 ? Math.round(
+                      this.toolboxWidth_ +
+                      out * (LIBRARY_WIDTH - this.toolboxWidth_)) :
+                  0);
+  }
+
+  // ZenLibrary.animateProgress: its spring to open (1) or shut (0).
+  private animateLibrary_(target: number) {
+    cancelAnimationFrame(this.libraryAnimation_);
+    this.libraryOpen_ = target === 1;
+    if (target === 0 && !this.libraryShown_) {
+      return;
+    }
+    const spring = physicalSpring(this.libraryProgress_, target, LIBRARY_SPRING);
+    const start = performance.now();
+    const step = (now: number) => {
+      const {value, done} = spring((now - start) / 1000);
+      this.setLibraryProgress_(value);
+      if (!done) {
+        this.libraryAnimation_ = requestAnimationFrame(step);
+      } else if (target === 0) {
+        this.libraryShown_ = false;
+      }
+    };
+    this.libraryAnimation_ = requestAnimationFrame(step);
+  }
+
+  // Leaving the space: shut at once, the window being hidden anyway.
+  private closeLibraryNow_() {
+    cancelAnimationFrame(this.libraryAnimation_);
     this.libraryOpen_ = false;
-    clearTimeout(this.libraryTimer_);
-    // After the slide out (library.css).
-    this.libraryTimer_ = setTimeout(() => this.libraryShown_ = false, 250);
+    if (this.libraryShown_) {
+      this.setLibraryProgress_(0);
+      this.libraryShown_ = false;
+    }
+  }
+
+  // A tab opened in the window.
+  private onTabOpened_() {
+    if (this.libraryOpen_ && Date.now() > this.keepLibraryOpenUntil_) {
+      this.closeLibrary_();
+    }
   }
 
   // Zen's "+" at the bottom (zenCreateNewPopup); split view isn't here.
@@ -873,7 +959,10 @@ export class SidebarAppElement extends CrLitElement {
       this.tabs_ = model.tabs();
     };
     const observer: TabStripObserver = {
-      onTabsCreated: event => apply(model.onTabsCreated(event)),
+      onTabsCreated: event => {
+        apply(model.onTabsCreated(event));
+        this.onTabOpened_();
+      },
       onNodesClosed: event => apply(model.onNodesClosed(event)),
       onNodeMoved: event => apply(model.onNodeMoved(event)),
       onCollectionCreated: event => apply(model.onCollectionCreated(event)),
@@ -1083,21 +1172,8 @@ export class SidebarAppElement extends CrLitElement {
     ]);
   }
 
-  // Native menus over the window, as Zen's and Arc's: the browser shows the
-  // labels and answers with the chosen one.
-  private async showMenu_(x: number, y: number, items: MenuItem[]) {
-    if (this.testMenuChoice !== null) {
-      const choice = this.testMenuChoice;
-      const item = items.find(item => item.label.includes(choice));
-      if (item) {
-        this.testMenuChoice = null;
-        item.action();
-      }
-      return;
-    }
-    const {index} = await this.proxy_.handler.showContextMenu(
-        items.map(item => item.label), Math.round(x), Math.round(y));
-    items[index]?.action();
+  private showMenu_(x: number, y: number, items: MenuItem[]) {
+    return showMenu(x, y, items);
   }
 
   private async createFolder_(parentId: string) {

@@ -83,6 +83,21 @@ void SpaceRouting::AddRoute(const std::string& reference,
   Save();
 }
 
+void SpaceRouting::UpdateRoute(const std::string& id,
+                               const std::string& reference,
+                               Route::Match match,
+                               const std::string& space) {
+  for (Route& route : routes_.routes) {
+    if (route.id == id) {
+      route.reference = reference;
+      route.match = match;
+      route.space = space;
+      Save();
+      return;
+    }
+  }
+}
+
 void SpaceRouting::RemoveRoute(const std::string& id) {
   std::erase_if(routes_.routes,
                 [&id](const Route& route) { return route.id == id; });

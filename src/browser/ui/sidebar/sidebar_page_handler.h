@@ -13,6 +13,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "cromarc/browser/spaces/space_controller.h"
+#include "cromarc/browser/ui/sidebar/library_backend.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -92,6 +93,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   void SetSpaceIcon(const std::string& id, const std::string& icon) override;
   void SetSpaceTheme(const std::string& id, const std::string& theme) override;
   void PreviewSpaceTheme(const std::string& theme) override;
+  void SetLibraryWidth(int32_t width) override;
   void BlendSpaceTheme(const std::string& theme, float progress) override;
   void ReorderSpaces(const std::vector<std::string>& ids) override;
   void SleepSpace(const std::string& id) override;
@@ -100,11 +102,29 @@ class SidebarPageHandler : public mojom::PageHandler,
   void SearchArchive(const std::string& query,
                      uint32_t limit,
                      SearchArchiveCallback callback) override;
-  void RestoreFromArchive(int64_t id, const GURL& url) override;
+  void RestoreFromArchive(int64_t id,
+                          const GURL& url,
+                          bool background) override;
+  void RemoveFromArchive(int64_t id) override;
+  void QueryHistory(const std::string& query,
+                    int32_t days_old,
+                    uint32_t limit,
+                    mojom::HistorySort sort,
+                    QueryHistoryCallback callback) override;
+  void ForgetPage(const GURL& url) override;
+  void ForgetSite(const GURL& url) override;
+  void ClearHistory(double begin) override;
+  void OpenUrl(const GURL& url, bool background) override;
+  void GetLibrarySprite(const std::string& name,
+                        GetLibrarySpriteCallback callback) override;
   void GetRoutes(GetRoutesCallback callback) override;
   void AddRoute(const std::string& reference,
                 const std::string& match,
                 const std::string& space) override;
+  void UpdateRoute(const std::string& id,
+                   const std::string& reference,
+                   const std::string& match,
+                   const std::string& space) override;
   void RemoveRoute(const std::string& id) override;
   void SetDefaultRoute(const std::string& space) override;
   void GetICloudSync(const std::string& space,
@@ -142,6 +162,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   base::CallbackListSubscription tree_subscription_;
   base::CallbackListSubscription lifecycle_subscription_;
   std::unique_ptr<ContextMenu> context_menu_;
+  std::unique_ptr<LibraryBackend> library_;
   base::WeakPtrFactory<SidebarPageHandler> weak_factory_{this};
 };
 

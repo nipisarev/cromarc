@@ -10,6 +10,7 @@ import {essentialsLayout} from './sidebar_model.js';
 export function getHtml(this: SidebarAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
+<div id="toolbox" style="${this.toolboxStyle_()}">
 <div id="viewport" ?editing="${!!this.editor_ || !!this.themeEditor_}">
   ${this.stripSpaces_.map((space, index) => html`
   <div class="strip" style="${this.stripStyle_(index)}">
@@ -316,18 +317,20 @@ ${this.addProgress_ > 0 ? html`
     </svg>
     <span class="svg" style="mask-image: url(sidebar/ui_icons/add.svg)"></span>
   </div>` : nothing}
-${this.libraryShown_ ? html`
-  <cromarc-library id="library" ?dragging="${this.libraryDrag_ !== null}"
-      .spaces="${this.spaces_}"
-      style="${this.libraryStyle_()}"
-      @library-close="${this.onLibraryClose_}">
-  </cromarc-library>` : nothing}
 ${this.cleared_.length ? html`
   <div id="toast" role="status">
     <span>${this.strings.cleared}</span>
     <button class="text" @click="${this.onUndoClearClick_}">${
         this.strings.undo}</button>
   </div>` : nothing}
+</div>
+${this.libraryShown_ ? html`
+  <cromarc-library id="library" ?open="${this.libraryOpen_}"
+      .spaces="${this.spaces_}" .primary="${this.primary_}"
+      style="${this.libraryStyle_()}"
+      @library-close="${this.onLibraryClose_}"
+      @library-keep-open="${this.onLibraryKeepOpen_}">
+  </cromarc-library>` : nothing}
 <div id="drag-ghost"></div>
 <!--_html_template_end_-->`;
   // clang-format on

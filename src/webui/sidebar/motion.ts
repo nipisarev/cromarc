@@ -1,0 +1,63 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+export interface SpringOptions {
+  stiffness: number;
+  damping: number;
+  mass: number;
+}
+
+export interface SpringState {
+  value: number;
+  done: boolean;
+}
+
+// Motion's physical spring (Zen animates with gZenUIManager.motion.animate
+// and {type: 'spring', stiffness, damping, mass}), started at rest: the value
+// `t` seconds in, and whether it has settled by Motion's rest thresholds for
+// values under 5 (rest speed 0.01/s, rest delta 0.005).
+export function physicalSpring(
+    from: number, to: number, {stiffness, damping, mass}: SpringOptions):
+    (t: number) => SpringState {
+  const delta = to - from;
+  const ratio = damping / (2 * Math.sqrt(stiffness * mass));
+  const omega = Math.sqrt(stiffness / mass);
+  let position: (t: number) => number;
+  if (ratio < 1) {
+    const damped = omega * Math.sqrt(1 - ratio * ratio);
+    position = t => to -
+        Math.exp(-ratio * omega * t) *
+            ((ratio * omega * delta / damped) * Math.sin(damped * t) +
+             delta * Math.cos(damped * t));
+  } else if (ratio === 1) {
+    position = t => to - Math.exp(-omega * t) * (delta + omega * delta * t);
+  } else {
+    const damped = omega * Math.sqrt(ratio * ratio - 1);
+    position = t => {
+      const envelope = Math.exp(-ratio * omega * t);
+      const freq = Math.min(damped * t, 300);
+      return to -
+          envelope *
+          ((ratio * omega * delta) * Math.sinh(freq) +
+           damped * delta * Math.cosh(freq)) /
+          damped;
+    };
+  }
+  return t => {
+    if (t <= 0) {
+      return {value: from, done: delta === 0};
+    }
+    const value = position(t);
+    const speed = (value - position(t - 0.005)) / 0.005;
+    const done = Math.abs(speed) <= 0.01 && Math.abs(to - value) <= 0.005;
+    return {value: done ? to : value, done};
+  };
+}
+
+// The Library's spring (zen:library/ZenLibrary.mjs, animateProgress).
+export const LIBRARY_SPRING: SpringOptions = {
+  stiffness: 720,
+  damping: 47,
+  mass: 1.2,
+};

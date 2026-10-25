@@ -64,6 +64,11 @@ class SidebarView : public views::WebView {
   const std::optional<Blend>& theme_blend() const { return theme_blend_; }
   void SetThemeBlend(std::optional<Blend> blend);
 
+  // While the Library is out: the width the window's sidebar column takes
+  // for it (hook H16); 0 when it is shut.
+  int library_width() const { return library_width_; }
+  void SetLibraryWidth(int width);
+
   // content::WebContentsDelegate (through views::WebView):
   // Browser shortcuts (Cmd+T, Cmd+W, ...) keep working while the sidebar has
   // focus.
@@ -94,6 +99,7 @@ class SidebarView : public views::WebView {
   base::CallbackListSubscription fullscreen_subscription_;
   std::optional<std::string> theme_preview_;
   std::optional<Blend> theme_blend_;
+  int library_width_ = 0;
   // The space theme pref, painted under the window.
   PrefChangeRegistrar theme_pref_;
   base::WeakPtrFactory<SidebarView> weak_factory_{this};

@@ -40,6 +40,10 @@ class SpaceRouting {
   void AddRoute(const std::string& reference,
                 Route::Match match,
                 const std::string& space);
+  void UpdateRoute(const std::string& id,
+                   const std::string& reference,
+                   Route::Match match,
+                   const std::string& space);
   void RemoveRoute(const std::string& id);
   void SetDefaultExternal(const std::string& space);
 

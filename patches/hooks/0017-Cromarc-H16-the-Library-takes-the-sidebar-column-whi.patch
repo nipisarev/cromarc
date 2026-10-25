@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sun, 25 Oct 2026 11:42:18 +0100
+Subject: [PATCH] Cromarc H16: the Library takes the sidebar column while it is
+ out
+
+Zen's Library is at least 418px wide and moves the page aside as it
+slides out; the vertical tab strip region asks Cromarc for its width.
+
+diff --git a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+index 93fa25b7688f3..81a7963e196c7 100644
+--- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+@@ -516,6 +516,9 @@ gfx::Size VerticalTabStripRegionView::CalculatePreferredSize(
+                  (motion == TabStripAnimations::kExpand
+                       ? std::floor<double>
+                       : std::ceil<double>)(expand_amount * expand_percent));
++  // Cromarc: the Library takes the column while it is out.
++  size.set_width(
++      cromarc::RegionWidth(browser_view()->browser(), size.width()));
+   return size;
+ }
+ 

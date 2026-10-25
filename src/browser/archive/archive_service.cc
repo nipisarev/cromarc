@@ -86,6 +86,7 @@ ArchiveService::~ArchiveService() = default;
 void ArchiveService::Add(ArchiveEntry entry) {
   archive_.AsyncCall(base::IgnoreResult(&Archive::Add))
       .WithArgs(std::move(entry));
+  on_changed_.Notify();
 }
 
 void ArchiveService::AddAtSessionEnd(const ArchiveEntry& entry) {
@@ -102,10 +103,17 @@ void ArchiveService::Search(const std::u16string& query,
 
 void ArchiveService::Remove(int64_t id) {
   archive_.AsyncCall(base::IgnoreResult(&Archive::Remove)).WithArgs(id);
+  on_changed_.Notify();
 }
 
 void ArchiveService::RemoveUrl(const GURL& url) {
   archive_.AsyncCall(base::IgnoreResult(&Archive::RemoveUrl)).WithArgs(url);
+  on_changed_.Notify();
+}
+
+base::CallbackListSubscription ArchiveService::RegisterOnChanged(
+    base::RepeatingClosure callback) {
+  return on_changed_.Add(std::move(callback));
 }
 
 }  // namespace cromarc

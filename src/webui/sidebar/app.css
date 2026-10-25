@@ -78,6 +78,15 @@ button {
 }
 
 /* Space strips side by side, moved with transforms (design, component 4). */
+/* Everything but the Library: Zen's toolbox. */
+#toolbox {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
 #viewport {
   flex: 1;
   overflow: hidden;
@@ -981,18 +990,12 @@ button[hidden],
   top: 0;
 }
 
-/* The Library slides over the sidebar from the left (zen:library). */
+/* zen:library: the Library slides over the sidebar from the left, on the
+ * window's background, the full height of the column. */
 #library {
-  background: var(--color-sys-surface, Canvas);
-  bottom: 44px;
-  inset-inline: 0;
+  inset-block: 0;
+  left: 0;
   position: absolute;
-  top: 0;
-  transition: transform 250ms cubic-bezier(.2, .8, .2, 1);
-}
-
-#library[dragging] {
-  transition: none;
 }
 
 /* Zen's add-space badge past the last space (zen:spaces/ZenSpaceAddSwipe). */

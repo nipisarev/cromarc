@@ -5,29 +5,60 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {dayLabel, groupByDay, reasonLabel, timeLabel} from '../library_model.ts';
+import {arrangeClosed, formatDay, formatUrl, groupByDay, groupBySite, siteOf, startOfDay} from '../library_model.ts';
+import type {Visit} from '../library_model.ts';
 
 const now = new Date(2026, 9, 24, 10, 30).getTime();
+const at = (d: number, h = 9) => new Date(2026, 9, d, h).getTime();
+const visit = (url: string, time: number, title = ''): Visit =>
+    ({url, title, time});
 
-test('days read as Сегодня, Вчера, then a date', () => {
-  assert.equal(dayLabel(new Date(2026, 9, 24, 0, 5).getTime(), now), 'Сегодня');
-  assert.equal(dayLabel(new Date(2026, 9, 23, 23, 59).getTime(), now), 'Вчера');
-  assert.equal(dayLabel(new Date(2026, 9, 12, 9).getTime(), now), '12 окт.');
-  assert.equal(dayLabel(new Date(2025, 11, 31, 9).getTime(), now), '31 дек. 2025');
+test('days read relatively up to six days ago, then as a date (Zen)', () => {
+  assert.equal(formatDay(startOfDay(at(24)), now), 'Сегодня');
+  assert.equal(formatDay(startOfDay(at(23)), now), 'Вчера');
+  assert.equal(formatDay(startOfDay(at(21)), now), '3 дня назад');
+  assert.match(formatDay(startOfDay(at(12)), now), /^12 окт\. 2026/);
 });
 
-test('the archive groups by day, newest first', () => {
+test('history groups by day, newest first', () => {
+  const groups = groupByDay([
+    visit('https://a.test/', at(24, 9)),
+    visit('https://b.test/', at(24, 8)),
+    visit('https://c.test/', at(22)),
+  ]);
+  assert.deepEqual(groups.map(g => g.visits.length), [2, 1]);
+  assert.equal(groups[0]!.day, startOfDay(at(24)));
+});
+
+test('by site: names in order, pages without a site last', () => {
+  const groups = groupBySite([
+    visit('chrome://settings/', at(24)),
+    visit('https://www.zeta.test/x', at(24)),
+    visit('https://alpha.test/', at(24)),
+    visit('https://zeta.test/y', at(23)),
+  ]);
+  assert.deepEqual(groups.map(g => g.site), ['alpha.test', 'zeta.test', '']);
+  assert.equal(groups[1]!.visits.length, 2);
+  assert.equal(siteOf('file:///tmp/a'), '');
+});
+
+test('urls lose their scheme, www and the closing slash', () => {
+  assert.equal(formatUrl('https://www.github.com/pulls/'), 'github.com/pulls');
+  assert.equal(formatUrl('http://example.com'), 'example.com');
+});
+
+test('closed tabs read as history: within the time, searched, sorted', () => {
   const tabs = [
-    {closedAt: new Date(2026, 9, 24, 9).getTime(), reason: 'idle'},
-    {closedAt: new Date(2026, 9, 24, 8).getTime(), reason: 'clear'},
-    {closedAt: new Date(2026, 9, 23, 18).getTime(), reason: 'little'},
+    visit('https://old.test/', now - 10 * 86400000, 'Old'),
+    visit('https://b.test/', at(24, 8), 'Beta page'),
+    visit('https://a.test/', at(24, 9), 'Alpha'),
   ];
-  assert.deepEqual(groupByDay(tabs, now).map(g => [g.label, g.tabs.length]),
-                   [['Сегодня', 2], ['Вчера', 1]]);
-});
-
-test('reasons and times read as in the design', () => {
-  assert.equal(reasonLabel('idle'), 'авто, 12 ч простоя');
-  assert.equal(reasonLabel('little'), 'Little-окно');
-  assert.equal(timeLabel(new Date(2026, 9, 24, 9, 4).getTime()), '09:04');
+  assert.deepEqual(
+      arrangeClosed(tabs, 'date', 7, '', now)[0]!.visits.map(v => v.title),
+      ['Alpha', 'Beta page']);
+  assert.deepEqual(
+      arrangeClosed(tabs, 'lastvisited', 30, 'beta', now)[0]!.visits.map(
+          v => v.title),
+      ['Beta page']);
+  assert.equal(arrangeClosed(tabs, 'site', 30, '', now).length, 3);
 });

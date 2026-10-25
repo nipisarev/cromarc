@@ -39,6 +39,11 @@ void InstallSidebar(views::View* parent,
                     views::View* native_tab_list,
                     BrowserWindowInterface* browser);
 
+// Hook H16, from the vertical tab strip region's preferred size: while the
+// Library is out the column is as wide as the Library wants (Zen's is at least
+// 418px and moves the page aside), otherwise `width`.
+int RegionWidth(BrowserWindowInterface* browser, int width);
+
 // Hook H11, called by MultiContentsView's layout outside split view: the
 // space round the page in a window with the sidebar, so the page is a card on
 // the window's background (Zen's element separation). None in tab fullscreen.

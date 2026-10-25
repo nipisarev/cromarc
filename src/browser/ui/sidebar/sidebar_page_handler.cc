@@ -4,7 +4,9 @@
 
 #include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
 
+#include <algorithm>
 #include <set>
+#include <string_view>
 #include <utility>
 
 #include "base/functional/bind.h"
@@ -18,6 +20,7 @@
 #include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/common/webui_url_constants.h"
+#include "chrome/grit/cromarc_resources_map.h"
 #include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/bookmarks/browser/bookmark_node.h"
@@ -38,6 +41,7 @@
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/base/base_window.h"
 #include "ui/base/mojom/menu_source_type.mojom.h"
+#include "ui/base/resource/resource_bundle.h"
 #include "ui/base/webui/web_ui_util.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
@@ -115,12 +119,25 @@ class SidebarPageHandler::ContextMenu : public ui::SimpleMenuModel::Delegate {
               ShowContextMenuCallback callback,
               base::OnceClosure done)
       : callback_(std::move(callback)), done_(std::move(done)) {
+    const auto is_child = [&labels](size_t i) {
+      return i < labels.size() && labels[i].starts_with('\t');
+    };
     for (size_t i = 0; i < labels.size(); ++i) {
-      if (labels[i].empty()) {
-        model_.AddSeparator(ui::NORMAL_SEPARATOR);
-      } else {
-        model_.AddItem(static_cast<int>(i), base::UTF8ToUTF16(labels[i]));
+      if (is_child(i)) {
+        continue;
       }
+      if (!is_child(i + 1)) {
+        Add(model_, i, labels[i]);
+        continue;
+      }
+      // The labels after it that start with a tab are its submenu.
+      auto submenu = std::make_unique<ui::SimpleMenuModel>(this);
+      for (size_t j = i + 1; is_child(j); ++j) {
+        Add(*submenu, j, std::string_view(labels[j]).substr(1));
+      }
+      model_.AddSubMenu(static_cast<int>(i), base::UTF8ToUTF16(labels[i]),
+                        submenu.get());
+      submenus_.push_back(std::move(submenu));
     }
   }
 
@@ -139,8 +156,25 @@ class SidebarPageHandler::ContextMenu : public ui::SimpleMenuModel::Delegate {
   void ExecuteCommand(int command_id, int event_flags) override {
     chosen_ = command_id;
   }
+  bool IsCommandIdChecked(int command_id) const override {
+    return checked_.contains(command_id);
+  }
 
  private:
+  void Add(ui::SimpleMenuModel& model, size_t index, std::string_view label) {
+    if (label.empty()) {
+      model.AddSeparator(ui::NORMAL_SEPARATOR);
+      return;
+    }
+    const int id = static_cast<int>(index);
+    if (label.starts_with('\x01')) {
+      model.AddCheckItem(id, base::UTF8ToUTF16(label.substr(1)));
+      checked_.insert(id);
+      return;
+    }
+    model.AddItem(id, base::UTF8ToUTF16(label));
+  }
+
   void OnClosed() {
     if (callback_) {
       std::move(callback_).Run(chosen_);
@@ -151,6 +185,8 @@ class SidebarPageHandler::ContextMenu : public ui::SimpleMenuModel::Delegate {
   }
 
   ui::SimpleMenuModel model_{this};
+  std::vector<std::unique_ptr<ui::SimpleMenuModel>> submenus_;
+  std::set<int> checked_;
   std::unique_ptr<views::MenuRunner> runner_;
   ShowContextMenuCallback callback_;
   base::OnceClosure done_;
@@ -175,7 +211,13 @@ SidebarPageHandler::SidebarPageHandler(
                               base::Unretained(this)))),
       lifecycle_subscription_(lifecycle_service_->RegisterOnChanged(
           base::BindRepeating(&SidebarPageHandler::OnLifecyclesChanged,
-                              base::Unretained(this)))) {
+                              base::Unretained(this)))),
+      library_(std::make_unique<LibraryBackend>(
+          browser_,
+          archive_service_,
+          base::BindRepeating(
+              [](SidebarPageHandler* self) { self->page_->OnHistoryChanged(); },
+              base::Unretained(this)))) {
   SpaceController::Get()->AddSidebar(browser_, this);
 }
 
@@ -505,6 +547,12 @@ void SidebarPageHandler::PreviewSpaceTheme(const std::string& theme) {
   }
 }
 
+void SidebarPageHandler::SetLibraryWidth(int32_t width) {
+  if (SidebarView* sidebar = SidebarView::ForBrowser(browser_)) {
+    sidebar->SetLibraryWidth(std::max(0, width));
+  }
+}
+
 void SidebarPageHandler::BlendSpaceTheme(const std::string& theme,
                                          float progress) {
   if (SidebarView* sidebar = SidebarView::ForBrowser(browser_)) {
@@ -570,9 +618,54 @@ void SidebarPageHandler::SearchArchive(const std::string& query,
           std::move(callback)));
 }
 
-void SidebarPageHandler::RestoreFromArchive(int64_t id, const GURL& url) {
-  browser_->OpenGURL(url, WindowOpenDisposition::NEW_FOREGROUND_TAB);
+void SidebarPageHandler::RestoreFromArchive(int64_t id,
+                                            const GURL& url,
+                                            bool background) {
+  library_->Restore(id, url, background);
+}
+
+void SidebarPageHandler::RemoveFromArchive(int64_t id) {
   archive_service_->Remove(id);
+}
+
+void SidebarPageHandler::QueryHistory(const std::string& query,
+                                      int32_t days_old,
+                                      uint32_t limit,
+                                      mojom::HistorySort sort,
+                                      QueryHistoryCallback callback) {
+  library_->QueryHistory(query, days_old, limit, sort, std::move(callback));
+}
+
+void SidebarPageHandler::ForgetPage(const GURL& url) {
+  library_->ForgetPage(url);
+}
+
+void SidebarPageHandler::ForgetSite(const GURL& url) {
+  library_->ForgetSite(url);
+}
+
+void SidebarPageHandler::ClearHistory(double begin) {
+  library_->ClearHistory(
+      begin > 0 ? base::Time::FromMillisecondsSinceUnixEpoch(begin)
+                : base::Time());
+}
+
+void SidebarPageHandler::OpenUrl(const GURL& url, bool background) {
+  library_->OpenUrl(url, background);
+}
+
+void SidebarPageHandler::GetLibrarySprite(const std::string& name,
+                                          GetLibrarySpriteCallback callback) {
+  const std::string path = "sidebar/library_icons/" + name + ".svg";
+  for (const webui::ResourcePath& resource : kCromarcResources) {
+    if (resource.path == path) {
+      std::move(callback).Run(
+          ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(
+              resource.id));
+      return;
+    }
+  }
+  std::move(callback).Run(std::string());
 }
 
 void SidebarPageHandler::GetRoutes(GetRoutesCallback callback) {
@@ -600,6 +693,20 @@ void SidebarPageHandler::AddRoute(const std::string& reference,
         SpaceRouting::Get()->AddRoute(reference, type, space);
       },
       reference, type, space));
+}
+
+void SidebarPageHandler::UpdateRoute(const std::string& id,
+                                     const std::string& reference,
+                                     const std::string& match,
+                                     const std::string& space) {
+  const Route::Match type =
+      MatchFromName(match).value_or(Route::Match::kContains);
+  SpaceRouting::Get()->WhenLoaded(base::BindOnce(
+      [](std::string id, std::string reference, Route::Match type,
+         std::string space) {
+        SpaceRouting::Get()->UpdateRoute(id, reference, type, space);
+      },
+      id, reference, type, space));
 }
 
 void SidebarPageHandler::RemoveRoute(const std::string& id) {

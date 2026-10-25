@@ -2,86 +2,82 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import {html} from '//resources/lit/v3_0/lit.rollup.js';
+import {html, nothing} from '//resources/lit/v3_0/lit.rollup.js';
 
 import type {LibraryElement} from './library.js';
 
 export function getHtml(this: LibraryElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
-<div id="library" @keydown="${this.onKeydown_}">
-  <div id="header">
-    <span class="title">Библиотека</span>
-    <button id="close" title="Закрыть (Esc)" @click="${this.onCloseClick_}">✕</button>
+<div id="sprite-probe"></div>
+<div id="panel" ?customizing="${this.customizing_}">
+  <div id="side">
+    <div id="header"></div>
+    <div id="tabs">
+      ${this.railTabs_().map(tab => html`
+        <div class="tab" data-section="${tab.id}"
+            ?active="${tab.id === this.activeTab_}"
+            ?hidden-tab="${this.isHidden_(tab.id)}"
+            ?animate="${tab.id === this.animatingTab_}"
+            @click="${this.onTabClick_}"
+            @contextmenu="${this.onTabContextmenu_}">
+          <div class="tab-icon">
+            <div class="tab-icon-image"
+                style="background-image: ${this.spriteFor_(tab.id)}"></div>
+          </div>
+          <span class="tab-label">${this.tabLabel_(tab)}</span>
+          ${this.customizing_ ? html`
+            <button class="tab-toggle" data-section="${tab.id}"
+                title="${this.isHidden_(tab.id) ? this.strings.restoreTab :
+                                                  this.strings.removeTab}"
+                @click="${this.onTabToggleClick_}">
+              <span class="svg" style="mask-image: url(sidebar/ui_icons/${
+                  this.isHidden_(tab.id) ? 'add' : 'close'}.svg)"></span>
+            </button>` : nothing}
+        </div>`)}
+    </div>
+    <div id="footer">
+      <button class="footer-button" title="${this.strings.close}"
+          @click="${this.onCloseClick_}">
+        <span class="svg"
+            style="mask-image: url(sidebar/ui_icons/arrow-back.svg)"></span>
+      </button>
+      <button class="footer-button" title="${this.strings.customize}"
+          ?checked="${this.customizing_}" @click="${this.onCustomizeClick_}">
+        <span class="svg"
+            style="mask-image: url(sidebar/ui_icons/brush.svg)"></span>
+      </button>
+    </div>
   </div>
-  <div id="sections">
-    <button class="section" ?selected="${this.section_ === 'archive'}"
-        @click="${this.onArchiveClick_}">🗃 Архив</button>
-    <button class="section" ?selected="${this.section_ === 'links'}"
-        @click="${this.onLinksClick_}">Ссылки</button>
-    <button class="section" @click="${this.onHistoryClick_}">История</button>
-    <button class="section" @click="${this.onDownloadsClick_}">Загрузки</button>
+  <div id="content" @closed-tabs-changed="${this.onClosedTabsChanged_}">
+    ${this.isMounted_('space-routing') ? html`
+      <cromarc-library-routing class="section" data-section="space-routing"
+          ?hidden="${this.activeTab_ !== 'space-routing'}"
+          .library="${this}" .spaces="${this.spaces}">
+      </cromarc-library-routing>` : nothing}
+    ${this.isMounted_('history') ? html`
+      <cromarc-library-history class="section" data-section="history"
+          ?hidden="${this.activeTab_ !== 'history'}" .library="${this}">
+      </cromarc-library-history>` : nothing}
   </div>
-  ${this.section_ === 'links' ? html`
-  <div id="links">
-    <label class="hint">Ссылки из других приложений открываются в</label>
-    <select id="default-route" @change="${this.onDefaultRouteChange_}">
-      <option value="" ?selected="${this.defaultRoute_ === ''}">
-        последнем открытом space
-      </option>
-      ${this.spaces.map(space => html`
-        <option value="${space.id}"
-            ?selected="${this.defaultRoute_ === space.id}">${space.name}</option>`)}
-    </select>
-    <div class="hint">…кроме этих правил (первое подходящее):</div>
-    ${this.routes_.map(route => html`
-      <div class="route">
-        <span class="reference">${route.reference}</span>
-        <span class="sub">${this.matchLabels_[route.match]} →
-          ${this.spaceName_(route.space)}</span>
-        <button class="remove" data-id="${route.id}" title="Удалить правило"
-            @click="${this.onRemoveRouteClick_}">✕</button>
-      </div>`)}
-    <div id="add-route">
-      <input id="route-reference" placeholder="github.com/acme" spellcheck="false">
-      <div class="row-controls">
-        <select id="route-match">
-          <option value="contains">содержит</option>
-          <option value="equal-to">равно</option>
-          <option value="regex">regex</option>
-        </select>
-        <select id="route-space">
-          ${this.spaces.map(space => html`
-            <option value="${space.id}">${space.name}</option>`)}
-        </select>
-        <button id="add-route-button" @click="${this.onAddRouteClick_}">
-          Добавить
+</div>
+${this.toast_ ? html`
+  <div id="toast" role="status">${this.toast_}</div>` : nothing}
+${this.confirm_ ? html`
+  <div id="confirm-backdrop">
+    <div id="confirm" role="alertdialog">
+      <h3>${this.confirm_.title}</h3>
+      <p>${this.confirm_.message}</p>
+      <div class="confirm-buttons">
+        <button class="pill" @click="${this.onConfirmCancelClick_}">
+          ${this.strings.cancel}
+        </button>
+        <button class="pill strong" @click="${this.onConfirmAcceptClick_}">
+          ${this.confirm_.accept}
         </button>
       </div>
     </div>
-  </div>` : html`
-  <input id="search" type="search" placeholder="Поиск в архиве"
-      spellcheck="false" .value="${this.query_}"
-      @input="${this.onSearchInput_}">
-  <div id="list">
-    <p class="empty" ?hidden="${!this.loaded_ || this.groups_.length > 0}">
-      ${this.query_ ? 'Ничего не нашлось' : 'Архив пуст'}
-    </p>
-    ${this.groups_.map(group => html`
-      <div class="day">${group.label}</div>
-      ${group.tabs.map(tab => html`
-        <div class="row" data-id="${tab.id}" title="${tab.url}"
-            @click="${this.onRestoreClick_}">
-          <span class="favicon"
-              style="background-image: ${this.faviconFor_(tab)}"></span>
-          <span class="text">
-            <span class="name">${tab.title || tab.url}</span>
-            <span class="sub">${this.subtitleFor_(tab)}</span>
-          </span>
-          <span class="restore" title="Вернуть в Today">↺</span>
-        </div>`)}`)}
-  </div>`}
-</div>
+  </div>` : nothing}
 <!--_html_template_end_-->`;
   // clang-format on
 }

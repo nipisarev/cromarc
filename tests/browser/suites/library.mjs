@@ -2,7 +2,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// The Library (archive) and Zen's edge swipes.
+// The Library as Zen's (zen:library): its rail, the column it widens, the
+// history section with the archive as its closed-tabs source, routes, and
+// Zen's edge swipes.
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
 const site = process.env.CROMARC_TEST_SITE ?? 'http://127.0.0.1:9599';
@@ -36,6 +38,19 @@ const browserWs = async () => (await (await fetch(`${base}/json/version`)).json(
 const sb = (await targets()).find(t => t.url.startsWith('chrome://cromarc-sidebar'));
 const APP = `document.querySelector('cromarc-sidebar-app')`;
 const LIB = `${APP}.shadowRoot.querySelector('cromarc-library')`;
+const IN = selector => `${LIB}.shadowRoot.querySelector(${JSON.stringify(selector)})`;
+const ALL = selector => `[...${LIB}.shadowRoot.querySelectorAll(${JSON.stringify(selector)})]`;
+const titles = section => evaluate(sb, `${ALL(`${section} .row .row-title`)}.map(n => n.textContent)`);
+const settled = open => until(async () => evaluate(sb,
+    `${APP}.libraryOpen_ === ${open} && ${APP}.libraryProgress_ === ${open ? 1 : 0} && !!${LIB} === ${open}`));
+const search = (section, text) => evaluate(sb, `(() => {
+  const input = ${IN(`${section} .search-box input`)};
+  input.value = ${JSON.stringify(text)};
+  input.dispatchEvent(new Event('input'));
+  return true;
+})()`);
+const chip = (section, group, option) => evaluate(sb,
+    `${IN(`${section} .filter-chip[data-group="${group}"][data-option="${option}"]`)}.click(), true`);
 
 // Two Today tabs, then Clear: they go to the archive.
 for (const p of ['a.html', 'b.html']) {
@@ -45,30 +60,95 @@ await until(async () => (await evaluate(sb, `${APP}.tabs_.length`)) >= 3);
 await sleep(1500);
 await evaluate(sb, `${APP}.proxy_.handler.clearToday()`);
 await sleep(800);
+const narrow = await evaluate(sb, 'innerWidth');
 
 await evaluate(sb, `${APP}.shadowRoot.querySelector('#library-button').click()`);
-const rows = await until(async () => {
-  const r = await evaluate(sb, `${LIB}?.shadowRoot.querySelectorAll('.row').length`);
-  return r >= 2 && r;
-});
-check('🗃 opens the Library with the archived tabs', rows >= 2, String(rows));
-const firstGroup = await evaluate(sb, `${LIB}.shadowRoot.querySelector('.day').textContent`);
-const sub = await evaluate(sb, `${LIB}.shadowRoot.querySelector('.row .sub').textContent`);
-console.log('names:', JSON.stringify(await evaluate(sb, `[...${LIB}.shadowRoot.querySelectorAll('.row .name')].map(n => n.textContent + ' | ' + n.closest('.row').title)`)));
-check('grouped by day, with the reason and time', firstGroup === 'Сегодня' && sub.includes('«Очистить»'), `${firstGroup} | ${sub}`);
-await evaluate(sb, `(() => { const s = ${LIB}.shadowRoot.querySelector('#search'); s.value = 'little'; s.dispatchEvent(new Event('input')); })()`);
-const filtered = await until(async () => {
-  const names = await evaluate(sb, `[...${LIB}.shadowRoot.querySelectorAll('.row .name')].map(n => n.textContent)`);
-  return names.length === 1 && names;
-});
-check('search filters the archive', filtered?.[0] === 'Little test', JSON.stringify(await evaluate(sb, `[...${LIB}.shadowRoot.querySelectorAll('.row .name')].map(n => n.textContent)`)) + ' q=' + await evaluate(sb, `${LIB}.query_`));
-await evaluate(sb, `${LIB}.shadowRoot.querySelector('.row').click()`);
+check('the library button brings the Library out on its spring', !!(await settled(true)));
+const wide = await until(async () => { const w = await evaluate(sb, 'innerWidth'); return w >= 418 && w; }, 4000);
+check('…and the column widens to Zen\'s 418px', !!wide, `${narrow} → ${await evaluate(sb, 'innerWidth')}`);
+const rail = await evaluate(sb, `${ALL('.tab .tab-label')}.map(n => n.textContent)`);
+check('its rail holds Routes and History, History chosen', rail.join() === 'Маршруты,История' &&
+    await evaluate(sb, `${IN('.tab[active]')}.dataset.section`) === 'history', JSON.stringify(rail));
+check('the rail icons are Zen\'s sprites, coloured', !!(await until(() => evaluate(sb,
+    `${IN('.tab[active] .tab-icon-image')}.style.backgroundImage.startsWith('url("data:image/svg+xml;base64')`))));
+
+// History: the pages just visited.
+const H = 'cromarc-library-history';
+const visited = await until(async () => { const t = await titles(H); return t.includes('Little test') && t; });
+check('History lists the pages visited, by day', !!visited &&
+    await evaluate(sb, `${IN(`${H} .group h3`)}.textContent`) === 'Сегодня', JSON.stringify(await titles(H)));
+
+// The archive is the closed-tabs source.
+await evaluate(sb, `${IN(`${H} .filter-button`)}.click(), true`);
+await chip(H, 'source', 'closed');
+const archived = await until(async () => { const t = await titles(H); return t.includes('Little test') && t; });
+check('the closed-tabs source lists the archive, blank tabs left out', !!archived &&
+    !archived.includes('about:blank'), JSON.stringify(await titles(H)));
+check('…and the tab reads Архив', await evaluate(sb, `${IN('.tab[active] .tab-label')}.textContent`) === 'Архив');
+check('the most visited sort is off for closed tabs', await evaluate(sb,
+    `${IN(`${H} .filter-chip[data-option="mostvisited"]`)}.disabled`) === true);
+await evaluate(sb, `${IN(`${H} .filter-done`)}.click(), true`);
+await search(H, 'little');
+const found = await until(async () => { const t = await titles(H); return t.length === 1 && t; });
+check('search narrows it', found?.[0] === 'Little test', JSON.stringify(await titles(H)));
+await evaluate(sb, `${IN(`${H} .row`)}.click(), true`);
 const restored = await until(async () => (await evaluate(sb, `${APP}.tabs_.map(t => t.url)`)).some(u => u.endsWith('a.html')));
-check('a click brings it back to Today', !!restored);
-const leftRows = await evaluate(sb, `${LIB}.shadowRoot.querySelectorAll('.row').length`);
-check('…and it leaves the archive', leftRows === 0, String(leftRows));
-await evaluate(sb, `${LIB}.shadowRoot.querySelector('#close').click()`);
-check('✕ closes the Library', (await until(async () => !(await evaluate(sb, `!!${LIB}`)))) === true);
+check('a click brings the tab back', !!restored);
+check('…and shuts the Library, the column back as it was', !!(await settled(false)) &&
+    !!(await until(async () => (await evaluate(sb, 'innerWidth')) === narrow, 4000)), String(await evaluate(sb, 'innerWidth')));
+const left = await evaluate(sb, `${APP}.proxy_.handler.searchArchive('little', 10).then(({tabs}) => tabs.length)`);
+check('…and out of the archive', left === 0, String(left));
+
+// Forgetting a page from history.
+await evaluate(sb, `${APP}.shadowRoot.querySelector('#library-button').click()`);
+await settled(true);
+await evaluate(sb, `${IN(`${H} .filter-button`)}.click(), true`);
+await chip(H, 'source', 'history');
+await evaluate(sb, `${IN(`${H} .filter-done`)}.click(), true`);
+await search(H, 'Second');
+await until(async () => (await titles(H)).join() === 'Second link');
+await evaluate(sb, `${IN(`${H} .row .row-action`)}.click(), true`);
+const forgotten = await until(async () => {
+  const {visits} = await evaluate(sb, `${APP}.proxy_.handler.queryHistory('Second', 0, 10, 0).then(r => ({visits: r.visits.map(v => v.url)}))`);
+  return !visits.some(u => u.endsWith('b.html'));
+});
+check('the bin forgets the page', !!forgotten && !(await titles(H)).includes('Second link'));
+
+// Routes.
+const R = 'cromarc-library-routing';
+await evaluate(sb, `${IN('.tab[data-section="space-routing"]')}.click(), true`);
+await until(() => evaluate(sb, `!!${IN(R)}`));
+check('Routes has Zen\'s empty text', !!(await until(() => evaluate(sb, `${IN(`${R} .empty`)}?.textContent.includes('Маршруты отправляют')`))));
+await evaluate(sb, `${IN(`${R} .filter-button`)}.click(), true`);
+await evaluate(sb, `(() => { const i = ${IN(`${R} .routing-reference`)}; i.value = 'example.com'; i.dispatchEvent(new Event('input')); return true; })()`);
+await sleep(100);
+await evaluate(sb, `${IN(`${R} .routing-save`)}.click(), true`);
+const route = await until(async () => {
+  const {routes} = await evaluate(sb, `${APP}.proxy_.handler.getRoutes().then(r => ({routes: r.routes.map(x => x.reference + '|' + x.match)}))`);
+  return routes.includes('example.com|contains') && routes;
+});
+check('a new route is saved', !!route);
+check('…and listed', !!(await until(() => evaluate(sb, `${IN(`${R} .routing-row .routing-value`)}?.textContent === 'example.com'`))));
+await evaluate(sb, `${IN(`${R} .routing-row`)}.click(), true`);
+await evaluate(sb, `${IN(`${R} .filter-chip[data-match="regex"]`)}.click(), true`);
+await sleep(100);
+await evaluate(sb, `${IN(`${R} .routing-save`)}.click(), true`);
+check('editing keeps one route, changed', !!(await until(async () => {
+  const {routes} = await evaluate(sb, `${APP}.proxy_.handler.getRoutes().then(r => ({routes: r.routes.map(x => x.reference + '|' + x.match)}))`);
+  return routes.length === 1 && routes[0] === 'example.com|regex';
+})));
+await evaluate(sb, `${IN(`${R} .routing-row .row-action`)}.click(), true`);
+check('the bin removes it', !!(await until(async () => (await evaluate(sb,
+    `${APP}.proxy_.handler.getRoutes().then(r => r.routes.length)`)) === 0)));
+
+// Escape shuts it; the rail remembers the section.
+await evaluate(sb, `document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}))`);
+check('Escape shuts the Library', !!(await settled(false)));
+await evaluate(sb, `${APP}.shadowRoot.querySelector('#library-button').click()`);
+await settled(true);
+check('…which comes back on the section left', await evaluate(sb, `${IN('.tab[active]')}.dataset.section`) === 'space-routing');
+await evaluate(sb, `${IN('#footer .footer-button')}.click(), true`);
+check('the back button shuts it', !!(await settled(false)));
 
 // Edge swipes (the only space is both the first and the last).
 const swipe = async (amount, direction) => evaluate(sb, `(async () => {
@@ -83,9 +163,9 @@ const swipe = async (amount, direction) => evaluate(sb, `(async () => {
 })()`);
 const lib = await swipe(-0.6, -1);
 check('swiping back past the first space pulls the Library in', lib.drag > 0, JSON.stringify(lib));
-check('…and it opens', (await until(() => evaluate(sb, `${APP}.libraryOpen_ && !!${LIB}`))) === true);
-await evaluate(sb, `${APP}.onLibraryClose_()`);
-await sleep(400);
+check('…and it opens', !!(await settled(true)));
+await swipe(0.6, 1);
+check('swiping the other way with it open shuts it (Zen)', !!(await settled(false)));
 const add = await swipe(0.9, 1);
 check('swiping on past the last space fills the + arc', add.add >= 1, JSON.stringify(add));
 check('…and opens the new space form', (await until(() => evaluate(sb, `!!${APP}.shadowRoot.querySelector('cromarc-space-editor')`))) === true);

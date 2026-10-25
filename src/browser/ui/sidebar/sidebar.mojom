@@ -20,6 +20,26 @@ struct ArchivedTab {
 };
 
 // A rule sending links from other apps to a space (Zen's space routing).
+// A page in the Library's history (zen:library/sections/
+// ZenLibraryHistorySection.mjs).
+struct HistoryVisit {
+  url.mojom.Url url;
+  string title;
+  // Its visit, the last one where a page shows once, in milliseconds since
+  // the Unix epoch.
+  double time;
+  int32 visit_count;
+};
+
+// The history filter's sorts: by date a page shows once a day, otherwise
+// once.
+enum HistorySort {
+  kDate,
+  kSite,
+  kMostVisited,
+  kLastVisited,
+};
+
 struct LinkRoute {
   string id;
   string reference;
@@ -138,7 +158,8 @@ interface PageHandler {
   // "+ New Tab".
   NewTab();
   // A native context menu at (x, y) in the page, as Zen's; an empty label is a
-  // separator. Returns the chosen label's index, or -1.
+  // separator, one starting with a tab goes in a submenu of the label before
+  // it, and \x01 in front checks it. Returns the chosen label's index, or -1.
   ShowContextMenu(array<string> labels, int32 x, int32 y) => (int32 index);
   // A trackpad tick, as Zen's when a drag changes its drop slot.
   PlayHapticFeedback();
@@ -180,15 +201,39 @@ interface PageHandler {
   // False for the last space.
   DeleteSpace(string id) => (bool deleted);
 
+  // As the Library slides out and back, the width the window's sidebar
+  // column takes for it; 0 once it is shut.
+  SetLibraryWidth(int32 width);
+
   // The Library's archive (design, UI section 10): this space's closed tabs
   // matching `query`, newest first.
   SearchArchive(string query, uint32 limit) => (array<ArchivedTab> tabs);
   // Back to Today: opens the URL and drops the archive row.
-  RestoreFromArchive(int64 id, url.mojom.Url url);
+  RestoreFromArchive(int64 id, url.mojom.Url url, bool background);
+  RemoveFromArchive(int64 id);
+
+  // The Library's history: pages visited in the last `days_old` days that
+  // match `query` (all of them for ""), newest first and at most `limit`, or
+  // the most visited first.
+  QueryHistory(string query, int32 days_old, uint32 limit, HistorySort sort)
+      => (array<HistoryVisit> visits);
+  ForgetPage(url.mojom.Url url);
+  // What the site of `url` left behind: its pages in history, its cookies
+  // and storage, its cache (Firefox's Forget About This Site).
+  ForgetSite(url.mojom.Url url);
+  // History since `begin`, in milliseconds since the Unix epoch; all of it
+  // for 0.
+  ClearHistory(double begin);
+  // A page from the Library in a new tab of this window.
+  OpenUrl(url.mojom.Url url, bool background);
+  // The SVG of one of the Library's section sprites, which the page colours
+  // itself (it cannot fetch its own resources).
+  GetLibrarySprite(string name) => (string svg);
 
   // The Library's link rules. `default_external` "" is the space used last.
   GetRoutes() => (array<LinkRoute> routes, string default_external);
   AddRoute(string reference, string match, string space);
+  UpdateRoute(string id, string reference, string match, string space);
   RemoveRoute(string id);
   SetDefaultRoute(string space);
 
@@ -209,4 +254,6 @@ interface Page {
   // A hotkey or the wheel asked for `id`: animate, then SwitchToSpace().
   OnSwitchRequested(string id);
   OnSwipe(Swipe swipe);
+  // History or the archive changed while the Library may be showing them.
+  OnHistoryChanged();
 };
