@@ -17,7 +17,12 @@ source_set("spaces") {
     "space_controller.h",
     "space_prefs.cc",
     "space_prefs.h",
+    "space_window.h",
   ]
+  if (is_mac) {
+    sources += [ "space_window_mac.mm" ]
+    frameworks = [ "AppKit.framework" ]
+  }
   public_deps = [
     ":swipe_tracker",
     "//chrome/browser:browser_public_dependencies",
@@ -33,6 +38,8 @@ source_set("spaces") {
     "//chrome/browser/ui/browser_window",
     "//components/pref_registry",
     "//components/prefs",
+    "//ui/base",
+    "//ui/gfx",
     "//url",
   ]
 }

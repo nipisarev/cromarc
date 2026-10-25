@@ -54,6 +54,10 @@ void PaintWindowBackground(gfx::Canvas* canvas,
                            const gfx::Rect& bounds,
                            BrowserView* browser_view);
 
+// Hook H15, from GlassFrameService: space windows keep their glass whether
+// activated or not, so the window a space switch brings in has it already.
+bool KeepsGlass(BrowserWindowInterface* browser);
+
 // Hook H14, from CustomCornersBackground (toolbar, top container, tab strip
 // region): true when Cromarc paints `view`'s background inside `path`
 // instead, which is nothing but for the sidebar floating over the page in

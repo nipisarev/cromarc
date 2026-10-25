@@ -375,6 +375,10 @@ void PaintWindowBackground(gfx::Canvas* canvas,
   canvas->Restore();
 }
 
+bool KeepsGlass(BrowserWindowInterface* browser) {
+  return browser->GetType() == BrowserWindowInterface::TYPE_NORMAL;
+}
+
 bool PaintChromeBackground(gfx::Canvas* canvas,
                            const views::View* view,
                            const SkPath& path,

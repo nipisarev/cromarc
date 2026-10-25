@@ -6,6 +6,7 @@
 #define CROMARC_BROWSER_SPACES_SPACE_CONTROLLER_H_
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,7 @@
 #include "base/no_destructor.h"
 #include "base/scoped_observation.h"
 #include "base/time/time.h"
+#include "base/timer/timer.h"
 #include "chrome/browser/profiles/profile_attributes_storage_observer.h"
 #include "chrome/browser/profiles/profile_manager_observer.h"
 #include "components/sessions/core/session_id.h"
@@ -92,6 +94,13 @@ class SpaceController : public ProfileAttributesStorageObserver,
   // The window swap: the target space's window (created if needed) takes
   // `from`'s frame and comes forward; `from` is ordered out.
   void SwitchTo(BrowserWindowInterface* from, const std::string& id);
+  // Zen switches spaces inside one window; each space here has a window of
+  // its own, and a window shown from hidden paints anew. So that the swap at
+  // the end of the sidebar's animation shows a window that has painted,
+  // `from`'s sidebar asks for the target's window as the animation starts:
+  // it comes over `from` at 1% opacity, letting the mouse through, until
+  // SwitchTo() or another call ("" puts it away again).
+  void PrepareSwitch(BrowserWindowInterface* from, const std::string& id);
 
   // Brings space `id` forward as a switch from the visible space window does
   // (loading its profile and creating its window if needed), then runs
@@ -175,11 +184,20 @@ class SpaceController : public ProfileAttributesStorageObserver,
   // `profile`'s space window, created with `bounds` when it has none.
   BrowserWindowInterface* EnsureWindow(Profile* profile,
                                        const gfx::Rect& bounds);
+  void PrepareLoaded(SessionID from_id, Profile* target);
+  // Back to normal, ordered out when `hide`.
+  void ClearPrepared(bool hide);
+  bool IsPrepared(BrowserWindowInterface* browser) const;
 
   std::map<BrowserWindowInterface*, raw_ptr<Sidebar>> sidebars_;
   std::map<BrowserWindowInterface*, base::CallbackListSubscription>
       close_subscriptions_;
   bool warm_windows_scheduled_ = false;
+  // The window PrepareSwitch() brought over the visible one, and the space it
+  // was asked for while its profile loads.
+  std::optional<SessionID> prepared_;
+  std::string preparing_;
+  base::OneShotTimer prepared_timeout_;
   const base::TimeTicks started_ = base::TimeTicks::Now();
   base::ScopedObservation<ProfileAttributesStorage,
                           ProfileAttributesStorageObserver>

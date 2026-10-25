@@ -474,6 +474,10 @@ void SidebarPageHandler::SwitchToSpace(const std::string& id) {
   SpaceController::Get()->SwitchTo(browser_, id);
 }
 
+void SidebarPageHandler::PrepareSpaceSwitch(const std::string& id) {
+  SpaceController::Get()->PrepareSwitch(browser_, id);
+}
+
 void SidebarPageHandler::CreateSpace(const std::string& name,
                                      const std::string& icon) {
   SpaceController::Get()->CreateSpace(browser_, base::UTF8ToUTF16(name), icon);

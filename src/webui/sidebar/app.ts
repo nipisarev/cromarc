@@ -169,6 +169,8 @@ export class SidebarAppElement extends CrLitElement {
   // What a swipe at the edge of the spaces does (zen ZenSpacesSwipe actions).
   private edgeAction_: 'library'|'add'|null = null;
   private edgeAllowed_ = {library: false, add: false};
+  // The space whose window is being made ready for a switch, -1 for none.
+  private prepared_ = -1;
   private libraryTimer_ = 0;
   private deferred_: Set<string> = new Set();
   private clearedTimer_ = 0;
@@ -326,6 +328,19 @@ export class SidebarAppElement extends CrLitElement {
     this.updatePrimary_();
   }
 
+  // The window of space `index` gets ready under this one for the coming
+  // swap (SpaceController::PrepareSwitch); -1 puts it away.
+  private prepare_(index: number) {
+    if (index === this.prepared_) {
+      return;
+    }
+    this.prepared_ = index;
+    const space = index >= 0 && index !== this.currentIndex_ ?
+        this.spaces_[index] :
+        undefined;
+    this.proxy_.handler.prepareSpaceSwitch(space?.id ?? '');
+  }
+
   // Zen fades the background between the two spaces' themes as the strips
   // move (--zen-background-opacity = 1 - |offset| / 200); the browser paints
   // it under the whole window.
@@ -418,6 +433,9 @@ export class SidebarAppElement extends CrLitElement {
         }
         this.stripX_ = this.spaces_.map(
             (_, i) => circularDiff(i, current, count) * 100 + offset / 2);
+        if (offset !== 0) {
+          this.prepare_(neighbourIndex(current, count, offset));
+        }
         this.blendBackground_(neighbourIndex(current, count, offset),
                               Math.min(1, Math.abs(offset) / 200));
         break;
@@ -426,6 +444,9 @@ export class SidebarAppElement extends CrLitElement {
         this.swipe_ = null;
         const action = this.edgeAction_;
         this.edgeAction_ = null;
+        if (action) {
+          this.prepare_(-1);
+        }
         if (action === 'library') {
           const open = swipe.direction === -1 || this.libraryDrag_ >= 0.5;
           this.libraryDrag_ = -1;
@@ -444,10 +465,12 @@ export class SidebarAppElement extends CrLitElement {
           return;
         }
         if (swipe.direction === 0) {
+          this.prepare_(-1);
           this.animateTo_(current);
           return;
         }
         const target = (current + swipe.direction + count) % count;
+        this.prepare_(target);
         this.animateTo_(target).then(() => this.finishSwitch_(target));
         break;
       }
@@ -460,6 +483,7 @@ export class SidebarAppElement extends CrLitElement {
     if (target < 0 || target === this.currentIndex_) {
       return;
     }
+    this.prepare_(target);
     await this.loadSnapshots_();
     await this.animateTo_(target);
     this.finishSwitch_(target);
@@ -515,6 +539,7 @@ export class SidebarAppElement extends CrLitElement {
     // The target space's window takes this one's place; this window is hidden
     // and waits at rest for the next time it is shown.
     this.proxy_.handler.switchToSpace(space.id);
+    this.prepared_ = -1;
     setTimeout(() => this.rest_(), 300);
   }
 

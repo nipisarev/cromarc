@@ -35,6 +35,7 @@
 #include "chrome/common/webui_url_constants.h"
 #include "components/prefs/pref_service.h"
 #include "cromarc/browser/spaces/space_prefs.h"
+#include "cromarc/browser/spaces/space_window.h"
 #include "ui/base/base_window.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
@@ -338,6 +339,78 @@ void SpaceController::SwitchTo(BrowserWindowInterface* from,
           weak_factory_.GetWeakPtr(), from_id));
 }
 
+void SpaceController::PrepareSwitch(BrowserWindowInterface* from,
+                                    const std::string& id) {
+  preparing_.clear();
+  if (id.empty() || IdOf(from->GetProfile()) == id || IsFullscreen(from)) {
+    ClearPrepared(/*hide=*/true);
+    return;
+  }
+  if (Profile* target = GetLoadedProfile(id)) {
+    PrepareLoaded(from->GetSessionID(), target);
+    return;
+  }
+  preparing_ = id;
+  g_browser_process->profile_manager()->LoadProfileByPath(
+      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id),
+      /*incognito=*/false,
+      base::BindOnce(
+          [](base::WeakPtr<SpaceController> self, SessionID from_id,
+             std::string id, Profile* profile) {
+            if (self && profile && self->preparing_ == id) {
+              self->preparing_.clear();
+              self->PrepareLoaded(from_id, profile);
+            }
+          },
+          weak_factory_.GetWeakPtr(), from->GetSessionID(), id));
+}
+
+void SpaceController::PrepareLoaded(SessionID from_id, Profile* target) {
+  BrowserWindowInterface* from = BrowserWindowInterface::FromSessionID(from_id);
+  if (!from) {
+    return;
+  }
+  BrowserWindowInterface* to = EnsureWindow(target, FrameOf(from));
+  if (!to || IsPrepared(to)) {
+    return;
+  }
+  ClearPrepared(/*hide=*/true);
+  // Already on screen (another display, fullscreen): nothing to warm.
+  if (IsVisible(to) || IsFullscreen(to)) {
+    return;
+  }
+  to->GetWindow()->SetBounds(FrameOf(from));
+  SetWindowFaint(to, true);
+  to->GetWindow()->ShowInactive();
+  prepared_ = to->GetSessionID();
+  // Should the sidebar never come back (a renderer gone), it goes.
+  prepared_timeout_.Start(
+      FROM_HERE, base::Seconds(5),
+      base::BindOnce(&SpaceController::ClearPrepared, base::Unretained(this),
+                     /*hide=*/true));
+}
+
+void SpaceController::ClearPrepared(bool hide) {
+  prepared_timeout_.Stop();
+  if (!prepared_) {
+    return;
+  }
+  BrowserWindowInterface* window =
+      BrowserWindowInterface::FromSessionID(*prepared_);
+  prepared_.reset();
+  if (!window) {
+    return;
+  }
+  if (hide) {
+    window->GetWindow()->Hide();
+  }
+  SetWindowFaint(window, false);
+}
+
+bool SpaceController::IsPrepared(BrowserWindowInterface* browser) const {
+  return prepared_ && *prepared_ == browser->GetSessionID();
+}
+
 void SpaceController::SwitchToLoaded(SessionID from_id, Profile* target) {
   BrowserWindowInterface* from = BrowserWindowInterface::FromSessionID(from_id);
   if (!from) {
@@ -347,6 +420,12 @@ void SpaceController::SwitchToLoaded(SessionID from_id, Profile* target) {
   BrowserWindowInterface* to = EnsureWindow(target, bounds);
   if (!to) {
     return;
+  }
+  // The prepared window has painted under its 1%: it only turns opaque.
+  if (IsPrepared(to)) {
+    ClearPrepared(/*hide=*/false);
+  } else {
+    ClearPrepared(/*hide=*/true);
   }
   target->GetPrefs()->SetTime(kSpaceLastActivePref, base::Time::Now());
   // Native fullscreen (design, "Fullscreen и дисплеи"): every fullscreen
@@ -422,7 +501,8 @@ BrowserWindowInterface* SpaceController::GetVisibleSpaceWindow() {
   BrowserWindowInterface* found = nullptr;
   ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
       [&](BrowserWindowInterface* browser) {
-        if (sidebars_.contains(browser) && browser->GetWindow()->IsVisible()) {
+        if (sidebars_.contains(browser) && browser->GetWindow()->IsVisible() &&
+            !IsPrepared(browser)) {
           found = browser;
           return false;
         }
@@ -603,7 +683,8 @@ void SpaceController::HideInactiveSpaceWindows() {
   std::vector<BrowserWindowInterface*> visible;
   for (BrowserWindowInterface* browser : GetAllBrowserWindowInterfaces()) {
     if (browser->GetType() == BrowserWindowInterface::TYPE_NORMAL &&
-        !browser->GetProfile()->IsOffTheRecord() && IsVisible(browser)) {
+        !browser->GetProfile()->IsOffTheRecord() && IsVisible(browser) &&
+        !IsPrepared(browser)) {
       visible.push_back(browser);
     }
   }

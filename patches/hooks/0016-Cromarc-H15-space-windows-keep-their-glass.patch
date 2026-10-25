@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sun, 25 Oct 2026 02:38:04 +0100
+Subject: [PATCH] Cromarc H15: space windows keep their glass
+
+Chrome gives the glass frame to the one most recently activated window.
+Cromarc switches spaces by swapping windows, and brings the target's window
+in under 1% opacity before the swap: GlassFrameService counts normal windows
+(space windows, cromarc::KeepsGlass) as eligible whether activated or not,
+so the window the swap shows has its glass already.
+
+diff --git a/chrome/browser/ui/views/frame/glass_frame_service.cc b/chrome/browser/ui/views/frame/glass_frame_service.cc
+index 791662db9cc88..666272e81a557 100644
+--- a/chrome/browser/ui/views/frame/glass_frame_service.cc
++++ b/chrome/browser/ui/views/frame/glass_frame_service.cc
+@@ -27,6 +27,7 @@
+ 
+ #if BUILDFLAG(IS_MAC)
+ #include "base/mac/mac_util.h"
++#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
+ #endif
+ 
+ DEFINE_USER_DATA(GlassFrameService);
+@@ -129,13 +130,16 @@ GlassFrameService::ActivationOrderedEligibleBrowsers() {
+   GlobalBrowserCollection::GetInstance()->ForEach(
+       [&activation_ordered_eligible_browsers,
+        this](BrowserWindowInterface* browser) {
++        // Cromarc: space windows keep their glass, activated or not.
++        const bool space_window = cromarc::KeepsGlass(browser);
+         // Stop iterating once the maximum number of glass windows is reached.
+-        if (activation_ordered_eligible_browsers.size() >= kMaxGlassWindows) {
+-          return false;
++        if (!space_window &&
++            activation_ordered_eligible_browsers.size() >= kMaxGlassWindows) {
++          return true;
+         }
+         // Skip untracked windows (e.g. non-normal windows or background windows
+         // that have not yet been activated).
+-        if (!tracked_browsers_.contains(browser)) {
++        if (!space_window && !tracked_browsers_.contains(browser)) {
+           return true;
+         }
+         // Skip windows currently in fullscreen mode.
+@@ -153,7 +157,7 @@ GlassFrameService::ActivationOrderedEligibleBrowsers() {
+           return true;
+         }
+         activation_ordered_eligible_browsers.insert(browser);
+-        return activation_ordered_eligible_browsers.size() < kMaxGlassWindows;
++        return true;
+       },
+       BrowserCollection::Order::kActivation);
+   return activation_ordered_eligible_browsers;
