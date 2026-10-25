@@ -238,6 +238,9 @@ interface PageHandler {
   GetSpaceSnapshot(string id) => (SpaceSnapshot? snapshot);
   // End of the switch animation: the space's window takes this one's place.
   SwitchToSpace(string id);
+  // The Library's Spaces (ZenLibrarySpacesSection): the space's window comes
+  // up, with its pinned item `item_id` open, or else its tab at `url`.
+  OpenSpaceEntry(string space_id, string item_id, url.mojom.Url url);
   // As a switch animation starts: the target space's window gets ready under
   // this one's, so the swap shows it painted; "" when it won't be needed.
   PrepareSpaceSwitch(string id);

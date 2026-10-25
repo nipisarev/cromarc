@@ -61,3 +61,31 @@ export const LIBRARY_SPRING: SpringOptions = {
   damping: 47,
   mass: 1.2,
 };
+
+// CSS's cubic-bezier() timing function: progress at time `t`, 0-1.
+export function cubicBezier(x1: number, y1: number, x2: number, y2: number):
+    (t: number) => number {
+  const at = (a: number, b: number, s: number) =>
+      3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
+  return t => {
+    if (t <= 0 || t >= 1) {
+      return Math.min(1, Math.max(0, t));
+    }
+    // The curve's parameter for this time, by halving.
+    let low = 0;
+    let high = 1;
+    for (let i = 0; i < 30; i++) {
+      const mid = (low + high) / 2;
+      if (at(x1, x2, mid) < t) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return at(y1, y2, (low + high) / 2);
+  };
+}
+
+// zen-library.css: the Library's width follows its section over 0.3s.
+export const LIBRARY_WIDTH_DURATION = 300;
+export const libraryWidthEasing = cubicBezier(.36, .06, 0, .94);

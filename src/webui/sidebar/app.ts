@@ -31,7 +31,7 @@ import type {SpaceTheme} from './theme_model.js';
 import {canRetry, hasFile, hasProgress, isPending, progressOf, stackEntries, statusText} from './downloads_model.js';
 import {downloadsStore} from './downloads_store.js';
 import {libraryStrings} from './library_strings.js';
-import {LIBRARY_SPRING, physicalSpring} from './motion.js';
+import {LIBRARY_SPRING, LIBRARY_WIDTH_DURATION, libraryWidthEasing, physicalSpring} from './motion.js';
 import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, librarySwipeProgress, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
 import {strings} from './strings.js';
@@ -127,6 +127,7 @@ export class SidebarAppElement extends CrLitElement {
       libraryOpen_: {type: Boolean},
       libraryDrag_: {type: Number},
       libraryProgress_: {type: Number},
+      libraryWidth_: {type: Number},
       primary_: {type: String},
       stack_: {type: Array},
       stackOpen_: {type: Boolean},
@@ -186,6 +187,8 @@ export class SidebarAppElement extends CrLitElement {
   // How far out the Library is (Zen's openProgress), past 1 as its spring
   // overshoots.
   protected accessor libraryProgress_: number = 0;
+  // Zen's Library width: at least 418px, wider for its Spaces section.
+  protected accessor libraryWidth_: number = LIBRARY_WIDTH;
   // The space's primary colour, for the Library's icons.
   protected accessor primary_: string = '';
   // Zen's download stack on the library button (ZenLibraryWidget): the
@@ -207,6 +210,7 @@ export class SidebarAppElement extends CrLitElement {
   // The space whose window is being made ready for a switch, -1 for none.
   private prepared_ = -1;
   private libraryAnimation_ = 0;
+  private libraryWidthAnimation_ = 0;
   // The sidebar's width as the Library came out: the sidebar keeps it under
   // the Library while the column widens.
   private toolboxWidth_ = 0;
@@ -663,8 +667,57 @@ export class SidebarAppElement extends CrLitElement {
     this.keepLibraryOpenUntil_ = Date.now() + 2000;
   }
 
+  protected onLibraryCloseNow_() {
+    this.closeLibraryNow_();
+  }
+
+  // The section asks for its width (Zen's --zen-library-content-width); the
+  // Library and the column follow it over 0.3s.
+  protected onLibraryWidth_(e: CustomEvent<number>) {
+    const target = Math.max(LIBRARY_WIDTH, Math.round(e.detail));
+    cancelAnimationFrame(this.libraryWidthAnimation_);
+    if (target === this.libraryWidth_) {
+      return;
+    }
+    const from = this.libraryWidth_;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / LIBRARY_WIDTH_DURATION);
+      this.libraryWidth_ =
+          Math.round(from + (target - from) * libraryWidthEasing(t));
+      if (this.libraryShown_) {
+        this.setLibraryProgress_(this.libraryProgress_);
+      }
+      if (t < 1) {
+        this.libraryWidthAnimation_ = requestAnimationFrame(step);
+      }
+    };
+    this.libraryWidthAnimation_ = requestAnimationFrame(step);
+  }
+
+  protected onLibrarySpaceMenu_(
+      e: CustomEvent<{id: string, x: number, y: number}>) {
+    const space = this.spaces_.find(s => s.id === e.detail.id);
+    if (space) {
+      this.openSpaceMenu_(space, e.detail.x, e.detail.y);
+    }
+  }
+
+  protected onLibrarySpaceTheme_(e: CustomEvent<string>) {
+    const space = this.spaces_.find(s => s.id === e.detail);
+    if (space) {
+      this.closeLibrary_();
+      this.themeEditor_ = {space, theme: themeFromJson(space.theme)};
+    }
+  }
+
+  protected onLibraryCreateSpace_() {
+    this.closeLibrary_();
+    this.onAddSpaceClick_();
+  }
+
   protected libraryStyle_(): string {
-    return `width: ${LIBRARY_WIDTH}px; transform: translateX(${
+    return `width: ${this.libraryWidth_}px; transform: translateX(${
         (this.libraryProgress_ - 1) * 100}%)`;
   }
 
@@ -708,7 +761,7 @@ export class SidebarAppElement extends CrLitElement {
     this.proxy_.handler.setLibraryWidth(
         out > 0 ? Math.round(
                       this.toolboxWidth_ +
-                      out * (LIBRARY_WIDTH - this.toolboxWidth_)) :
+                      out * (this.libraryWidth_ - this.toolboxWidth_)) :
                   0);
   }
 
@@ -1093,25 +1146,42 @@ export class SidebarAppElement extends CrLitElement {
 
   // Zen's space context menu (zen-workspaces-panel-*).
   private openSpaceMenu_(space: Space, x: number, y: number) {
+    // What comes up in the sidebar comes up with the Library out of the way
+    // (the Library's Spaces opens this menu too).
+    const inSidebar = (show: () => void) => () => {
+      if (this.libraryOpen_) {
+        this.closeLibrary_();
+      }
+      show();
+    };
     this.showMenu_(x, y, [
-        {label: strings.editSpace, action: () => this.editSpace_(space, false)},
-        {label: strings.changeIcon, action: () => this.editSpace_(space, true)},
+        {
+          label: strings.editSpace,
+          action: inSidebar(() => this.editSpace_(space, false)),
+        },
+        {
+          label: strings.changeIcon,
+          action: inSidebar(() => this.editSpace_(space, true)),
+        },
         {
           label: strings.editTheme,
-          action: () => this.themeEditor_ = {
+          action: inSidebar(() => this.themeEditor_ = {
             space,
             theme: themeFromJson(space.theme),
-          },
+          }),
         },
         {
           label: strings.sleepSpace,
           action: () => this.proxy_.handler.sleepSpace(space.id),
         },
-        {label: strings.icloudSync, action: () => this.openICloud_(space)},
+        {
+          label: strings.icloudSync,
+          action: inSidebar(() => this.openICloud_(space)),
+        },
         ...(this.spaces_.length > 1 ?
                 [{
                   label: strings.deleteSpace,
-                  action: () => this.deleting_ = space,
+                  action: inSidebar(() => this.deleting_ = space),
                 }] :
                 []),
     ]);

@@ -661,6 +661,33 @@ void SidebarPageHandler::OpenUrl(const GURL& url, bool background) {
   library_->OpenUrl(url, background);
 }
 
+void SidebarPageHandler::OpenSpaceEntry(const std::string& space_id,
+                                        const std::string& item_id,
+                                        const GURL& url) {
+  SpaceController::Get()->ShowSpace(
+      space_id,
+      base::BindOnce(
+          [](std::string item_id, GURL url, BrowserWindowInterface* window) {
+            if (!window) {
+              return;
+            }
+            if (!item_id.empty()) {
+              if (TreeService* tree = TreeService::Get(window->GetProfile())) {
+                tree->Open(window, item_id);
+              }
+              return;
+            }
+            TabStripModel* model = window->GetTabStripModel();
+            for (int i = 0; i < model->count(); ++i) {
+              if (model->GetWebContentsAt(i)->GetLastCommittedURL() == url) {
+                model->ActivateTabAt(i);
+                return;
+              }
+            }
+          },
+          item_id, url));
+}
+
 void SidebarPageHandler::GetDownloads(GetDownloadsCallback callback) {
   std::move(callback).Run(downloads_->List());
 }

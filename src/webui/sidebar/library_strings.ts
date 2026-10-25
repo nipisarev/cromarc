@@ -116,4 +116,11 @@ export const libraryStrings = {
   unblockMessage:
       'Этот файл может навредить компьютеру. Сохраняйте его, только если доверяете источнику.',
   unblockAccept: 'Сохранить',
+
+  spaceTheme: 'Изменить тему',
+  spaceMove: 'Перетащите, чтобы переставить',
+  spaceActions: 'Другие действия',
+  spaceIcon: 'Изменить значок',
+  spaceRename: 'Переименовать пространство',
+  spaceCreate: 'Создать пространство',
 };

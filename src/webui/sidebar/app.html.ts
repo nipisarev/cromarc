@@ -384,7 +384,12 @@ ${this.libraryShown_ ? html`
       .spaces="${this.spaces_}" .primary="${this.primary_}"
       style="${this.libraryStyle_()}"
       @library-close="${this.onLibraryClose_}"
-      @library-keep-open="${this.onLibraryKeepOpen_}">
+      @library-close-now="${this.onLibraryCloseNow_}"
+      @library-keep-open="${this.onLibraryKeepOpen_}"
+      @library-width="${this.onLibraryWidth_}"
+      @library-space-menu="${this.onLibrarySpaceMenu_}"
+      @library-space-theme="${this.onLibrarySpaceTheme_}"
+      @library-create-space="${this.onLibraryCreateSpace_}">
   </cromarc-library>` : nothing}
 <div id="drag-ghost"></div>
 <!--_html_template_end_-->`;

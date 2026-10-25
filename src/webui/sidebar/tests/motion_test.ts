@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {LIBRARY_SPRING, physicalSpring} from '../motion.ts';
+import {cubicBezier, LIBRARY_SPRING, physicalSpring} from '../motion.ts';
 
 test('the Library spring overshoots a little and settles, as Zen\'s', () => {
   const spring = physicalSpring(0, 1, LIBRARY_SPRING);
@@ -30,4 +30,12 @@ test('closing runs the same spring the other way', () => {
   assert.ok(spring(0.1).value < 1 && spring(0.1).value > 0);
   assert.equal(spring(3).value, 0);
   assert.ok(spring(3).done);
+});
+
+test('cubic-bezier matches CSS at its ends and its middle', () => {
+  const ease = cubicBezier(.25, .1, .25, 1);
+  assert.equal(ease(0), 0);
+  assert.equal(ease(1), 1);
+  // CSS "ease" at 50% is about 80% of the way.
+  assert.ok(Math.abs(ease(.5) - .8024) < .002, String(ease(.5)));
 });

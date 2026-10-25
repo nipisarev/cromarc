@@ -118,6 +118,9 @@ class SidebarPageHandler : public mojom::PageHandler,
   void OpenUrl(const GURL& url, bool background) override;
   void GetLibrarySprite(const std::string& name,
                         GetLibrarySpriteCallback callback) override;
+  void OpenSpaceEntry(const std::string& space_id,
+                      const std::string& item_id,
+                      const GURL& url) override;
   void GetDownloads(GetDownloadsCallback callback) override;
   void DoDownload(uint32_t id, mojom::DownloadCommand command) override;
   void ClearDownloads() override;

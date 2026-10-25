@@ -241,8 +241,11 @@ button {
   flex: 1;
   flex-direction: column;
   font-size: 14px;
-  max-width: calc(418px - 110px);
   min-height: 0;
+}
+
+.section:not([data-section='spaces']) {
+  max-width: calc(418px - 110px);
 }
 
 /* The search top: the search row and the filter header cross-fade in one
@@ -634,6 +637,294 @@ button {
 
 .row:hover:not([pending]) .download-url {
   display: inline;
+}
+
+/* Spaces (zen-library.css .zen-library-spaces). */
+.spaces {
+  --space-width: 242px;
+  --space-gap: 24px;
+  /* The sidebar's rows, as the cards hold copies of them. */
+  --row-height: 36px;
+  --row-padding: 6px;
+  --indent: 14px;
+
+  display: flex;
+  flex: 1;
+  gap: var(--space-gap);
+  min-height: 0;
+  overflow-x: auto;
+  padding: 45px 25px;
+  scrollbar-width: thin;
+}
+
+.space-card {
+  background: light-dark(#e2e2e2, #101010);
+  border-radius: 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 var(--space-width);
+  flex-direction: column;
+  isolation: isolate;
+  min-height: 0;
+  min-width: 1px;
+  position: relative;
+  transition: translate .2s ease, opacity .2s ease, scale .2s ease,
+      z-index .2s step-end;
+  z-index: 0;
+}
+
+.space-card::before {
+  background: var(--space-gradient);
+  background-blend-mode: screen;
+  border-radius: 14px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, .1);
+  content: '';
+  inset: 0;
+  position: absolute;
+  transition: box-shadow .2s ease;
+  z-index: -1;
+}
+
+.space-card[dragging] {
+  scale: 1.03;
+  transition: scale .2s ease;
+  z-index: 1;
+}
+
+.space-card[dragging]::before {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, .3);
+}
+
+.spaces[no-transition] .space-card {
+  transition: scale .2s ease, z-index .2s step-end;
+}
+
+.space-card[shift='left'] {
+  translate: calc(-1 * (var(--space-width) + var(--space-gap))) 0;
+}
+
+.space-card[shift='right'] {
+  translate: calc(var(--space-width) + var(--space-gap)) 0;
+}
+
+.space-card-header,
+.space-card-footer {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.space-card-header {
+  font-size: 13px;
+  font-weight: 500;
+  height: 28px;
+  margin: 18px 14px 6px;
+  opacity: .85;
+  position: relative;
+}
+
+.space-card-icon {
+  border-radius: 6px;
+  flex: none;
+  font-size: 15px;
+  height: 20px;
+  width: 20px;
+}
+
+.space-card-icon:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.space-card-icon[no-icon] {
+  border: 1px dashed light-dark(rgba(0, 0, 0, .5), rgba(255, 255, 255, .5));
+  box-sizing: border-box;
+  inset-inline-start: 0;
+  opacity: 0;
+  position: absolute;
+  transition: opacity .15s ease;
+}
+
+.space-card-header:hover .space-card-icon[no-icon] {
+  opacity: 1;
+}
+
+.space-card-name,
+.space-card-name-input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  flex: 1;
+  font: inherit;
+  justify-content: flex-start;
+  margin: 0;
+  min-width: 0;
+  outline: none;
+  overflow: hidden;
+  padding: 0;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.space-card-icon[no-icon] ~ :is(.space-card-name, .space-card-name-input) {
+  transition: translate .15s ease, margin .15s ease;
+}
+
+.space-card-header:hover .space-card-icon[no-icon] ~
+    :is(.space-card-name, .space-card-name-input) {
+  margin-inline-end: 28px;
+  translate: 28px 0;
+}
+
+.space-card-header .row-action {
+  display: flex;
+  padding: 4px;
+}
+
+.space-card-header .row-action .svg {
+  height: 16px;
+  width: 16px;
+}
+
+.space-card-picker {
+  inset-inline-start: 0;
+  position: absolute;
+  top: 100%;
+  z-index: 3;
+}
+
+.space-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: clip auto;
+  padding: 0 6px;
+  scrollbar-width: none;
+}
+
+.space-row {
+  align-items: center;
+  border-radius: 14px;
+  display: flex;
+  flex: none;
+  font-size: 13.75px;
+  gap: 10px;
+  height: var(--row-height);
+  margin-block: 2px;
+  padding-inline: var(--row-padding);
+}
+
+.space-row:hover {
+  background: color-mix(in srgb, light-dark(#101010, #e2e2e2) 7%, transparent);
+}
+
+.space-row-icon {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  flex: none;
+  height: 16px;
+  margin-inline-start: 4px;
+  width: 16px;
+}
+
+.space-row-folder {
+  flex: none;
+  height: 16px;
+  margin-inline-start: 4px;
+  width: 16px;
+}
+
+.space-row-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.space-card-separator {
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  flex: none;
+  margin: 6px 8px;
+}
+
+.space-card-footer {
+  justify-content: space-between;
+  opacity: .7;
+  padding: 8px 14px 14px;
+}
+
+.space-card-footer .row-action {
+  display: flex;
+}
+
+.space-card-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.space-card[dragging] .space-card-handle {
+  cursor: grabbing;
+}
+
+/* zen-single-components.css .zen-swipe-add-space-container.space-section. */
+.add-space {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 50px;
+}
+
+.add-space-badge {
+  --thickness: 2.4px;
+
+  aspect-ratio: 1;
+  background: color-mix(in srgb, var(--zen-primary-color), white 15%);
+  border-radius: 100%;
+  box-shadow: 0 1px 8px #0003;
+  contain: content;
+  position: relative;
+  width: 30px;
+}
+
+.add-space-ring {
+  display: block;
+  height: 100%;
+  position: relative;
+  width: 100%;
+  z-index: -1;
+}
+
+.add-space-arc {
+  fill: none;
+  r: calc(15px - var(--thickness) / 2);
+  stroke: currentColor;
+  stroke-dasharray: 0 100;
+  stroke-width: var(--thickness);
+  transform: rotate(-90deg) scaleX(-1);
+  transform-origin: center;
+  transition: stroke-dasharray .2s ease, stroke-width .2s ease;
+}
+
+.add-space-badge:hover .add-space-arc {
+  stroke-dasharray: 100 100;
+  stroke-width: 15px;
+}
+
+.add-space-icon {
+  height: 55%;
+  left: 22.5%;
+  position: absolute;
+  top: 22.5%;
+  width: 55%;
+}
+
+.add-space-badge:hover .add-space-icon {
+  background: var(--zen-primary-color);
 }
 
 /* Space routing. */

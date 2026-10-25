@@ -19,6 +19,7 @@ import type {MenuItem} from './menu.js';
 import './library_downloads.js';
 import './library_history.js';
 import './library_routing.js';
+import './library_spaces.js';
 
 export interface LibraryTab {
   id: string;
@@ -46,6 +47,7 @@ export interface LibraryConfirm {
 const SECTIONS: LibraryTab[] = [
   {id: 'space-routing', label: libraryStrings.routing},
   {id: 'downloads', label: libraryStrings.downloads},
+  {id: 'spaces', label: libraryStrings.spaces},
   {id: 'history', label: libraryStrings.history},
 ];
 const LAST_TAB_KEY = 'cromarc.library.lastTab';
@@ -185,6 +187,11 @@ export class LibraryElement extends CrLitElement {
       this.readSpriteColors_();
     }
     if (changed.has('activeTab_' as keyof LibraryElement)) {
+      // Only Spaces asks for more width (ZenLibrarySpacesSection onHidden
+      // takes it back).
+      if (this.activeTab_ !== 'spaces') {
+        this.requestWidth(0);
+      }
       this.section_(this.activeTab_)?.onShown?.();
     }
     if (changed.has('open')) {
@@ -377,6 +384,11 @@ export class LibraryElement extends CrLitElement {
     } else {
       this.fire('library-close');
     }
+  }
+
+  // Zen's --zen-library-content-width: 0 for the Library's own 418px.
+  requestWidth(width: number) {
+    this.fire('library-width', width);
   }
 
   showToast(text: string) {

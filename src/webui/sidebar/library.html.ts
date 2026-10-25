@@ -60,6 +60,11 @@ export function getHtml(this: LibraryElement) {
       <cromarc-library-downloads class="section" data-section="downloads"
           ?hidden="${this.activeTab_ !== 'downloads'}" .library="${this}">
       </cromarc-library-downloads>` : nothing}
+    ${this.isMounted_('spaces') ? html`
+      <cromarc-library-spaces class="section" data-section="spaces"
+          ?hidden="${this.activeTab_ !== 'spaces'}" .library="${this}"
+          .spaces="${this.spaces}">
+      </cromarc-library-spaces>` : nothing}
     ${this.isMounted_('history') ? html`
       <cromarc-library-history class="section" data-section="history"
           ?hidden="${this.activeTab_ !== 'history'}" .library="${this}">
