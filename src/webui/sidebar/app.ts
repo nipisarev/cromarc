@@ -210,6 +210,9 @@ export class SidebarAppElement extends CrLitElement {
   // The space whose window is being made ready for a switch, -1 for none.
   private prepared_ = -1;
   private libraryAnimation_ = 0;
+  // Bumped by every Library animation, so a stale one's safety net does
+  // nothing.
+  private libraryRun_ = 0;
   private libraryWidthAnimation_ = 0;
   // The sidebar's width as the Library came out: the sidebar keeps it under
   // the Library while the column widens.
@@ -487,6 +490,7 @@ export class SidebarAppElement extends CrLitElement {
         this.libraryBefore_ = this.libraryOpen_ ? 1 : 0;
         if (this.libraryOpen_) {
           cancelAnimationFrame(this.libraryAnimation_);
+          this.libraryRun_++;
         }
         this.edgeAllowed_ = {
           library: this.libraryOpen_ || current === 0,
@@ -778,21 +782,37 @@ export class SidebarAppElement extends CrLitElement {
     }
     const spring = physicalSpring(this.libraryProgress_, target, LIBRARY_SPRING);
     const start = performance.now();
-    const step = (now: number) => {
-      const {value, done} = spring((now - start) / 1000);
-      this.setLibraryProgress_(value);
-      if (!done) {
-        this.libraryAnimation_ = requestAnimationFrame(step);
-      } else if (target === 0) {
+    const run = ++this.libraryRun_;
+    const finish = () => {
+      if (run !== this.libraryRun_) {
+        return;
+      }
+      cancelAnimationFrame(this.libraryAnimation_);
+      this.libraryRun_++;
+      this.setLibraryProgress_(target);
+      if (target === 0) {
         this.libraryShown_ = false;
       }
     };
+    const step = (now: number) => {
+      const {value, done} = spring((now - start) / 1000);
+      if (done) {
+        finish();
+        return;
+      }
+      this.setLibraryProgress_(value);
+      this.libraryAnimation_ = requestAnimationFrame(step);
+    };
     this.libraryAnimation_ = requestAnimationFrame(step);
+    // As animateTo_'s: frames stop in a hidden or zero-width view (compact
+    // mode's column as it shuts); the Library still gets where it goes.
+    setTimeout(finish, 1000);
   }
 
   // Leaving the space: shut at once, the window being hidden anyway.
   private closeLibraryNow_() {
     cancelAnimationFrame(this.libraryAnimation_);
+    this.libraryRun_++;
     this.libraryOpen_ = false;
     if (this.libraryShown_) {
       this.setLibraryProgress_(0);

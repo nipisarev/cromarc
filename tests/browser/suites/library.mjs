@@ -238,4 +238,14 @@ check('…and opens the new space form', (await until(() => evaluate(sb, `!!${AP
 await evaluate(sb, `${APP}.onSpaceEditCancel_()`);
 const short = await swipe(0.3, 1);
 check('a short swipe does not', short.add < 1 && !(await evaluate(sb, `!!${APP}.shadowRoot.querySelector('cromarc-space-editor')`)), JSON.stringify(short));
+// In compact mode the column has no width; the Library still takes 418px.
+await evaluate(sb, `${APP}.proxy_.handler.toggleCompactMode(), true`);
+await until(async () => (await evaluate(sb, 'innerWidth')) < 50, 4000);
+await evaluate(sb, `${APP}.openLibrary_(), true`);
+check('in compact mode the Library comes out at its width', !!(await settled(true)) &&
+    !!(await until(async () => (await evaluate(sb, 'innerWidth')) >= 418, 4000)), String(await evaluate(sb, 'innerWidth')));
+await evaluate(sb, `${APP}.closeLibrary_(), true`);
+check('…and leaves no column behind', !!(await settled(false)) &&
+    !!(await until(async () => (await evaluate(sb, 'innerWidth')) < 50, 4000)), String(await evaluate(sb, 'innerWidth')));
+await evaluate(sb, `${APP}.proxy_.handler.toggleCompactMode(), true`);
 process.exit(results.every(Boolean) ? 0 : 1);
