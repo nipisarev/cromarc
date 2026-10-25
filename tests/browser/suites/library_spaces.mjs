@@ -111,6 +111,7 @@ const otherRow = `${ALL(`${S} .space-card`)}.find(c => c.querySelector('.space-c
 await until(() => evaluate(second, `!!${otherRow}`));
 await evaluate(second, `${otherRow}.click(), true`);
 check('a tab of another space opens that space', !!(await until(async () =>
-    await visibility(first) === 'visible' && await visibility(second) === 'hidden')));
+    await visibility(first) === 'visible' && await visibility(second) === 'hidden')),
+    `${await visibility(first)} ${await visibility(second)}`);
 check('…the Library shut in the window left', await evaluate(second, `!${APP}.libraryOpen_ && !${APP}.libraryShown_`));
 process.exit(results.every(Boolean) ? 0 : 1);
