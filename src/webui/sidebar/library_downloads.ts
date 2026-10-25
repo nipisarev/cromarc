@@ -219,11 +219,20 @@ export class LibraryDownloadsElement extends CrLitElement {
   }
 
 
-  protected iconFor_(download: Download): string {
-    if (download.previewUrl) {
-      return `url("${download.previewUrl}"), url("${this.fileIcon_(download)}")`;
+  // A finished picture shows itself, anything else its file icon; a
+  // picture that does not load falls back to the icon (Zen's @error).
+  protected iconSrc_(download: Download): string {
+    return download.previewUrl || this.fileIcon_(download);
+  }
+
+  protected onIconError_(e: Event) {
+    const img = e.target as HTMLImageElement;
+    const download = this.downloadOf_(e);
+    if (!img.hasAttribute('preview') || !download) {
+      return;
     }
-    return `url("${this.fileIcon_(download)}")`;
+    img.removeAttribute('preview');
+    img.src = this.fileIcon_(download);
   }
 
   private fileIcon_(download: Download): string {

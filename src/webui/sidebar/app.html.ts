@@ -11,7 +11,9 @@ export function getHtml(this: SidebarAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
 <div id="toolbox" style="${this.toolboxStyle_()}">
-<div id="viewport" ?editing="${!!this.editor_ || !!this.themeEditor_}">
+<div id="viewport" ?editing="${!!this.editor_ || !!this.themeEditor_}"
+    ?stack-open="${this.stackOpen_}"
+    ?stack-closing="${this.stackClosing_}">
   ${this.stripSpaces_.map((space, index) => html`
   <div class="strip" style="${this.stripStyle_(index)}">
   ${space.current ? html`
@@ -281,11 +283,64 @@ ${this.deleting_ ? html`
       <button @click="${this.onDeleteCancelClick_}">${this.strings.cancel}</button>
     </div>
   </div>` : nothing}
-<div id="foot">
+<div id="foot" ?stack-open="${this.stackOpen_}"
+    ?stack-closing="${this.stackClosing_}" ?stack-badge="${this.stackBadge_}">
+  <div id="download-list" @mouseenter="${this.onDownloadListMouseenter_}"
+      @mouseleave="${this.onStackMouseleave_}">
+    ${this.stackEntries_().map(download => html`
+      <div class="download-entry" draggable="true" ?hidden="${!download}"
+          data-id="${download?.id ?? ''}" title="${download?.fileName ?? ''}"
+          ?downloading="${this.downloadPending_(download)}"
+          ?show-in-folder="${this.downloadHasFile_(download)}"
+          @click="${this.onDownloadEntryClick_}"
+          @contextmenu="${this.onDownloadEntryContextmenu_}"
+          @dragstart="${this.onDownloadEntryDragstart_}">
+        <span class="download-badge"
+            ?downloading="${this.downloadPending_(download)}"
+            style="${this.downloadImage_(download)}">
+          <svg class="download-progress" viewBox="0 0 31 31">
+            <circle class="download-progress-track" cx="15.5" cy="15.5" r="14">
+            </circle>
+            <circle class="download-progress-arc" cx="15.5" cy="15.5" r="14"
+                pathLength="100"
+                style="stroke-dasharray: ${this.downloadDash_(download)}">
+            </circle>
+          </svg>
+        </span>
+        <div class="download-entry-text">
+          <span class="download-entry-title">${download?.fileName ?? ''}</span>
+          <span class="download-entry-subtitle">${
+              this.downloadStatus_(download)}</span>
+        </div>
+        <button class="download-action" data-id="${download?.id ?? ''}"
+            title="${this.downloadActionLabel_(download)}"
+            @click="${this.onDownloadActionClick_}">
+          <span class="svg" style="mask-image: url(sidebar/ui_icons/${
+              this.downloadPending_(download) ? 'close' : 'search'}.svg)">
+          </span>
+        </button>
+      </div>`)}
+  </div>
   <button id="library-button" class="foot-button"
       title="${this.strings.library}" ?selected="${this.libraryOpen_}"
-      @click="${this.onLibraryClick_}">
+      @click="${this.onLibraryClick_}"
+      @mouseenter="${this.onLibraryButtonMouseenter_}"
+      @mouseleave="${this.onStackMouseleave_}">
     <span class="library-sprite"></span>
+    <span class="badge-stack" ?downloading="${this.newestPending_()}">
+      <span id="library-button-badge" class="download-badge"
+          ?downloading="${this.newestPending_()}"
+          style="${this.downloadImage_(this.stack_[this.stack_.length - 1])}">
+        <svg class="download-progress" viewBox="0 0 31 31">
+          <circle class="download-progress-track" cx="15.5" cy="15.5" r="14">
+          </circle>
+          <circle class="download-progress-arc" cx="15.5" cy="15.5" r="14"
+              pathLength="100" style="stroke-dasharray: ${
+                  this.downloadDash_(this.stack_[this.stack_.length - 1])}">
+          </circle>
+        </svg>
+      </span>
+    </span>
   </button>
   <div id="switcher">
     ${this.spaces_.map(space => html`

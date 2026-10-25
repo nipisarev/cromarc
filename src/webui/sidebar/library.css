@@ -552,10 +552,10 @@ button {
 }
 
 .download-row .file-icon[preview] {
-  background-size: cover;
   border-radius: 6px;
   height: 34px;
   margin-inline: -4px;
+  object-fit: cover;
   width: 34px;
 }
 
@@ -563,8 +563,10 @@ button {
   opacity: .6;
 }
 
+/* Zen's blank in its place. */
 .row[missing] .file-icon {
-  background: var(--pill-bg) !important;
+  background: var(--pill-bg);
+  content: linear-gradient(transparent, transparent);
 }
 
 /* Zen's forward arrow turned down while it comes in. */

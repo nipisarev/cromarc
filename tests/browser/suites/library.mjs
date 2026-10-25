@@ -174,11 +174,12 @@ if (!paths.every(p => p.startsWith(downloadDir ?? '\0'))) {
 check('Downloads lists them, newest first', !!files && files[0] === 'pixel.png', JSON.stringify(await titles(D)));
 const status = await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'sample.bin').querySelector('.download-status').textContent`);
 check('…with Firefox\'s status: size — site — time', /^22 байт — 127\.0\.0\.1 — \d\d:\d\d$/.test(status), status);
-const preview = await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'pixel.png').querySelector('.file-icon[preview]')?.style.backgroundImage ?? ''`);
-check('a finished picture shows itself', preview.includes('download-preview/'), preview);
-const drawn = await evaluate(sb, `new Promise(r => { const i = new Image(); i.onload = () => r(i.naturalWidth); i.onerror = () => r(-1); i.src = ${JSON.stringify(preview.match(/url\("([^"]+)"\)/)?.[1] ?? '')}; })`);
-check('…served from the page, the file itself', drawn === 1, String(drawn));
-check('the others get their file icon', (await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'sample.bin').querySelector('.file-icon').style.backgroundImage`)).includes('chrome://fileicon/'));
+const pictureIcon = `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'pixel.png').querySelector('.file-icon')`;
+check('a finished picture shows itself', !!(await until(() => evaluate(sb,
+    `${pictureIcon}.hasAttribute('preview') && ${pictureIcon}.src.includes('download-preview/')`))));
+check('…served from the page, the file itself', !!(await until(() => evaluate(sb,
+    `${pictureIcon}.complete && ${pictureIcon}.naturalWidth === 1`))), String(await evaluate(sb, `${pictureIcon}.naturalWidth`)));
+check('the others get their file icon', (await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'sample.bin').querySelector('.file-icon').src`)).startsWith('chrome://fileicon/'));
 const typed = async option => { await chip(D, 'type', option); await sleep(200); const t = await titles(D); await chip(D, 'type', option); return t; };
 await evaluate(sb, `${IN(`${D} .filter-button`)}.click(), true`);
 check('the type filter keeps pictures', JSON.stringify(await typed('images')) === '["pixel.png"]');
@@ -188,6 +189,20 @@ const binId = await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector(
 await evaluate(sb, `${APP}.proxy_.handler.doDownload(${binId}, 7), true`);
 check('deleting the file leaves it as gone', !!(await until(async () => (await evaluate(sb,
     `${ALL(`${D} .row[missing] .row-title`)}.map(n => n.textContent)`)).includes('sample.bin'))));
+// The download stack on the library button (ZenLibraryWidget).
+await evaluate(sb, `${IN('#footer .footer-button')}.click(), true`);
+await settled(false);
+const button = `${APP}.shadowRoot.querySelector('#library-button')`;
+await evaluate(sb, `${button}.dispatchEvent(new MouseEvent('mouseenter')), true`);
+check('hovering the library button raises the download stack', !!(await until(() => evaluate(sb,
+    `${APP}.stackOpen_ && ${APP}.shadowRoot.querySelector('#foot').hasAttribute('stack-open')`))));
+const entries = await evaluate(sb, `[...${APP}.shadowRoot.querySelectorAll('#download-list .download-entry:not([hidden]) .download-entry-title')].map(n => n.textContent)`);
+check('…with the last downloads, the newest at the bottom', JSON.stringify(entries) === '["sample.bin","pixel.png"]', JSON.stringify(entries));
+check('…and the tabs fading under it', await evaluate(sb, `getComputedStyle(${APP}.shadowRoot.querySelector('#viewport')).maskImage.includes('linear-gradient')`));
+await evaluate(sb, `${button}.dispatchEvent(new MouseEvent('mouseleave')), true`);
+check('…which goes when the pointer leaves', !!(await until(() => evaluate(sb, `!${APP}.stackOpen_`), 2000)));
+await evaluate(sb, `${button}.click()`);
+await settled(true);
 await evaluate(sb, `${APP}.testMenuChoice = 'Очистить все загрузки'; ${IN('.tab[data-section="downloads"]')}.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})), true`);
 check('the tab\'s menu clears them all', !!(await until(async () => (await titles(D)).length === 0)), JSON.stringify(await titles(D)));
 await evaluate(sb, `${IN('.tab[data-section="space-routing"]')}.click(), true`);

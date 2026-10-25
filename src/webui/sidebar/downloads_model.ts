@@ -208,3 +208,12 @@ export function statusText(download: DownloadLike, now: number): string {
   }
   return download.state === CANCELLED ? 'Отменено' : 'Ошибка';
 }
+
+// ZenLibraryWidget's ENTRIES: the download stack's slots, the newest at the
+// bottom, empty ones first.
+export const STACK_ENTRIES = 4;
+
+export function stackEntries<T>(downloads: T[]): Array<T|null> {
+  const shown = downloads.slice(-STACK_ENTRIES);
+  return [...Array(STACK_ENTRIES - shown.length).fill(null), ...shown];
+}

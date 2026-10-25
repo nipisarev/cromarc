@@ -65,9 +65,10 @@ export function getHtml(this: LibraryDownloadsElement) {
                   style="stroke-dasharray: ${this.ringDash_(download)}">
               </circle>
             </svg>` : html`
-            <span class="row-icon file-icon"
+            <img class="row-icon file-icon" alt="" draggable="false"
                 ?preview="${!!download.previewUrl}"
-                style="background-image: ${this.iconFor_(download)}"></span>`}
+                src="${this.iconSrc_(download)}"
+                data-id="${download.id}" @error="${this.onIconError_}">`}
         </div>
         <div class="row-text">
           <span class="row-title">${download.fileName}</span>

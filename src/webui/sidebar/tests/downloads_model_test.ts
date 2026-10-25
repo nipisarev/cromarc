@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {baseDomainOf, byteUnits, canRetry, CANCELLED, COMPLETE, fileGroupOf, IN_PROGRESS, INTERRUPTED, readableDate, statusText, timeLeftText, transferText} from '../downloads_model.ts';
+import {baseDomainOf, byteUnits, canRetry, CANCELLED, COMPLETE, fileGroupOf, IN_PROGRESS, INTERRUPTED, readableDate, stackEntries, statusText, timeLeftText, transferText} from '../downloads_model.ts';
 import type {DownloadLike} from '../downloads_model.ts';
 
 const now = new Date(2026, 9, 24, 15, 30).getTime();
@@ -74,4 +74,9 @@ test('only a stopped download that was not held back can be retried', () => {
   assert.ok(!canRetry(download({state: INTERRUPTED, dangerous: true})));
   assert.ok(!canRetry(download({state: COMPLETE})));
   assert.equal(baseDomainOf('https://www.dl.github.com/x'), 'github.com');
+});
+
+test('the download stack shows the last four, newest at the bottom', () => {
+  assert.deepEqual(stackEntries([1, 2]), [null, null, 1, 2]);
+  assert.deepEqual(stackEntries([1, 2, 3, 4, 5, 6]), [3, 4, 5, 6]);
 });

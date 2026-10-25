@@ -45,6 +45,10 @@
       color-mix(in srgb, var(--zen-primary-color) 50%, black),
       color-mix(in srgb, var(--zen-colors-primary) 15%, #ebebeb));
   --accent: var(--zen-primary-color);
+  /* zen-buttons.css. */
+  --zen-accent-button-background: light-dark(
+      oklch(from var(--zen-primary-color) clamp(.35, l, .6) c h),
+      oklch(from var(--zen-primary-color) clamp(.55, l, .7) c h));
   /* --zen-toolbox-padding, --tab-min-height, --tab-margin-block,
    * --border-radius-medium, --zen-folder-indent, --tab-padding-inline,
    * --toolbarbutton-padding-inner. */
@@ -855,12 +859,18 @@ button[hidden],
 /* The bottom row (#zen-sidebar-foot-buttons): the Library, the spaces in
  * the middle, "+" at the end. */
 #foot {
+  --stack-duration: .3s;
+  --stack-easing: cubic-bezier(.22, 1, .36, 1);
+  --stack-entry-easing: linear(0, .34 12%, .7 24%, .93 38%, 1.03 55%, 1);
+
   align-items: center;
   display: flex;
   flex-shrink: 0;
   gap: 4px;
   justify-content: space-between;
   padding: 6px var(--toolbox-padding);
+  position: relative;
+  z-index: 2;
 }
 
 /* Toolbar buttons: a 20px icon in 6px of padding (macOS). */
@@ -882,6 +892,297 @@ button[hidden],
 .foot-button > .svg {
   height: 20px;
   width: 20px;
+}
+
+/* Zen's download stack (zen-library-widget.css): a badge on the library
+ * button while a download comes in, which flies to its entry as the list of
+ * the last four rises over the foot, the tabs fading under it. */
+#foot:is([stack-open], [stack-closing]) {
+  z-index: 3;
+}
+
+#library-button {
+  position: relative;
+}
+
+.badge-stack {
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+}
+
+.badge-stack[downloading] {
+  animation: library-badge-download .4s ease;
+}
+
+@keyframes library-badge-download {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  50% {
+    scale: 1.15;
+  }
+}
+
+/* The badge's flight: a quadratic curve from its spot on the button to
+ * the newest entry's badge, set as the list opens. */
+#library-button-badge {
+  --stack-progress: 0;
+  --stack-badge-x: 14px;
+  --stack-badge-y: -8px;
+  --stack-badge-to-x: var(--stack-badge-x);
+  --stack-badge-to-y: var(--stack-badge-y);
+  --stack-badge-mid-x: calc((var(--stack-badge-x) + var(--stack-badge-to-x)) / 2 +
+      abs(var(--stack-badge-to-y) - var(--stack-badge-y)) / 2);
+  --stack-badge-mid-y: calc((var(--stack-badge-y) + var(--stack-badge-to-y)) / 2 -
+      abs(var(--stack-badge-to-x) - var(--stack-badge-x)) / 2);
+  --stack-left: calc(1 - var(--stack-progress));
+  --stack-badge-tx: calc(var(--stack-left) * var(--stack-left) * var(--stack-badge-x) +
+      2 * var(--stack-left) * var(--stack-progress) * var(--stack-badge-mid-x) +
+      var(--stack-progress) * var(--stack-progress) * var(--stack-badge-to-x));
+  --stack-badge-ty: calc(var(--stack-left) * var(--stack-left) * var(--stack-badge-y) +
+      2 * var(--stack-left) * var(--stack-progress) * var(--stack-badge-mid-y) +
+      var(--stack-progress) * var(--stack-progress) * var(--stack-badge-to-y));
+
+  left: 0;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  transform-origin: left top;
+  transition: --stack-progress var(--stack-duration) var(--stack-easing);
+}
+
+#library-button-badge:not([downloading]) {
+  transform: translate(var(--stack-badge-tx), var(--stack-badge-ty))
+      scale(calc((var(--stack-progress) + 1) * 100%));
+}
+
+#library-button-badge[downloading] {
+  transform: translate(var(--stack-badge-tx), var(--stack-badge-ty))
+      scale(calc((var(--stack-progress) * .2 + .8) * 100%));
+}
+
+#foot[stack-open] #library-button-badge {
+  --stack-progress: 1;
+}
+
+#library-button-badge,
+#foot[stack-badge] #download-list > :last-child .download-badge {
+  visibility: hidden;
+}
+
+#foot[stack-badge] #library-button-badge {
+  visibility: visible;
+}
+
+#foot[stack-badge][stack-open] #library-button-badge {
+  transition: visibility 0s var(--stack-duration),
+      --stack-progress var(--stack-duration) var(--stack-easing);
+  visibility: hidden;
+}
+
+#foot[stack-badge][stack-open] #download-list > :last-child .download-badge {
+  transition: visibility 0s var(--stack-duration);
+  visibility: visible;
+}
+
+.download-badge {
+  pointer-events: none;
+}
+
+.download-badge:not([downloading]) {
+  background-image: var(--download-image);
+  background-size: cover;
+  border-radius: 4px;
+  height: 20px;
+  scale: 2;
+  width: 20px;
+}
+
+.download-badge:not([downloading]) .download-progress {
+  display: none;
+}
+
+.download-badge[downloading] {
+  align-self: start;
+  background-color: color-mix(in srgb, var(--zen-primary-color), light-dark(white, rgba(0, 0, 0, .5)) 80%);
+  border: 3px solid transparent;
+  border-radius: 100%;
+  box-shadow: 0 0 6px 2px rgba(0, 0, 0, .1);
+  box-sizing: content-box;
+  height: 25px;
+  position: relative;
+  transform: translateX(-2px);
+  width: 25px;
+  will-change: transform;
+}
+
+/* Zen's forward arrow, turned down. */
+.download-badge[downloading]::after {
+  background: currentColor;
+  content: '';
+  inset: 2px;
+  mask: url(sidebar/ui_icons/arrow-back.svg) center / contain no-repeat;
+  position: absolute;
+  rotate: -90deg;
+}
+
+.download-progress {
+  --border-width: 4px;
+  --progress: var(--zen-accent-button-background);
+  --thickness: 3px;
+
+  border-radius: 100px;
+  inset: 1px;
+  margin: calc(-1 * var(--border-width));
+  position: absolute;
+}
+
+.download-progress circle {
+  fill: none;
+  stroke-width: var(--thickness);
+}
+
+.download-progress-track {
+  stroke: currentColor;
+}
+
+.download-progress-arc {
+  rotate: -90deg;
+  stroke: var(--progress);
+  transform-origin: center;
+}
+
+#download-list {
+  bottom: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  inset-inline: var(--toolbox-padding);
+  padding-top: 10px;
+  position: absolute;
+  transition: visibility 0s var(--stack-duration);
+  visibility: hidden;
+}
+
+#foot[stack-open] #download-list {
+  transition: none;
+  visibility: visible;
+}
+
+.download-entry {
+  --entry-index: 0;
+  --entry-delay: calc(var(--entry-index) * 12ms);
+  --entry-settle: 0s;
+
+  border-radius: 16px;
+  display: flex;
+  height: 52px;
+  opacity: 0;
+  padding: 0 4px;
+  pointer-events: none;
+  position: relative;
+  transform: translateY(25px);
+  transition: transform .22s var(--stack-entry-easing) var(--entry-delay),
+      opacity .22s var(--stack-entry-easing) var(--entry-delay),
+      pointer-events 0s var(--entry-settle) allow-discrete;
+}
+
+.download-entry:nth-last-child(2) {
+  --entry-index: 1;
+}
+
+.download-entry:nth-last-child(3) {
+  --entry-index: 2;
+}
+
+.download-entry:nth-last-child(4) {
+  --entry-index: 3;
+}
+
+#foot[stack-open] .download-entry {
+  --entry-settle: calc(.22s + var(--entry-delay));
+
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.download-entry:hover {
+  background: var(--zen-toolbar-element-bg);
+}
+
+.download-entry-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin: auto 0;
+  min-width: 0;
+}
+
+.download-entry-title,
+.download-entry-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.download-entry-title {
+  font-size: 11pt;
+  opacity: .9;
+}
+
+.download-entry-subtitle {
+  font-size: 9pt;
+  opacity: .6;
+}
+
+.download-entry .download-badge {
+  margin: auto 20px auto 8px;
+}
+
+.download-entry .download-badge[downloading] {
+  margin-right: 15px;
+}
+
+.download-action {
+  border-radius: 6px;
+  display: none;
+  height: 28px;
+  margin: auto 4px auto 0;
+  width: 28px;
+}
+
+.download-action:hover {
+  background: var(--hover);
+}
+
+.download-entry:is([downloading], [show-in-folder]):hover .download-action {
+  display: flex;
+}
+
+/* The tabs fade out under the rising list. */
+#viewport:is([stack-open], [stack-closing]) {
+  --mask-ramp: 80px;
+  --mask-bleed: var(--toolbox-padding);
+  --mask-overshoot: 10px;
+
+  mask-clip: no-clip;
+  mask-image: linear-gradient(to bottom, black calc(100% - var(--mask-ramp)), transparent 100%);
+  mask-position: calc(-1 * var(--mask-bleed)) calc(-1 * var(--mask-bleed));
+  mask-repeat: no-repeat;
+  mask-size: calc(100% + var(--mask-bleed) * 2)
+      calc(100% + var(--mask-bleed) + var(--mask-ramp));
+  transition: mask-size var(--stack-duration) var(--stack-easing);
+}
+
+#viewport[stack-open] {
+  mask-size: calc(100% + var(--mask-bleed) * 2)
+      calc(100% - var(--stack-height, 0px) + var(--mask-overshoot) + var(--mask-bleed));
 }
 
 /* Zen's library icon: 36 frames that play on hover

@@ -5,8 +5,8 @@
 import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
-import {SwipeType} from '../sidebar.mojom-webui.js';
-import type {ICloudSpace, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
+import {DownloadCommand, SwipeType} from '../sidebar.mojom-webui.js';
+import type {Download, ICloudSpace, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 import {TabNetworkState} from '/tab_strip_api/tabs.mojom-webui.js';
 import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_api/tab_strip_api_events.mojom-webui.js';
@@ -28,6 +28,9 @@ import type {MenuItem} from './menu.js';
 import {iconMask} from './space_icon.js';
 import {themeFromJson} from './theme_model.js';
 import type {SpaceTheme} from './theme_model.js';
+import {canRetry, hasFile, hasProgress, isPending, progressOf, stackEntries, statusText} from './downloads_model.js';
+import {downloadsStore} from './downloads_store.js';
+import {libraryStrings} from './library_strings.js';
 import {LIBRARY_SPRING, physicalSpring} from './motion.js';
 import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, librarySwipeProgress, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
@@ -35,6 +38,18 @@ import {strings} from './strings.js';
 import {TabListModel} from './tab_list_model.js';
 
 const PINS_COLLAPSED_KEY = 'cromarc.pinsCollapsed';
+// zen-library-widget.css registers --zen-library-progress with @property so
+// the download badge's flight transitions; a shadow root ignores @property.
+try {
+  CSS.registerProperty({
+    name: '--stack-progress',
+    syntax: '<number>',
+    inherits: true,
+    initialValue: '0',
+  });
+} catch {
+  // Registered already.
+}
 // zen-library.css: the Library is at least 418px wide, its rail 110px of it.
 const LIBRARY_WIDTH = 418;
 
@@ -113,6 +128,10 @@ export class SidebarAppElement extends CrLitElement {
       libraryDrag_: {type: Number},
       libraryProgress_: {type: Number},
       primary_: {type: String},
+      stack_: {type: Array},
+      stackOpen_: {type: Boolean},
+      stackClosing_: {type: Boolean},
+      stackBadge_: {type: Boolean},
       addProgress_: {type: Number},
       pinsCollapsed_: {type: Boolean},
     };
@@ -169,6 +188,12 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor libraryProgress_: number = 0;
   // The space's primary colour, for the Library's icons.
   protected accessor primary_: string = '';
+  // Zen's download stack on the library button (ZenLibraryWidget): the
+  // downloads, oldest first, the list over the foot, and the badge.
+  protected accessor stack_: Download[] = [];
+  protected accessor stackOpen_: boolean = false;
+  protected accessor stackClosing_: boolean = false;
+  protected accessor stackBadge_: boolean = false;
   // Zen's add-space swipe past the last space: 1 is ready.
   protected accessor addProgress_: number = 0;
   // Zen's collapsible pins: the space header folds the pinned tabs away.
@@ -188,6 +213,11 @@ export class SidebarAppElement extends CrLitElement {
   // A tab opening closes the Library (Zen's onTabOpen), but not one it opens
   // in the background itself (keepOpenWhile).
   private keepLibraryOpenUntil_ = 0;
+  private stackCloseTimer_ = 0;
+  // A download added since the list came in shows the badge until the
+  // stack is next looked at.
+  private stackSeen_: Set<number>|null = null;
+  private stackRecent_ = false;
   private deferred_: Set<string> = new Set();
   private clearedTimer_ = 0;
   private swipe_: SwipeState|null = null;
@@ -246,6 +276,7 @@ export class SidebarAppElement extends CrLitElement {
     router.onSwipe.addListener((swipe: Swipe) => this.onSwipe_(swipe));
     this.proxy_.handler.getSpaces().then(({spaces}) => this.setSpaces_(spaces));
     this.connectTabs_();
+    downloadsStore().subscribe(downloads => this.onDownloads_(downloads));
     this.addEventListener('dragover', e => this.moveGhost_(e));
     this.addEventListener('dragleave', e => {
       // Out of the page: nothing there shows the drag image.
@@ -716,6 +747,267 @@ export class SidebarAppElement extends CrLitElement {
   private onTabOpened_() {
     if (this.libraryOpen_ && Date.now() > this.keepLibraryOpenUntil_) {
       this.closeLibrary_();
+    }
+  }
+
+  // The download stack (zen:library/ZenLibraryWidget.sys.mjs).
+
+  private onDownloads_(downloads: Download[]) {
+    if (this.stackSeen_) {
+      if (downloads.some(download => !this.stackSeen_!.has(download.id))) {
+        this.stackRecent_ = true;
+      }
+    }
+    this.stackSeen_ = new Set(downloads.map(download => download.id));
+    this.stack_ = downloads;
+    this.updateStackBadge_();
+    if (!downloads.length) {
+      this.closeStack_();
+    }
+  }
+
+  private newestDownload_(): Download|undefined {
+    return this.stack_[this.stack_.length - 1];
+  }
+
+  private updateStackBadge_() {
+    const newest = this.newestDownload_();
+    this.stackBadge_ = (!!newest && isPending(newest)) || this.stackRecent_;
+  }
+
+  protected stackEntries_(): Array<Download|null> {
+    return stackEntries(this.stack_);
+  }
+
+  protected newestPending_(): boolean {
+    const newest = this.newestDownload_();
+    return !!newest && isPending(newest);
+  }
+
+  protected downloadPending_(download: Download|null): boolean {
+    return !!download && isPending(download);
+  }
+
+  protected downloadHasFile_(download: Download|null): boolean {
+    return !!download && hasFile(download);
+  }
+
+  protected downloadImage_(download: Download|null|undefined): string {
+    if (!download) {
+      return '';
+    }
+    const icon = `url("chrome://fileicon/?path=${
+        encodeURIComponent(download.path || download.fileName)}&scale=2x")`;
+    return `--download-image: ${
+        download.previewUrl ? `url("${download.previewUrl}"), ` : ''}${icon}`;
+  }
+
+  protected downloadDash_(download: Download|null|undefined): string {
+    return `${download && hasProgress(download) ? progressOf(download) : 0} 100`;
+  }
+
+  protected downloadStatus_(download: Download|null): string {
+    if (!download) {
+      return '';
+    }
+    return isPending(download) && download.openWhenComplete ?
+        libraryStrings.openWhenDone :
+        statusText(download, Date.now());
+  }
+
+  protected downloadActionLabel_(download: Download|null): string {
+    return this.downloadPending_(download) ? libraryStrings.cancelDownload :
+                                             libraryStrings.showInFinder;
+  }
+
+  protected onLibraryButtonMouseenter_() {
+    clearTimeout(this.stackCloseTimer_);
+    this.openStack_();
+  }
+
+  protected onDownloadListMouseenter_() {
+    clearTimeout(this.stackCloseTimer_);
+  }
+
+  protected onStackMouseleave_() {
+    clearTimeout(this.stackCloseTimer_);
+    // ZenLibraryWidget's CLOSE_DELAY_MS.
+    this.stackCloseTimer_ = setTimeout(() => this.closeStack_(), 200);
+  }
+
+  private openStack_() {
+    if (!this.stack_.length || this.stackOpen_ || this.libraryOpen_) {
+      return;
+    }
+    this.aimBadge_();
+    this.stackClosing_ = false;
+    this.stackOpen_ = true;
+  }
+
+  private closeStack_() {
+    if (!this.stackOpen_) {
+      return;
+    }
+    this.stackRecent_ = false;
+    this.updateStackBadge_();
+    this.stackOpen_ = false;
+    this.stackClosing_ = true;
+    // After the mask's slide back (zen-library-widget.css).
+    setTimeout(() => {
+      if (!this.stackOpen_) {
+        this.stackClosing_ = false;
+      }
+    }, 300);
+  }
+
+  // ZenLibraryWidget #aimBadge: the button's badge flies to the newest
+  // entry's as the list opens.
+  private aimBadge_() {
+    const badge = this.shadowRoot.querySelector<HTMLElement>(
+        '#library-button-badge');
+    const target = this.shadowRoot.querySelector<HTMLElement>(
+        '#download-list > .download-entry:last-child .download-badge');
+    const entry = target?.closest<HTMLElement>('.download-entry');
+    if (!badge || !target || !entry) {
+      return;
+    }
+    const from = badge.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    const transform = getComputedStyle(badge).transform;
+    const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+    // The entry is still lowered while closed; aim where it ends.
+    const entryTransform = getComputedStyle(entry).transform;
+    const rise = entryTransform === 'none' ? 0 :
+                                             new DOMMatrixReadOnly(entryTransform).f;
+    badge.style.setProperty(
+        '--stack-badge-to-x', `${matrix.e + to.left - from.left}px`);
+    badge.style.setProperty(
+        '--stack-badge-to-y', `${matrix.f + to.top - from.top - rise}px`);
+    const list = this.shadowRoot.querySelector<HTMLElement>('#download-list');
+    if (list) {
+      this.style.setProperty('--stack-height', `${list.offsetHeight}px`);
+    }
+  }
+
+  private stackDownloadOf_(e: Event): Download|undefined {
+    const id = Number((e.currentTarget as HTMLElement).dataset['id']);
+    return this.stack_.find(download => download.id === id);
+  }
+
+  private doDownload_(download: Download, command: DownloadCommand) {
+    this.proxy_.handler.doDownload(download.id, command);
+  }
+
+  // ZenLibraryWidget #openDownload: one coming in opens when done, a held
+  // back one is asked about in the Library, a finished one opens, a failed
+  // one retries, anything else opens its page.
+  protected onDownloadEntryClick_(e: MouseEvent) {
+    const download = this.stackDownloadOf_(e);
+    if (!download || e.button !== 0) {
+      return;
+    }
+    if (isPending(download) && !download.dangerous) {
+      this.doDownload_(download, DownloadCommand.kOpen);
+    } else if (download.dangerous) {
+      this.closeStack_();
+      this.openLibrary_();
+    } else if (hasFile(download)) {
+      this.doDownload_(download, DownloadCommand.kOpen);
+    } else if (canRetry(download)) {
+      this.doDownload_(download, DownloadCommand.kRetry);
+    } else if (download.url) {
+      this.proxy_.handler.openUrl(download.url, false);
+    }
+  }
+
+  // The entry's one button calls off a download on its way, and shows the
+  // file once it is here.
+  protected onDownloadActionClick_(e: MouseEvent) {
+    e.stopPropagation();
+    const download = this.stackDownloadOf_(e);
+    if (!download) {
+      return;
+    }
+    if (isPending(download)) {
+      this.doDownload_(download, DownloadCommand.kCancel);
+    } else if (hasFile(download)) {
+      this.doDownload_(download, DownloadCommand.kShow);
+    }
+  }
+
+  // ZenLibraryWidget #contextMenuItems.
+  protected onDownloadEntryContextmenu_(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const download = this.stackDownloadOf_(e);
+    if (!download) {
+      return;
+    }
+    const s = libraryStrings;
+    const active = isPending(download);
+    const file = hasFile(download);
+    const items: MenuItem[] = [];
+    if (active && !download.paused) {
+      items.push({
+        label: s.menuPause,
+        action: () => this.doDownload_(download, DownloadCommand.kPause),
+      });
+    } else if (active) {
+      items.push({
+        label: s.menuResume,
+        action: () => this.doDownload_(download, DownloadCommand.kResume),
+      });
+    } else if (canRetry(download)) {
+      items.push({
+        label: s.retryDownload,
+        action: () => this.doDownload_(download, DownloadCommand.kRetry),
+      });
+    }
+    if (file) {
+      items.push({
+        label: s.showInFinder,
+        action: () => this.doDownload_(download, DownloadCommand.kShow),
+      });
+    }
+    if (download.url) {
+      items.push(
+          {
+            label: s.menuGoToPage,
+            action: () => this.proxy_.handler.openUrl(download.url, false),
+          },
+          {
+            label: s.menuCopyLink,
+            action: () => this.doDownload_(download, DownloadCommand.kCopyLink),
+          });
+    }
+    items.push({label: ''});
+    if (file) {
+      items.push({
+        label: s.menuDelete,
+        action: () => this.doDownload_(download, DownloadCommand.kDeleteFile),
+      });
+    }
+    if (!active) {
+      items.push({
+        label: s.menuRemoveFromHistory,
+        action: () => this.doDownload_(download, DownloadCommand.kHide),
+      });
+    }
+    if (this.stack_.some(other => !isPending(other))) {
+      items.push({
+        label: s.menuClearPreview,
+        action: () => this.proxy_.handler.clearDownloads(),
+      });
+    }
+    this.showMenu_(e.clientX, e.clientY, items).then(
+        () => this.onStackMouseleave_());
+  }
+
+  protected onDownloadEntryDragstart_(e: DragEvent) {
+    e.preventDefault();
+    const download = this.stackDownloadOf_(e);
+    if (download && hasFile(download)) {
+      this.doDownload_(download, DownloadCommand.kDrag);
     }
   }
 
