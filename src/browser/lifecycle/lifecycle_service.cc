@@ -306,12 +306,14 @@ std::vector<GURL> LifecycleService::ClearToday(
       today.push_back(tab);
     }
   }
+  // The window keeps a page: with nothing but Today in it, the last tab
+  // stays. Counted before closing, as a tab with unload listeners leaves the
+  // strip only later.
+  if (!today.empty() && static_cast<int>(today.size()) == model->count()) {
+    today.pop_back();
+  }
   std::vector<GURL> urls;
   for (tabs::TabInterface* tab : today) {
-    // The window keeps a page: the last tab stays.
-    if (model->count() <= 1) {
-      break;
-    }
     urls.push_back(tab->GetContents()->GetLastCommittedURL());
     ArchiveAndClose(tab, "clear");
   }

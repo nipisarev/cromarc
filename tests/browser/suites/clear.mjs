@@ -55,4 +55,17 @@ check('…the toast goes', !!(await until(() => evaluate(sb, `!${R}.querySelecto
 check('…and they leave the archive', !!(await until(async () => (await archived()).length === 0, 4000)), JSON.stringify(await archived()));
 await evaluate(sb, `${clear}.click(), true`);
 check('without undo the toast goes after 5 s', !!(await until(() => evaluate(sb, `!${R}.querySelector('#toast')`), 7000)));
+
+// Tabs that close later (their beforeunload listeners run first): the window
+// still keeps a page instead of closing with the last of them.
+for (const p of ['unload.html?1', 'unload.html?2']) {
+  await fetch(`${base}/json/new?${encodeURIComponent(`${site}/${p}`)}`, {method: 'PUT'});
+}
+await until(async () => (await pages()).filter(u => u.includes('unload')).length === 2);
+await sleep(1000);
+await evaluate(await sidebar(), `${clear}.click(), true`);
+await sleep(2500);
+check('Clear keeps the window when tabs close slowly', !!(await sidebar()) &&
+    (await targets()).filter(t => t.type === 'page').length >= 1,
+    JSON.stringify((await targets()).map(t => t.url)));
 process.exit(results.every(Boolean) ? 0 : 1);

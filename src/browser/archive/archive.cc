@@ -66,6 +66,14 @@ bool Archive::Init() {
 }
 
 bool Archive::Add(const ArchiveEntry& entry) {
+  // Firefox keeps no closed blank tabs. The New Tab page's hosts are
+  // chrome/common/webui_url_constants.h's kChromeUINewTab(Page)Host.
+  if (entry.url.IsAboutBlank() ||
+      (entry.url.SchemeIs("chrome") &&
+       (entry.url.GetHost() == "newtab" ||
+        entry.url.GetHost() == "new-tab-page"))) {
+    return false;
+  }
   sql::Transaction transaction(&db_);
   if (!transaction.Begin()) {
     return false;

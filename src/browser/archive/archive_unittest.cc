@@ -50,6 +50,18 @@ class ArchiveTest : public testing::Test {
   std::unique_ptr<Archive> archive_;
 };
 
+// Firefox keeps no closed blank tabs; a blank page or a New Tab says nothing
+// about what was being done.
+TEST_F(ArchiveTest, BlankPagesAreNotKept) {
+  EXPECT_FALSE(archive_->Add(Entry("about:blank", "about:blank", now_)));
+  EXPECT_FALSE(archive_->Add(Entry("chrome://newtab/", "New Tab", now_)));
+  EXPECT_FALSE(
+      archive_->Add(Entry("chrome://new-tab-page/", "New Tab", now_)));
+  EXPECT_TRUE(archive_->Add(Entry("https://a.test/", "A", now_)));
+  EXPECT_EQ(Titles(archive_->Search(u"", 10)),
+            std::vector<std::string>({"A"}));
+}
+
 TEST_F(ArchiveTest, EmptyQueryListsNewestFirst) {
   ASSERT_TRUE(archive_->Add(Entry("https://a", "A", now_ - base::Hours(2))));
   ASSERT_TRUE(archive_->Add(Entry("https://b", "B", now_ - base::Hours(1))));
