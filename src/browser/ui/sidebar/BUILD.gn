@@ -72,6 +72,7 @@ source_set("impl") {
   }
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]
   deps = [
+    ":compact_hover",
     ":sidebar",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui/browser_window",
@@ -110,5 +111,27 @@ source_set("impl") {
     "//ui/views",
     "//ui/webui",
     "//url",
+  ]
+}
+
+source_set("compact_hover") {
+  sources = [
+    "compact_hover.cc",
+    "compact_hover.h",
+  ]
+  deps = [
+    "//base",
+    "//ui/gfx/geometry",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "compact_hover_unittest.cc" ]
+  deps = [
+    ":compact_hover",
+    "//base",
+    "//testing/gtest",
+    "//ui/gfx/geometry",
   ]
 }

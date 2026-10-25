@@ -5,12 +5,15 @@
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
 
 #include "base/functional/bind.h"
+#include "base/task/sequenced_task_runner.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
+#include "cromarc/browser/ui/sidebar/compact_hover.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
+#include "cromarc/browser/ui/sidebar/space_input.h"
 #include "ui/base/base_window.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
@@ -25,8 +28,6 @@ constexpr base::TimeDelta kKeepAfterLeave = base::Milliseconds(150);
 constexpr base::TimeDelta kFlash = base::Milliseconds(800);
 // How close to the window's left edge the cursor reveals the sidebar.
 constexpr int kEdge = 6;
-// How far past the revealed sidebar the cursor may wander before it hides.
-constexpr int kSlack = 16;
 
 }  // namespace
 
@@ -80,7 +81,7 @@ void CompactMode::OnMouseMoved(const gfx::Point& screen_point) {
     }
     return;
   }
-  if (in_strip_band && screen_point.x() <= strip.right() + kSlack) {
+  if (CompactSidebarStaysOut(window, strip, screen_point)) {
     hide_timer_.Stop();
   } else if (!hide_timer_.IsRunning()) {
     HideAfter(kKeepAfterLeave);
@@ -102,6 +103,8 @@ void CompactMode::Reveal() {
   }
   if (VerticalTabStripRegionView* region = Region()) {
     lock_ = region->GetExpandOnHoverLock(ExpandOnHoverLockType::kKeepExpanded);
+    mouse_watch_ = WatchMouseEverywhere(base::BindRepeating(
+        &CompactMode::OnMouseMoved, weak_factory_.GetWeakPtr()));
   }
 }
 
@@ -113,6 +116,11 @@ void CompactMode::HideAfter(base::TimeDelta delay) {
 void CompactMode::Hide() {
   hide_timer_.Stop();
   lock_.reset();
+  // Not from inside the monitor's own handler.
+  if (mouse_watch_) {
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, base::DoNothingWithBoundArgs(std::move(mouse_watch_)));
+  }
 }
 
 void CompactMode::OnTabStripModelChanged(

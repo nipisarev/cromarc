@@ -7,7 +7,9 @@
 
 #include <memory>
 
+#include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "base/timer/timer.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"  // nogncheck: //chrome/browser/ui links //cromarc
 
@@ -60,7 +62,11 @@ class CompactMode : public TabStripModelObserver {
 
   const raw_ptr<SidebarView> sidebar_;
   std::unique_ptr<ExpandOnHoverLock> lock_;
+  // The cursor everywhere while the sidebar is out, as Zen's mouse tracker:
+  // a move out of the window ends it, unless just past the sidebar's edge.
+  base::ScopedClosureRunner mouse_watch_;
   base::OneShotTimer hide_timer_;
+  base::WeakPtrFactory<CompactMode> weak_factory_{this};
 };
 
 }  // namespace cromarc

@@ -5,6 +5,13 @@
 #ifndef CROMARC_BROWSER_UI_SIDEBAR_SPACE_INPUT_H_
 #define CROMARC_BROWSER_UI_SIDEBAR_SPACE_INPUT_H_
 
+#include "base/functional/callback.h"
+#include "base/functional/callback_helpers.h"
+
+namespace gfx {
+class Point;
+}  // namespace gfx
+
 namespace cromarc {
 
 // Space switching input, Zen's triggers (design, component 4): a two-finger
@@ -12,6 +19,11 @@ namespace cromarc {
 // Ctrl + mouse wheel over the sidebar. Installed once, process-wide, ahead of
 // Chrome's own event handling, so no upstream accelerator table changes.
 void InstallSpaceInputMonitor();
+
+// zen:compact-mode/ZenMouseTracker: while the result lives, `on_move` gets
+// the cursor's screen point for every move, over any window of any app.
+base::ScopedClosureRunner WatchMouseEverywhere(
+    base::RepeatingCallback<void(const gfx::Point&)> on_move);
 
 }  // namespace cromarc
 

@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 
+#include "base/functional/bind.h"
 #include "base/no_destructor.h"
 #include "base/time/time.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -175,6 +176,45 @@ NSEvent* HandleMouseMoved(NSEvent* event) {
 }
 
 }  // namespace
+
+base::ScopedClosureRunner WatchMouseEverywhere(
+    base::RepeatingCallback<void(const gfx::Point&)> on_move) {
+  const NSEventMask mask = NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged |
+                           NSEventMaskRightMouseDragged |
+                           NSEventMaskOtherMouseDragged;
+  id local = [NSEvent
+      addLocalMonitorForEventsMatchingMask:mask
+                                   handler:^NSEvent*(NSEvent* event) {
+                                     on_move.Run(gfx::ScreenPointFromNSPoint(
+                                         [NSEvent mouseLocation]));
+                                     return event;
+                                   }];
+  // Other apps' windows: moves there never reach a local monitor.
+  id global = [NSEvent
+      addGlobalMonitorForEventsMatchingMask:mask
+                                    handler:^(NSEvent* event) {
+                                      on_move.Run(gfx::ScreenPointFromNSPoint(
+                                          [NSEvent mouseLocation]));
+                                    }];
+  // Removes both as the runner runs.
+  struct Monitors {
+    ~Monitors() {
+      if (local) {
+        [NSEvent removeMonitor:local];
+      }
+      if (global) {
+        [NSEvent removeMonitor:global];
+      }
+    }
+    id __strong local;
+    id __strong global;
+  };
+  auto monitors = std::make_unique<Monitors>();
+  monitors->local = local;
+  monitors->global = global;
+  return base::ScopedClosureRunner(base::BindOnce(
+      [](std::unique_ptr<Monitors>) {}, std::move(monitors)));
+}
 
 void InstallSpaceInputMonitor() {
   static bool installed = false;
