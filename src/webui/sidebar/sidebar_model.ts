@@ -67,9 +67,12 @@ export function isAwayFromHome(homeUrl: string, currentUrl: string): boolean {
   return normalize(homeUrl) !== normalize(currentUrl);
 }
 
+// `pinned`: tabs in Chrome's collection of pinned tabs. Those are pinned
+// items' tabs (LifecycleService closes the others at startup); one no item
+// claims yet is waking, its link on the way, and is not a Today tab.
 export function buildSidebar(
-    tree: TreeNode[], tabs: Tab[],
-    deferred: Set<string> = new Set()): SidebarView {
+    tree: TreeNode[], tabs: Tab[], deferred: Set<string> = new Set(),
+    pinned: Set<string> = new Set()): SidebarView {
   const tabsById = new Map(tabs.map(t => [t.id, t]));
   const linked = new Set<string>();
   const essentials: PinnedRow[] = [];
@@ -115,7 +118,8 @@ export function buildSidebar(
   };
   visit(tree, 0, '', false);
 
-  const unlinked = tabs.filter(t => !linked.has(t.id)).reverse();
+  const unlinked =
+      tabs.filter(t => !linked.has(t.id) && !pinned.has(t.id)).reverse();
   return {
     essentials,
     rows,

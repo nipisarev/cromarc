@@ -69,6 +69,13 @@ test('today has the unlinked tabs, newest (last in the strip) first', () => {
   assert.deepEqual(view.today.map(t => t.id), ['3:2', '2:2']);
 });
 
+test('a pinned tab no item claims yet is waking, not a Today tab', () => {
+  const view = buildSidebar([pinned('p', 'https://p')],
+      [tab('1:2', 'https://p'), tab('2:2', 'https://a')], new Set(),
+      new Set(['1:2']));
+  assert.deepEqual(view.today.map(t => t.id), ['2:2']);
+});
+
 test('deferred tabs move from Today to Needs attention', () => {
   const view = buildSidebar([], [tab('1:2', 'https://a'), tab('2:2', 'https://b')],
       new Set(['1:2']));

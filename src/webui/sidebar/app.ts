@@ -144,6 +144,8 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   protected accessor tabs_: Tab[] = [];
+  // Tabs in Chrome's collection of pinned tabs, set with tabs_.
+  private pinnedTabs_: Set<string> = new Set();
   protected accessor tree_: TreeNode[] = [];
   protected accessor view_: SidebarView =
       {essentials: [], rows: [], attention: [], today: []};
@@ -303,7 +305,8 @@ export class SidebarAppElement extends CrLitElement {
     if (changed.has('tabs_' as keyof SidebarAppElement) ||
         changed.has('tree_' as keyof SidebarAppElement) ||
         changed.has('minutesLeft_' as keyof SidebarAppElement)) {
-      this.view_ = buildSidebar(this.tree_, this.tabs_, this.deferred_);
+      this.view_ = buildSidebar(
+          this.tree_, this.tabs_, this.deferred_, this.pinnedTabs_);
       this.fillTitles_();
       this.checkPins_();
     }
@@ -1356,6 +1359,7 @@ export class SidebarAppElement extends CrLitElement {
         this.connectTabs_();
         return;
       }
+      this.pinnedTabs_ = model.pinnedTabIds();
       this.tabs_ = model.tabs();
     };
     const observer: TabStripObserver = {
@@ -1372,6 +1376,7 @@ export class SidebarAppElement extends CrLitElement {
         }
       },
     };
+    this.pinnedTabs_ = model.pinnedTabIds();
     this.tabs_ = model.tabs();
     new TabStripObservation(observer).bind(snapshot.stream.handle);
   }

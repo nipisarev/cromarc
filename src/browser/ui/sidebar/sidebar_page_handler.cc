@@ -280,17 +280,26 @@ void SidebarPageHandler::PinTab(const tabs_api::NodeId& tab_id,
   }
   content::WebContents* contents = tab->GetContents();
   Tree& tree = tree_service_->tree();
-  const bookmarks::BookmarkNode* node = tree.AddPinned(
-      parent_id, index, contents->GetTitle(), contents->GetLastCommittedURL());
-  if (!node) {
-    return;
+  // The item comes linked to its tab, then the tab is pinned: no step shows
+  // it asleep, in two places, or in none.
+  bool added = false;
+  tree_service_->Batch([&] {
+    const bookmarks::BookmarkNode* node =
+        tree.AddPinned(parent_id, index, contents->GetTitle(),
+                       contents->GetLastCommittedURL());
+    if (!node) {
+      return;
+    }
+    added = true;
+    const std::string id = Tree::IdOf(node);
+    if (essential) {
+      tree.SetEssential(id, true);
+    }
+    tree_service_->Link(id, tab);
+  });
+  if (added) {
+    SetPinned(tab, true);
   }
-  const std::string id = Tree::IdOf(node);
-  if (essential) {
-    tree.SetEssential(id, true);
-  }
-  SetPinned(tab, true);
-  tree_service_->Link(id, tab);
 }
 
 void SidebarPageHandler::MoveItem(const std::string& id,

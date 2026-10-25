@@ -9,6 +9,8 @@ import type {NodeId, Position} from '/tab_strip_api/tab_strip_api_types.mojom-we
 interface Node {
   id: NodeId;
   tab?: Tab;
+  // Chrome's collection of pinned tabs.
+  pinned: boolean;
   children: Node[];
   parent?: Node;
 }
@@ -46,10 +48,24 @@ export class TabListModel {
     return result;
   }
 
+  // Tabs in Chrome's collection of pinned tabs.
+  pinnedTabIds(): Set<NodeId> {
+    const result = new Set<NodeId>();
+    const visit = (node: Node, pinned: boolean) => {
+      if (node.tab && pinned) {
+        result.add(node.tab.id);
+      }
+      node.children.forEach(child => visit(child, pinned || child.pinned));
+    };
+    [...this.nodes_.values()].filter(node => !node.parent)
+        .forEach(root => visit(root, root.pinned));
+    return result;
+  }
+
   onTabsCreated(event: OnTabsCreatedEvent): boolean {
     return event.tabs.every(
         created => this.insert_(
-            {id: created.tab.id, tab: created.tab, children: []},
+            {id: created.tab.id, tab: created.tab, pinned: false, children: []},
             created.position));
   }
 
@@ -100,6 +116,7 @@ export class TabListModel {
     const node: Node = {
       id: dataId(container.data),
       tab: container.data.tab,
+      pinned: container.data.pinnedTabs !== undefined,
       children: [],
       parent,
     };

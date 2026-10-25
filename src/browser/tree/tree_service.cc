@@ -4,12 +4,19 @@
 
 #include "cromarc/browser/tree/tree_service.h"
 
+#include <utility>
+
+#include "base/auto_reset.h"
 #include "base/functional/bind.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/navigator/browser_navigator_params.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "components/bookmarks/browser/bookmark_model.h"
 #include "components/bookmarks/browser/bookmark_node.h"
+#include "components/tabs/public/tab_interface.h"
 #include "cromarc/browser/tree/tree_service_factory.h"
 #include "ui/base/base_window.h"
 #include "ui/base/window_open_disposition.h"
@@ -97,16 +104,20 @@ void TreeService::Open(BrowserWindowInterface* browser,
     }
     return;
   }
-  // Asleep: its home URL, as a new pinned tab of `browser`.
-  browser->OpenGURL(node->url(), WindowOpenDisposition::NEW_FOREGROUND_TAB);
-  TabStripModel* model = browser->GetTabStripModel();
-  tabs::TabInterface* tab = model->GetTabAtIndex(model->active_index());
+  // Asleep: its home URL, as a new tab of `browser` pinned from the start.
+  // A sidebar holds a pinned tab no item claims yet out of Today, so it wakes
+  // in its place, as Zen's unloaded pinned tab loads where it is.
+  NavigateParams params(browser, node->url(), ui::PAGE_TRANSITION_LINK);
+  params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
+  params.tabstrip_add_types = AddTabTypes::ADD_ACTIVE | AddTabTypes::ADD_PINNED;
+  Navigate(&params);
+  tabs::TabInterface* tab =
+      params.navigated_or_inserted_contents
+          ? tabs::TabInterface::MaybeGetFromContents(
+                params.navigated_or_inserted_contents)
+          : nullptr;
   if (!tab) {
     return;
-  }
-  const int index = model->GetIndexOfTab(tab);
-  if (!model->IsTabPinned(index)) {
-    model->SetTabPinned(index, true);
   }
   Link(item_id, tab);
 }
@@ -137,7 +148,22 @@ base::CallbackListSubscription TreeService::RegisterOnChanged(
   return on_changed_.Add(std::move(callback));
 }
 
+void TreeService::Batch(base::FunctionRef<void()> changes) {
+  const bool outermost = !batching_;
+  {
+    base::AutoReset<bool> batching(&batching_, true);
+    changes();
+  }
+  if (outermost && std::exchange(changed_in_batch_, false)) {
+    on_changed_.Notify();
+  }
+}
+
 void TreeService::NotifyChanged() {
+  if (batching_) {
+    changed_in_batch_ = true;
+    return;
+  }
   on_changed_.Notify();
 }
 

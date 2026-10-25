@@ -57,6 +57,14 @@ function ids(model: TabListModel) {
   return model.tabs().map(t => t.id);
 }
 
+test('pinned tabs: those in Chrome\'s pinned collection, new ones too', () => {
+  const model = new TabListModel(snapshot() as any);
+  assert.deepEqual([...model.pinnedTabIds()], ['p1:2']);
+  model.onTabsCreated({tabs: [{tab: tab('p2:2'), position: at(['pinned:3'], 1)}]} as any);
+  model.onTabsCreated({tabs: [{tab: tab('e:2'), position: at(['unpinned:3'], 0)}]} as any);
+  assert.deepEqual([...model.pinnedTabIds()], ['p1:2', 'p2:2']);
+});
+
 test('snapshot: tabs in strip order, groups flattened', () => {
   const model = new TabListModel(snapshot() as any);
   assert.deepEqual(ids(model), ['p1:2', 'a:2', 'b:2', 'c:2', 'd:2']);

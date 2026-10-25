@@ -10,6 +10,7 @@
 #include <string>
 
 #include "base/callback_list.h"
+#include "base/functional/function_ref.h"
 #include "base/memory/raw_ptr.h"
 #include "components/keyed_service/core/keyed_service.h"
 #include "components/tabs/public/tab_interface.h"
@@ -59,6 +60,9 @@ class TreeService : public KeyedService {
   // Runs when the tree or a link changes.
   base::CallbackListSubscription RegisterOnChanged(
       base::RepeatingClosure callback);
+  // Runs `changes`; observers hear of them once, after: a sidebar never draws
+  // the steps in between (an item added before its tab is linked).
+  void Batch(base::FunctionRef<void()> changes);
 
  private:
   void NotifyChanged();
@@ -66,6 +70,8 @@ class TreeService : public KeyedService {
   Tree tree_;
   std::map<std::string, tabs::TabHandle> links_;
   base::RepeatingClosureList on_changed_;
+  bool batching_ = false;
+  bool changed_in_batch_ = false;
   base::CallbackListSubscription tree_subscription_;
   raw_ptr<bookmarks::BookmarkModel> model_;
 };
