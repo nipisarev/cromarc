@@ -56,7 +56,15 @@ check('the page takes the window', pageCompact >= pageBefore + before - 2, `${pa
 // A tab opened in the background flashes the sidebar over the page (Zen's
 // flashSidebar); floating, it gets Zen's opaque toolbar background, which
 // the browser says it painted (--cromarc-test-log-background).
-const floatingPainted = () => /cromarc floating sidebar:/.test(readFileSync(process.env.CROMARC_TEST_LOG, 'utf8'));
+// A theme with grain: the floating sidebar keeps it (#zen-toolbar-background
+// has a .zen-browser-grain of its own), as the window around it does.
+await evaluate(await sidebar(), `(() => {
+  const app = document.querySelector('cromarc-sidebar-app');
+  const id = app.spaces_.find(s => s.current).id;
+  app.proxy_.handler.setSpaceTheme(id, JSON.stringify({colors: [[40, 20, 200]], opacity: 0.5, texture: 0.5}));
+  return true;
+})()`);
+const floatingPainted = () => /cromarc floating sidebar: colors=1 texture=0\.5/.test(readFileSync(process.env.CROMARC_TEST_LOG, 'utf8'));
 const browserWs = (await (await fetch(`${base}/json/version`)).json()).webSocketDebuggerUrl;
 const openInBackground = () => new Promise(resolve => {
   const ws = new WebSocket(browserWs);
@@ -68,7 +76,7 @@ for (let i = 0; i < 3 && !flashed; i++) {
   await openInBackground();
   flashed = !!(await until(floatingPainted, 3000));
 }
-check('flashed over the page, the sidebar has an opaque background', flashed);
+check('flashed over the page, the sidebar has an opaque background with the theme\'s grain', flashed);
 
 await evaluate(await sidebar(), `document.querySelector('cromarc-sidebar-app').proxy_.handler.toggleCompactMode()`);
 check('toggled back: the sidebar returns', (await until(async () => (await width()) > 100 && (await pageWidth()) < pageCompact, 10000)) === true,

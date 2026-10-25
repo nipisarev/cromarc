@@ -228,6 +228,18 @@ const cc::PaintImage& Grain() {
   return *grain;
 }
 
+// .zen-browser-grain: the texture over `box` at the theme's strength.
+void PaintGrain(gfx::Canvas* canvas, const gfx::RectF& box, double texture) {
+  if (texture <= 0) {
+    return;
+  }
+  cc::PaintFlags flags;
+  flags.setShader(cc::PaintShader::MakeImage(Grain(), SkTileMode::kRepeat,
+                                             SkTileMode::kRepeat, nullptr));
+  flags.setAlphaf(static_cast<float>(texture));
+  canvas->DrawRect(box, flags);
+}
+
 // getGradient's layers and the grain for `theme` over `bounds`.
 void PaintTheme(gfx::Canvas* canvas,
                 const gfx::Rect& bounds,
@@ -268,13 +280,7 @@ void PaintTheme(gfx::Canvas* canvas,
            Linear(box, -5, {0.1f, colors[2]}, {0.8f, Transparent(colors[2])}));
       break;
   }
-  if (theme.texture > 0) {
-    cc::PaintFlags flags;
-    flags.setShader(cc::PaintShader::MakeImage(Grain(), SkTileMode::kRepeat,
-                                               SkTileMode::kRepeat, nullptr));
-    flags.setAlphaf(static_cast<float>(theme.texture));
-    canvas->DrawRect(box, flags);
-  }
+  PaintGrain(canvas, box, theme.texture);
 }
 
 // getToolbarModifiedBaseRaw without acrylic (zen.theme.acrylic-sidebar off).
@@ -288,7 +294,8 @@ SkColor4f ToolbarColorOf(SkColor color, bool dark) {
   return SkColor4f::FromColor(Blend(color, ToolbarBase(dark), 90));
 }
 
-// getGradient(colors, forToolbar) over `box`.
+// getGradient(colors, forToolbar) over `box`, and the grain:
+// #zen-toolbar-background holds a .zen-browser-grain of its own.
 void PaintToolbarTheme(gfx::Canvas* canvas,
                        const gfx::Rect& bounds,
                        const gfx::RectF& box,
@@ -320,6 +327,7 @@ void PaintToolbarTheme(gfx::Canvas* canvas,
            Linear(box, -5, {0.1f, colors[2]}, {0.8f, Transparent(colors[2])}));
       break;
   }
+  PaintGrain(canvas, gfx::RectF(bounds), theme.texture);
 }
 
 bool IsDark(const views::View* view) {
@@ -410,7 +418,8 @@ bool PaintChromeBackground(gfx::Canvas* canvas,
                                    &window);
   const Theme theme = ParseTheme(ThemeJson(browser_view));
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(kLogBackgroundSwitch)) {
-    LOG(ERROR) << "cromarc floating sidebar: colors=" << theme.colors.size();
+    LOG(ERROR) << "cromarc floating sidebar: colors=" << theme.colors.size()
+               << " texture=" << theme.texture;
   }
   PaintToolbarTheme(canvas, bounds, window, theme, dark);
   cc::PaintFlags edge;
