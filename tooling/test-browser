@@ -85,6 +85,7 @@ launch() {
   is_daily "$name" ||
     args+=("--enable-features=DcheckIsFatal,PartitionAllocDanglingPtr")
   case "$name" in
+    theme) args+=(--cromarc-test-log-background) ;;
     import) args+=(--cromarc-arc-sidebar="$fixtures/arc_sidebar.json") ;;
     import_export)
       args+=(--cromarc-arc-sidebar="$work/no-arc.json"

@@ -6,12 +6,15 @@
 #define CROMARC_BROWSER_UI_SIDEBAR_SIDEBAR_VIEW_H_
 
 #include <memory>
+#include <optional>
+#include <string>
 
 #include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/process/kill.h"
 #include "base/time/time.h"
+#include "components/prefs/pref_change_registrar.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/native_ui_types.h"
 #include "ui/views/controls/webview/unhandled_keyboard_event_handler.h"
@@ -46,6 +49,21 @@ class SidebarView : public views::WebView {
   BrowserWindowInterface* browser() const { return browser_; }
   CompactMode* compact_mode() { return compact_mode_.get(); }
 
+  // The theme being edited, shown under the window until it is saved or
+  // dropped (nullopt).
+  const std::optional<std::string>& theme_preview() const {
+    return theme_preview_;
+  }
+  void SetThemePreview(std::optional<std::string> theme);
+  // While switching: the other space's theme and how far the window's
+  // background has faded toward it.
+  struct Blend {
+    std::string theme;
+    float progress;
+  };
+  const std::optional<Blend>& theme_blend() const { return theme_blend_; }
+  void SetThemeBlend(std::optional<Blend> blend);
+
   // content::WebContentsDelegate (through views::WebView):
   // Browser shortcuts (Cmd+T, Cmd+W, ...) keep working while the sidebar has
   // focus.
@@ -74,6 +92,10 @@ class SidebarView : public views::WebView {
   base::TimeTicks first_reload_;
   int reloads_ = 0;
   base::CallbackListSubscription fullscreen_subscription_;
+  std::optional<std::string> theme_preview_;
+  std::optional<Blend> theme_blend_;
+  // The space theme pref, painted under the window.
+  PrefChangeRegistrar theme_pref_;
   base::WeakPtrFactory<SidebarView> weak_factory_{this};
 };
 

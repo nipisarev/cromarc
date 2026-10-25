@@ -26,9 +26,11 @@
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/referrer.h"
 #include "cromarc/browser/spaces/space_controller.h"
+#include "cromarc/browser/spaces/space_prefs.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/space_input.h"
+#include "cromarc/browser/ui/sidebar/window_background.h"
 #include "cromarc/browser/ui/welcome/welcome_ui.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -121,6 +123,9 @@ SidebarView::SidebarView(BrowserWindowInterface* browser)
   webui::SetBrowserWindowInterface(contents.get(), browser);
   contents->SetPageBaseBackgroundColor(SK_ColorTRANSPARENT);
   SetOwnedWebContents(std::move(contents));
+  theme_pref_.Init(browser->GetProfile()->GetPrefs());
+  theme_pref_.Add(kSpaceThemePref,
+                  base::BindRepeating(&RepaintWindowBackground, browser));
   web_contents()->GetController().LoadURL(
       GURL(kSidebarURL), content::Referrer(), ui::PAGE_TRANSITION_AUTO_TOPLEVEL,
       std::string());
@@ -128,6 +133,19 @@ SidebarView::SidebarView(BrowserWindowInterface* browser)
 
 SidebarView::~SidebarView() {
   Sidebars().erase(this);
+}
+
+void SidebarView::SetThemePreview(std::optional<std::string> theme) {
+  theme_preview_ = std::move(theme);
+  RepaintWindowBackground(browser_);
+}
+
+void SidebarView::SetThemeBlend(std::optional<Blend> blend) {
+  if (!blend && !theme_blend_) {
+    return;
+  }
+  theme_blend_ = std::move(blend);
+  RepaintWindowBackground(browser_);
 }
 
 bool SidebarView::HandleKeyboardEvent(

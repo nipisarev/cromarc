@@ -10,6 +10,11 @@
 class BrowserView;
 class BrowserWindowInterface;
 
+namespace gfx {
+class Canvas;
+class Rect;
+}  // namespace gfx
+
 namespace views {
 class View;
 }  // namespace views
@@ -37,6 +42,16 @@ void InstallSidebar(views::View* parent,
 // space round the page in a window with the sidebar, so the page is a card on
 // the window's background (Zen's element separation). None in tab fullscreen.
 gfx::Insets PageInsets(BrowserView* browser_view);
+
+// Hook H14: Zen draws the space theme (its gradient and grain) under the whole
+// window and Chrome's frame, toolbar and page backgrounds stay clear over it,
+// glass included. True for normal windows, the ones with the sidebar.
+bool ThemesWindow(const BrowserView* browser_view);
+
+// Hook H14, from the frame view's paint: the space theme over `bounds`.
+void PaintWindowBackground(gfx::Canvas* canvas,
+                           const gfx::Rect& bounds,
+                           BrowserView* browser_view);
 
 }  // namespace cromarc
 

@@ -24,7 +24,7 @@ import {BrowserProxy} from './browser_proxy.js';
 import {buildSidebar, cellAt, dropTarget, essentialSlot, MAX_ESSENTIALS, pageTitleFor} from './sidebar_model.js';
 import type {SpaceEdit} from './space_editor.js';
 import {iconMask} from './space_icon.js';
-import {gradientOf, themeFromJson} from './theme_model.js';
+import {themeFromJson} from './theme_model.js';
 import type {SpaceTheme} from './theme_model.js';
 import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
@@ -106,7 +106,6 @@ export class SidebarAppElement extends CrLitElement {
       deleting_: {type: Object},
       icloud_: {type: Object},
       themeEditor_: {type: Object},
-      themePreview_: {type: Object},
       remoteSpaces_: {type: Array},
       libraryShown_: {type: Boolean},
       libraryOpen_: {type: Boolean},
@@ -142,7 +141,6 @@ export class SidebarAppElement extends CrLitElement {
   // Horizontal position of every strip, in % of the sidebar width.
   protected accessor stripX_: number[] = [];
   // Background tint: the space's colour, blended while switching.
-  private tint_ = 'transparent';
   protected accessor editor_: SpaceEditorState|null = null;
   // The space whose deletion waits for confirmation.
   protected accessor deleting_: Space|null = null;
@@ -156,8 +154,6 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor remoteSpaces_: ICloudSpace[] = [];
   // The theme editor open over the strip, and its unsaved theme.
   protected accessor themeEditor_: {space: Space, theme: SpaceTheme}|null =
-      null;
-  protected accessor themePreview_: {id: string, theme: SpaceTheme}|null =
       null;
   // The Library: rendered while open, dragged in or closing.
   protected accessor libraryShown_: boolean = false;
@@ -179,7 +175,6 @@ export class SidebarAppElement extends CrLitElement {
   private swipe_: SwipeState|null = null;
   private swipeOffset_ = 0;
   private animationFrame_ = 0;
-  private tintRgb_: number[] = [0, 0, 0];
 
   protected accessor strings: typeof strings = strings;
   private readonly proxy_ = BrowserProxy.getInstance();
@@ -315,9 +310,6 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   private setSpaces_(spaces: Space[]) {
-    if (this.themePreview_ && !this.themeEditor_) {
-      this.themePreview_ = null;
-    }
     this.spaces_ = spaces;
     this.snapshots_ = new Map();
     this.rest_();
@@ -330,23 +322,21 @@ export class SidebarAppElement extends CrLitElement {
     const count = this.spaces_.length;
     this.stripX_ = this.spaces_.map(
         (_, i) => circularDiff(i, current, count) * 100);
-    this.setTint_(this.colorOf_(current), this.colorOf_(current), 0);
-  }
-
-  private colorOf_(index: number): number[] {
-    const argb = this.spaces_[index]?.color ?? 0;
-    return [(argb >>> 16) & 255, (argb >>> 8) & 255, argb & 255];
+    this.blendBackground_(current, 0);
+    this.updatePrimary_();
   }
 
   // Zen fades the background between the two spaces' themes as the strips
-  // move (--zen-background-opacity = 1 - |offset| / 200).
-  private setTint_(from: number[], to: number[], progress: number) {
-    this.tintRgb_ = from.map((v, i) => v + (to[i]! - v) * progress);
-    this.tint_ = `rgba(${this.tintRgb_.map(Math.round).join(', ')}, 0.16)`;
-    // Under the whole sidebar, the bottom row too.
-    this.style.background = this.tint_;
-    // Zen's --zen-primary-color: the theme's first colour, the accent
-    // without one (ZenGradientGenerator).
+  // move (--zen-background-opacity = 1 - |offset| / 200); the browser paints
+  // it under the whole window.
+  private blendBackground_(target: number, progress: number) {
+    const theme = this.spaces_[target]?.theme ?? '';
+    this.proxy_.handler.blendSpaceTheme(theme, progress);
+  }
+
+  // Zen's --zen-primary-color: the theme's first colour, the accent without
+  // one (ZenGradientGenerator).
+  private updatePrimary_() {
     const space = this.spaces_[this.currentIndex_];
     const primary = themeFromJson(space?.theme ?? '').colors[0];
     if (primary) {
@@ -428,10 +418,8 @@ export class SidebarAppElement extends CrLitElement {
         }
         this.stripX_ = this.spaces_.map(
             (_, i) => circularDiff(i, current, count) * 100 + offset / 2);
-        this.setTint_(
-            this.colorOf_(current),
-            this.colorOf_(neighbourIndex(current, count, offset)),
-            Math.min(1, Math.abs(offset) / 200));
+        this.blendBackground_(neighbourIndex(current, count, offset),
+                              Math.min(1, Math.abs(offset) / 200));
         break;
       }
       case SwipeType.kEnd: {
@@ -488,8 +476,6 @@ export class SidebarAppElement extends CrLitElement {
     const moving = this.spaces_.map(
         (_, i) => target === current || isAnimatedStrip(i, current, target, count));
     const progress = spring(0, 1, SWITCH_DURATION);
-    const tintFrom = [...this.tintRgb_];
-    const tintTo = this.colorOf_(target);
     const start = performance.now();
     return new Promise(resolve => {
       let done = false;
@@ -500,7 +486,7 @@ export class SidebarAppElement extends CrLitElement {
         done = true;
         cancelAnimationFrame(this.animationFrame_);
         this.stripX_ = to;
-        this.setTint_(tintFrom, tintTo, 1);
+        this.blendBackground_(target, 1);
         resolve();
       };
       const step = (now: number) => {
@@ -511,7 +497,7 @@ export class SidebarAppElement extends CrLitElement {
         }
         const p = progress(t);
         this.stripX_ = from.map((x, i) => moving[i] ? x + (to[i]! - x) * p : to[i]!);
-        this.setTint_(tintFrom, tintTo, p);
+        this.blendBackground_(target, p);
         this.animationFrame_ = requestAnimationFrame(step);
       };
       this.animationFrame_ = requestAnimationFrame(step);
@@ -762,12 +748,7 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   protected stripStyle_(index: number): string {
-    const space = this.stripSpaces_[index];
-    const theme = this.themePreview_ && space?.id === this.themePreview_.id ?
-        this.themePreview_.theme :
-        themeFromJson(space?.theme ?? '');
-    return `transform: translateX(${this.stripX_[index] ?? 0}%); ` +
-        `background: ${gradientOf(theme)}; --grain: ${theme.texture}`;
+    return `transform: translateX(${this.stripX_[index] ?? 0}%)`;
   }
 
   protected onThemeChange_(e: CustomEvent<SpaceTheme>) {
@@ -775,7 +756,7 @@ export class SidebarAppElement extends CrLitElement {
       // Lit sets object properties again on every render: the editor's own
       // theme has to be the one bound.
       this.themeEditor_ = {...this.themeEditor_, theme: e.detail};
-      this.themePreview_ = {id: this.themeEditor_.space.id, theme: e.detail};
+      this.proxy_.handler.previewSpaceTheme(JSON.stringify(e.detail));
     }
   }
 
@@ -786,6 +767,7 @@ export class SidebarAppElement extends CrLitElement {
       this.proxy_.handler.setSpaceTheme(
           editor.space.id, JSON.stringify(e.detail));
     }
+    this.proxy_.handler.previewSpaceTheme('');
   }
 
   protected snapshotOf_(id: string): SnapshotView {

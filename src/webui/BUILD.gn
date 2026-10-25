@@ -17,6 +17,7 @@ build_webui("build") {
   static_files = [
     "arc_import/arc_import.html",
     "command_bar/command_bar.html",
+    "sidebar/images/grain-bg.png",
     "sidebar/sidebar.html",
     "sidebar/ui_icons/add.svg",
     "sidebar/ui_icons/chevron.svg",

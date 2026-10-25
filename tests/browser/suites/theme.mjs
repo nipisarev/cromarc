@@ -3,6 +3,10 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // The theme editor: Zen's colour wheel, gradients, grain, saved per space.
+// The theme is the window's background, which the browser paints under the
+// whole window; it says what it painted in the log (theme runs with
+// --cromarc-test-log-background).
+import {readFileSync} from 'node:fs';
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -35,6 +39,9 @@ const sb = (await targets()).find(t => t.url.startsWith('chrome://cromarc-sideba
 const APP = `document.querySelector('cromarc-sidebar-app')`;
 const ED = `${APP}.shadowRoot.querySelector('cromarc-theme-editor')`;
 const stripBg = () => evaluate(sb, `getComputedStyle(${APP}.shadowRoot.querySelector('.strip')).backgroundImage + ' | ' + getComputedStyle(${APP}.shadowRoot.querySelector('.strip')).backgroundColor`);
+// The last window background the browser painted.
+const painted = () => (readFileSync(process.env.CROMARC_TEST_LOG, 'utf8').match(/cromarc background: [^\n]*/g) ?? []).at(-1) ?? '';
+const paintedSoon = re => until(() => re.test(painted()) && painted());
 const colorBefore = await evaluate(sb, `${APP}.spaces_.find(s => s.current).color`);
 await evaluate(sb, `(async () => {
   const app = ${APP};
@@ -52,16 +59,13 @@ const tap = (x, y) => evaluate(sb, `(async () => {
   return ${ED}.theme.colors.length;
 })()`);
 check('a click on the wheel picks a colour', (await tap(170, 70)) === 1);
-const bg1 = await stripBg();
-check('…and the strip shows it at once', bg1.includes('rgba('), bg1);
+check('…and the window shows it at once, as a preview', !!(await paintedSoon(/colors=1 .*preview=1/)), painted());
 check('a second click adds its complement', (await tap(60, 150)) === 2);
-const bg2 = await stripBg();
-check('…two colours make Zen\'s two gradients', (bg2.match(/linear-gradient/g) ?? []).length === 2, bg2);
+check('…two colours, Zen\'s two gradients', !!(await paintedSoon(/colors=2 .*preview=1/)), painted());
 const harmony = await evaluate(sb, `(async () => { const e = ${ED}; const before = e.harmony_; e.shadowRoot.querySelector('#harmony').click(); await e.updateComplete; return before + ' -> ' + e.harmony_; })()`);
 check('the harmony button cycles', harmony === 'complementary -> singleAnalogous', harmony);
 await evaluate(sb, `(() => { const t = ${ED}.shadowRoot.querySelector('#texture'); t.value = '0.6'; t.dispatchEvent(new Event('input')); })()`);
-const grain = await evaluate(sb, `getComputedStyle(${APP}.shadowRoot.querySelector('.strip')).getPropertyValue('--grain').trim()`);
-check('grain follows the slider', grain === '0.6', grain);
+check('grain follows the slider', !!(await paintedSoon(/texture=0\.6 .*preview=1/)), painted());
 await evaluate(sb, `${ED}.shadowRoot.querySelector('#done').click()`);
 const saved = await until(async () => {
   const s = await evaluate(sb, `${APP}.spaces_.find(s => s.current)`);
@@ -73,5 +77,7 @@ const colorAfter = await until(async () => {
   return c !== colorBefore && c;
 });
 check('…and Chrome\'s colour for the profile follows the first colour', !!colorAfter, `${colorBefore} -> ${colorAfter}`);
-check('the editor closes and the strip keeps the theme', !(await evaluate(sb, `!!${ED}`)) && (await stripBg()).includes('linear-gradient'));
+check('the editor closes and the window keeps the saved theme', !(await evaluate(sb, `!!${ED}`)) &&
+    !!(await paintedSoon(/colors=2 texture=0\.6 preview=0/)), painted());
+check('…painted by the browser, not the sidebar', (await stripBg()).startsWith('none | rgba(0, 0, 0, 0)'), await stripBg());
 process.exit(results.every(Boolean) ? 0 : 1);

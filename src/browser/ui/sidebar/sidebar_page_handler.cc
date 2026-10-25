@@ -494,6 +494,22 @@ void SidebarPageHandler::SetSpaceTheme(const std::string& id,
   SpaceController::Get()->SetSpaceTheme(id, theme);
 }
 
+void SidebarPageHandler::PreviewSpaceTheme(const std::string& theme) {
+  if (SidebarView* sidebar = SidebarView::ForBrowser(browser_)) {
+    sidebar->SetThemePreview(theme.empty() ? std::nullopt
+                                           : std::make_optional(theme));
+  }
+}
+
+void SidebarPageHandler::BlendSpaceTheme(const std::string& theme,
+                                         float progress) {
+  if (SidebarView* sidebar = SidebarView::ForBrowser(browser_)) {
+    sidebar->SetThemeBlend(progress > 0 ? std::make_optional<SidebarView::Blend>(
+                                              theme, progress)
+                                        : std::nullopt);
+  }
+}
+
 void SidebarPageHandler::ReorderSpaces(const std::vector<std::string>& ids) {
   SpaceController::Get()->ReorderSpaces(ids);
 }

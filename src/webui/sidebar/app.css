@@ -90,17 +90,6 @@ button {
   will-change: transform;
 }
 
-/* The theme's grain (Zen's grainy background), under the strip's content. */
-.strip::before {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-  content: '';
-  inset: 0;
-  mix-blend-mode: overlay;
-  opacity: calc(var(--grain, 0) * .5);
-  pointer-events: none;
-  position: absolute;
-}
-
 .strip > * {
   position: relative;
 }

@@ -165,6 +165,11 @@ interface PageHandler {
   RenameSpace(string id, string name);
   SetSpaceIcon(string id, string icon);
   SetSpaceTheme(string id, string theme);
+  // The theme editor's theme under this window until saved; "" drops it.
+  PreviewSpaceTheme(string theme);
+  // While switching spaces, the window's background fades toward the other
+  // space's `theme` by `progress` 0-1, as Zen's --zen-background-opacity.
+  BlendSpaceTheme(string theme, float progress);
   ReorderSpaces(array<string> ids);
   // Closes the space's live tabs: Today's go to the archive, pinned ones
   // sleep.
