@@ -46,7 +46,8 @@ namespace {
 constexpr base::TimeDelta kChangedDelay = base::Milliseconds(250);
 constexpr char kPreviewPrefix[] = "download-preview/";
 // Pictures the page draws, as ZenLibraryUtils' canDrawThumbnail leaves out
-// what Firefox cannot; by extension, so the data source sends the right type.
+// what Firefox cannot. Each is served as .png, the data source knowing few
+// types; the image decoder goes by what the file holds.
 constexpr auto kPreviewExtensions = base::MakeFixedFlatSet<std::string_view>(
     {"avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "webp"});
 // A preview is the file itself; a bigger one is left to its icon.
@@ -82,11 +83,10 @@ bool HasPreview(const download::DownloadItem& item) {
 }
 
 std::string PreviewPathOf(const download::DownloadItem& item) {
-  return HasPreview(item)
-             ? base::StrCat({kPreviewPrefix,
-                             base::NumberToString(item.GetId()), ".",
-                             ExtensionOf(item.GetTargetFilePath())})
-             : std::string();
+  return HasPreview(item) ? base::StrCat({kPreviewPrefix,
+                                          base::NumberToString(item.GetId()),
+                                          ".png"})
+                          : std::string();
 }
 
 scoped_refptr<base::RefCountedMemory> ReadPreview(const base::FilePath& path) {

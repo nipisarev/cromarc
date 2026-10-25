@@ -67,7 +67,7 @@ check('the library button brings the Library out on its spring', !!(await settle
 const wide = await until(async () => { const w = await evaluate(sb, 'innerWidth'); return w >= 418 && w; }, 4000);
 check('…and the column widens to Zen\'s 418px', !!wide, `${narrow} → ${await evaluate(sb, 'innerWidth')}`);
 const rail = await evaluate(sb, `${ALL('.tab .tab-label')}.map(n => n.textContent)`);
-check('its rail holds Zen\'s sections in Zen\'s order, History chosen', rail.join() === 'Маршруты,Загрузки,Пространства,История' &&
+check('its rail holds Zen\'s sections in Zen\'s order, History chosen', rail.join() === 'Маршруты,Медиа,Загрузки,Пространства,История' &&
     await evaluate(sb, `${IN('.tab[active]')}.dataset.section`) === 'history', JSON.stringify(rail));
 check('the rail icons are Zen\'s sprites, coloured', !!(await until(() => evaluate(sb,
     `${IN('.tab[active] .tab-icon-image')}.style.backgroundImage.startsWith('url("data:image/svg+xml;base64')`))));

@@ -717,7 +717,11 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   protected libraryStyle_(): string {
-    return `width: ${this.libraryWidth_}px; transform: translateX(${
+    // A section wider than Zen's 418px gets no more than the column has.
+    const width = this.libraryWidth_ > LIBRARY_WIDTH ?
+        `min(${this.libraryWidth_}px, 100vw)` :
+        `${this.libraryWidth_}px`;
+    return `width: ${width}; transform: translateX(${
         (this.libraryProgress_ - 1) * 100}%)`;
   }
 

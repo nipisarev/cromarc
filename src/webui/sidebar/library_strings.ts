@@ -123,4 +123,24 @@ export const libraryStrings = {
   spaceIcon: 'Изменить значок',
   spaceRename: 'Переименовать пространство',
   spaceCreate: 'Создать пространство',
+
+  mediaEmpty: 'Медиа не найдены',
+  mediaTurnOff: 'Выключить медиа',
+  mediaSearch: 'Поиск медиа…',
+  mediaLoading: 'Ищем медиа…',
+  mediaOptInTitle: 'Ваши медиа в библиотеке',
+  mediaOptInBody:
+      'Быстро берите скриншоты, изображения и видео с компьютера: они будут в библиотеке Cromarc.',
+  mediaOptInButton: 'Показать медиа',
+  mediaOptInNote:
+      'Медиа не покидают ваш компьютер и не видны никому, кроме вас.',
+  mediaFilterTitle: 'Фильтр медиа…',
+  mediaFilterFolders: 'Где искать',
+  mediaOpenIn: (app: string) => app ? `Открыть в ${app}` : 'Открыть',
+  mediaClose: 'Закрыть',
+  mediaPrevious: 'Назад',
+  mediaNext: 'Вперёд',
+  mediaMore: 'Другие действия',
+  mediaMenuOpen: 'Открыть',
+  mediaMenuCopy: 'Копировать',
 };

@@ -56,6 +56,10 @@ export function getHtml(this: LibraryElement) {
           ?hidden="${this.activeTab_ !== 'space-routing'}"
           .library="${this}" .spaces="${this.spaces}">
       </cromarc-library-routing>` : nothing}
+    ${this.isMounted_('media') ? html`
+      <cromarc-library-media class="section" data-section="media"
+          ?hidden="${this.activeTab_ !== 'media'}" .library="${this}">
+      </cromarc-library-media>` : nothing}
     ${this.isMounted_('downloads') ? html`
       <cromarc-library-downloads class="section" data-section="downloads"
           ?hidden="${this.activeTab_ !== 'downloads'}" .library="${this}">

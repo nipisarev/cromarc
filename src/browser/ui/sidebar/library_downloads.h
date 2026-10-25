@@ -41,7 +41,7 @@ class LibraryDownloads : public download::AllDownloadItemNotifier::Observer {
   // The finished ones out of the list.
   void Clear();
 
-  // The preview of a finished picture, `download-preview/<id>.<ext>` under
+  // The preview of a finished picture, `download-preview/<id>.png` under
   // the sidebar's page: only a finished download's own file, and only a
   // picture the page can draw.
   static bool IsPreviewPath(const std::string& path);

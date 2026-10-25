@@ -36,6 +36,7 @@
 #include "cromarc/browser/sync/icloud_sync.h"
 #include "cromarc/browser/tree/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
+#include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
@@ -699,6 +700,20 @@ void SidebarPageHandler::DoDownload(uint32_t id,
 
 void SidebarPageHandler::ClearDownloads() {
   downloads_->Clear();
+}
+
+void SidebarPageHandler::ScanMedia(const std::vector<std::string>& folders,
+                                   ScanMediaCallback callback) {
+  LibraryMedia::Scan(folders, std::move(callback));
+}
+
+void SidebarPageHandler::DoMedia(uint32_t id, mojom::MediaCommand command) {
+  LibraryMedia::Do(browser_->GetProfile(), id, command);
+}
+
+void SidebarPageHandler::GetMediaOpener(uint32_t id,
+                                        GetMediaOpenerCallback callback) {
+  std::move(callback).Run(LibraryMedia::OpenerName(id));
 }
 
 void SidebarPageHandler::GetLibrarySprite(const std::string& name,

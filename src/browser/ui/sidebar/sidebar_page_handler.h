@@ -124,6 +124,10 @@ class SidebarPageHandler : public mojom::PageHandler,
   void GetDownloads(GetDownloadsCallback callback) override;
   void DoDownload(uint32_t id, mojom::DownloadCommand command) override;
   void ClearDownloads() override;
+  void ScanMedia(const std::vector<std::string>& folders,
+                 ScanMediaCallback callback) override;
+  void DoMedia(uint32_t id, mojom::MediaCommand command) override;
+  void GetMediaOpener(uint32_t id, GetMediaOpenerCallback callback) override;
   void GetRoutes(GetRoutesCallback callback) override;
   void AddRoute(const std::string& reference,
                 const std::string& match,

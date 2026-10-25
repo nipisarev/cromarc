@@ -99,6 +99,33 @@ enum DownloadCommand {
   kDrag,
 };
 
+// A picture or a video found for the Library's Media
+// (zen:library/sections/ZenLibraryMediaSection.mjs). Its thumbnail is
+// media-thumb/<id>.png under the page, a bigger one media-large/<id>.png,
+// the file itself media-file/<id>.png or .mp4.
+struct MediaItem {
+  uint32 id;
+  // The folder it was found under.
+  string folder;
+  string name;
+  // "image" (the page draws it), "video", or "file" (a picture shown by
+  // QuickLook's picture of it).
+  string kind;
+  // In milliseconds since the Unix epoch.
+  double modified;
+  int64 size;
+  // In iCloud Drive and not on this Mac: it is not read.
+  bool cloud_placeholder;
+  // Small enough to be served whole; a bigger one opens in its app.
+  bool served_whole;
+};
+
+enum MediaCommand {
+  kOpen,
+  kShow,
+  kCopy,
+};
+
 struct LinkRoute {
   string id;
   string reference;
@@ -297,6 +324,14 @@ interface PageHandler {
   DoDownload(uint32 id, DownloadCommand command);
   // The finished ones out of the list (Zen's "Clear all downloads").
   ClearDownloads();
+
+  // Media in `folders` (Zen's named ones, or absolute paths): the folders
+  // looked through, and what was found, newest first.
+  ScanMedia(array<string> folders)
+      => (array<string> roots, array<MediaItem> items);
+  DoMedia(uint32 id, MediaCommand command);
+  // The app the system opens it with, "" when it cannot tell.
+  GetMediaOpener(uint32 id) => (string app);
 
   // The Library's link rules. `default_external` "" is the space used last.
   GetRoutes() => (array<LinkRoute> routes, string default_external);

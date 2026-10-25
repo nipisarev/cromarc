@@ -47,6 +47,8 @@ source_set("impl") {
     "library_backend.h",
     "library_downloads.cc",
     "library_downloads.h",
+    "library_media.cc",
+    "library_media.h",
     "sidebar_page_handler.cc",
     "sidebar_page_handler.h",
     "sidebar_ui.cc",
@@ -59,11 +61,13 @@ source_set("impl") {
   if (is_mac) {
     sources += [
       "haptic_feedback_mac.mm",
+      "library_media_mac.mm",
       "space_input_mac.mm",
     ]
     frameworks = [
       "AppKit.framework",
       "Carbon.framework",
+      "QuickLookThumbnailing.framework",
     ]
   }
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]

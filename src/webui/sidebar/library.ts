@@ -13,11 +13,14 @@ import {downloadsStore} from './downloads_store.js';
 import {getCss} from './library.css.js';
 import {getHtml} from './library.html.js';
 import {libraryStrings} from './library_strings.js';
+import {MEDIA_ENABLED_KEY, mediaEnabled} from './library_media.js';
+import type {LibraryMediaElement} from './library_media.js';
 import {spriteUrl} from './library_sprites.js';
 import {showMenu} from './menu.js';
 import type {MenuItem} from './menu.js';
 import './library_downloads.js';
 import './library_history.js';
+import './library_media.js';
 import './library_routing.js';
 import './library_spaces.js';
 
@@ -46,6 +49,7 @@ export interface LibraryConfirm {
 // here yet are still to come over.
 const SECTIONS: LibraryTab[] = [
   {id: 'space-routing', label: libraryStrings.routing},
+  {id: 'media', label: libraryStrings.media},
   {id: 'downloads', label: libraryStrings.downloads},
   {id: 'spaces', label: libraryStrings.spaces},
   {id: 'history', label: libraryStrings.history},
@@ -147,6 +151,8 @@ export class LibraryElement extends CrLitElement {
   private readonly onDocumentKeydown_ = (e: KeyboardEvent) =>
       this.onEscapeKey_(e);
   private unsubscribe_ = () => {};
+  // Sections that asked for a sprite before the colours were read.
+  private spriteWaiters_: Array<() => void> = [];
 
   constructor() {
     super();
@@ -216,6 +222,9 @@ export class LibraryElement extends CrLitElement {
     if (colors.stroke !== this.spriteColors_.stroke ||
         colors.fill !== this.spriteColors_.fill) {
       this.spriteColors_ = colors;
+      const waiters = this.spriteWaiters_;
+      this.spriteWaiters_ = [];
+      waiters.forEach(waiter => waiter());
     }
   }
 
@@ -306,6 +315,16 @@ export class LibraryElement extends CrLitElement {
   // the way to the page it stands in for (Zen: tabMenu, legacyLibraryView).
   protected onTabContextmenu_(e: MouseEvent) {
     const id = (e.currentTarget as HTMLElement).dataset['section'];
+    if (id === 'media') {
+      if (mediaEnabled()) {
+        e.preventDefault();
+        showMenu(e.clientX, e.clientY, [{
+                   label: this.strings.mediaTurnOff,
+                   action: () => this.turnOffMedia_(),
+                 }]);
+      }
+      return;
+    }
     if (id === 'downloads') {
       e.preventDefault();
       showMenu(e.clientX, e.clientY, [
@@ -342,6 +361,15 @@ export class LibraryElement extends CrLitElement {
     showMenu(e.clientX, e.clientY, items);
   }
 
+  private turnOffMedia_() {
+    const media = this.section_('media') as LibraryMediaElement | null;
+    if (media) {
+      media.turnOff();
+    } else {
+      writeStorage(MEDIA_ENABLED_KEY, '0');
+    }
+  }
+
   private async clearHistory_(range: ClearRange) {
     const accepted = await this.confirm(
         this.strings.clearPromptTitle, this.strings.clearPromptMessage,
@@ -371,6 +399,17 @@ export class LibraryElement extends CrLitElement {
   }
 
   // For the sections.
+
+  // A section's sprite as its tab shows it chosen; `onLoad` once it has
+  // loaded, if it had not.
+  spriteImage(id: string, onLoad: () => void): string {
+    if (!this.spriteColors_.stroke) {
+      this.spriteWaiters_.push(onLoad);
+      return '';
+    }
+    return spriteUrl(
+        id, this.spriteColors_.stroke, this.spriteColors_.fill, onLoad);
+  }
 
   // Opens `url` in a tab and closes the Library; with `background` the tab
   // stays behind and the Library open, saying so.

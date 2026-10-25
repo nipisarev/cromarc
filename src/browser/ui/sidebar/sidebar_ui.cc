@@ -27,6 +27,7 @@
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/library_downloads.h"
+#include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
 #include "ui/webui/webui_util.h"
 
@@ -50,10 +51,23 @@ SidebarUI::SidebarUI(content::WebUI* web_ui)
                    profile, chrome::FaviconUrlFormat::kFavicon2));
   // The Library's downloads: file icons, and finished pictures as previews.
   content::URLDataSource::Add(profile, std::make_unique<FileIconSource>());
+  // ...and Media's thumbnails and files (library_media.h).
   source->SetRequestFilter(
-      base::BindRepeating(&LibraryDownloads::IsPreviewPath),
-      base::BindRepeating(&LibraryDownloads::ServePreview,
-                          base::Unretained(profile)));
+      base::BindRepeating([](const std::string& path) {
+        return LibraryDownloads::IsPreviewPath(path) ||
+               LibraryMedia::IsMediaPath(path);
+      }),
+      base::BindRepeating(
+          [](Profile* profile, const std::string& path,
+             content::WebUIDataSource::GotDataCallback callback) {
+            if (LibraryMedia::IsMediaPath(path)) {
+              LibraryMedia::Serve(path, std::move(callback));
+            } else {
+              LibraryDownloads::ServePreview(profile, path,
+                                             std::move(callback));
+            }
+          },
+          base::Unretained(profile)));
 }
 
 SidebarUI::~SidebarUI() = default;

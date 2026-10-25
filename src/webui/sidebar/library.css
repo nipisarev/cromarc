@@ -927,6 +927,291 @@ button {
   background: var(--zen-primary-color);
 }
 
+/* Media (zen-library.css, zen-library-media-preview.css). */
+.media-grid {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  padding: 6px;
+}
+
+.media-item {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--pill-bg);
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  transition: background .12s ease, scale .14s ease;
+}
+
+.media-item:hover {
+  background: var(--pill-hover-bg);
+  scale: 1.04;
+}
+
+.media-item:hover:active {
+  scale: 1;
+}
+
+.media-frame {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.media-thumb {
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.media-thumb[placeholder] {
+  box-shadow: none;
+}
+
+.media-play {
+  background: white;
+  height: 16px;
+  position: absolute;
+  width: 16px;
+}
+
+.media-frame[data-kind='video']::after {
+  background: rgba(0, 0, 0, .45);
+  border-radius: 100%;
+  content: '';
+  height: 34px;
+  position: absolute;
+  width: 34px;
+  z-index: -1;
+}
+
+.media-frame[data-kind='video'] {
+  isolation: isolate;
+}
+
+.media-frame[data-kind='video'] .media-thumb {
+  z-index: -2;
+}
+
+.media-skeleton {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.media-skeleton::before {
+  animation: media-wait 1.8s ease-in-out infinite;
+  background: var(--pill-bg);
+  content: '';
+  inset: 0;
+  mask-image: url(sidebar/library_icons/tile.svg);
+  mask-repeat: round repeat;
+  mask-size: 150px auto;
+  position: absolute;
+}
+
+.media-skeleton[behind] {
+  opacity: .7;
+}
+
+@keyframes media-wait {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .45;
+  }
+}
+
+.media-opt-in {
+  background: light-dark(rgb(250, 250, 252), rgb(28, 29, 33));
+  border-radius: 22px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .45),
+      0 0 0 1px light-dark(rgba(0, 0, 0, .06), rgba(255, 255, 255, .06));
+  inset-inline: 6px;
+  padding: 22px 22px 18px;
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.media-opt-in h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.media-opt-in p {
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 16px;
+  opacity: .85;
+}
+
+.media-opt-in-icon {
+  --sprite-size: 40px;
+
+  height: var(--sprite-size);
+  margin: 2px auto 12px;
+  overflow: clip;
+  width: var(--sprite-size);
+}
+
+/* zen-buttons.css .zen-big-accent-button.primary. */
+.big-accent-button {
+  background: var(--zen-accent-button-background);
+  border-radius: 12px;
+  color: white;
+  font-size: 13.2px;
+  font-weight: 600;
+  padding: 13px 11px;
+  transition: scale .15s ease-out;
+  will-change: transform;
+}
+
+.big-accent-button:hover {
+  filter: brightness(1.1);
+  scale: 1.03;
+}
+
+.big-accent-button:active:hover {
+  color: rgba(255, 255, 255, .8);
+  scale: 1;
+}
+
+.media-opt-in-button {
+  width: 100%;
+}
+
+.media-opt-in-note {
+  align-items: center;
+  display: flex;
+  font-size: 11px;
+  gap: 6px;
+  justify-content: center;
+  line-height: 1.4;
+  margin-top: 14px;
+  opacity: .6;
+  text-align: start;
+}
+
+.media-opt-in-note .svg {
+  height: 13px;
+  width: 13px;
+}
+
+cromarc-library-media .search-results:has(.media-opt-in) {
+  overflow: hidden;
+}
+
+/* The preview: over the Library, which takes as much of the window as it
+ * can meanwhile (Zen's is over the page). */
+.media-preview {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 5;
+}
+
+.media-preview-backdrop {
+  background: light-dark(rgba(255, 255, 255, .55), rgba(0, 0, 0, .45));
+  inset: 0;
+  position: absolute;
+}
+
+.media-preview-panel {
+  background: light-dark(rgb(245, 245, 247), rgb(28, 30, 32));
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  width: min(78vw, 1100px);
+}
+
+.media-preview-header {
+  align-items: center;
+  color: light-dark(rgb(28, 30, 32), rgb(233, 234, 237));
+  display: flex;
+  flex: none;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.media-preview-header .row-action {
+  display: flex;
+}
+
+.media-preview-header .row-action:disabled {
+  opacity: .4;
+}
+
+.media-preview-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-inline-start: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-preview-date {
+  font-size: 13px;
+  margin-inline-end: auto;
+  opacity: .6;
+  white-space: nowrap;
+}
+
+.media-preview-open {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 8px;
+  flex: none;
+  font-weight: 600;
+  overflow: hidden;
+  padding: 5px 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-preview-open:hover {
+  background: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.media-preview-stage {
+  align-items: center;
+  background: light-dark(rgba(0, 0, 0, .05), rgba(0, 0, 0, .28));
+  border-top: 1px solid light-dark(rgba(0, 0, 0, .08), rgba(255, 255, 255, .07));
+  display: flex;
+  height: min(64vh, 620px);
+  justify-content: center;
+  padding: 16px;
+}
+
+.media-preview-media {
+  border-radius: 8px;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
 /* Space routing. */
 .routing-match-types {
   display: grid;

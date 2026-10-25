@@ -9,6 +9,8 @@ import {BrowserProxy} from './browser_proxy.js';
 // image here has no such thing, so the colours go into the SVG itself.
 const sources = new Map<string, Promise<string>>();
 const urls = new Map<string, string>();
+// Who asked for a URL still loading.
+const waiting = new Map<string, Array<() => void>>();
 
 function source(id: string): Promise<string> {
   let text = sources.get(id);
@@ -22,23 +24,30 @@ function source(id: string): Promise<string> {
 }
 
 // A CSS url() of sprite `id` drawn with these colours, or '' until it has
-// loaded (then `onLoad` runs).
+// loaded (then `onLoad` runs, for everyone who asked meanwhile).
 export function spriteUrl(
     id: string, stroke: string, fill: string, onLoad: () => void): string {
   const key = `${id}|${stroke}|${fill}`;
   const cached = urls.get(key);
-  if (cached !== undefined) {
+  if (cached) {
     return cached;
   }
-  urls.set(key, '');
+  const waiters = waiting.get(key);
+  if (waiters) {
+    waiters.push(onLoad);
+    return '';
+  }
+  waiting.set(key, [onLoad]);
   source(id).then(text => {
+    const done = waiting.get(key) ?? [];
+    waiting.delete(key);
     if (!text) {
       return;
     }
     const svg = text.replaceAll('context-stroke', stroke)
                     .replaceAll('context-fill', fill);
     urls.set(key, `url("data:image/svg+xml;base64,${btoa(svg)}")`);
-    onLoad();
+    done.forEach(waiter => waiter());
   });
   return '';
 }
