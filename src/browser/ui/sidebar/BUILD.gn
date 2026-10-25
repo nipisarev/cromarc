@@ -107,6 +107,7 @@ source_set("impl") {
     "//ui/gfx/codec",
     "//cromarc/webui:resources",
     "//skia",
+    "//ui/compositor",
     "//ui/menus",
     "//ui/views",
     "//ui/webui",

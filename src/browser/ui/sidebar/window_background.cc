@@ -41,12 +41,14 @@
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/color/color_id.h"
 #include "ui/color/color_provider.h"
+#include "ui/compositor/layer.h"
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/scoped_canvas.h"
 #include "ui/gfx/codec/png_codec.h"
 #include "ui/gfx/color_utils.h"
 #include "ui/views/view.h"
 #include "ui/views/view_utils.h"
+#include "ui/views/widget/widget.h"
 #include "ui/views/widget/widget.h"
 
 namespace cromarc {
@@ -283,19 +285,15 @@ void PaintTheme(gfx::Canvas* canvas,
   PaintGrain(canvas, box, theme.texture);
 }
 
-// getToolbarModifiedBaseRaw without acrylic (zen.theme.acrylic-sidebar off).
+// getToolbarModifiedBaseRaw with zen.theme.acrylic-sidebar on: 0.6 opaque.
 SkColor ToolbarBase(bool dark) {
-  return dark ? SkColorSetRGB(23, 23, 26) : SkColorSetRGB(240, 240, 244);
-}
-
-// #getSingleRGBColor(color, forToolbar): the colour at 90% over the toolbar
-// base, opaque.
-SkColor4f ToolbarColorOf(SkColor color, bool dark) {
-  return SkColor4f::FromColor(Blend(color, ToolbarBase(dark), 90));
+  return SkColorSetA(
+      dark ? SkColorSetRGB(23, 23, 26) : SkColorSetRGB(240, 240, 244), 0x99);
 }
 
 // getGradient(colors, forToolbar) over `box`, and the grain:
-// #zen-toolbar-background holds a .zen-browser-grain of its own.
+// #zen-toolbar-background holds a .zen-browser-grain of its own. Acrylic,
+// #getSingleRGBColor gives the toolbar the window's own colours.
 void PaintToolbarTheme(gfx::Canvas* canvas,
                        const gfx::Rect& bounds,
                        const gfx::RectF& box,
@@ -303,7 +301,7 @@ void PaintToolbarTheme(gfx::Canvas* canvas,
                        bool dark) {
   std::vector<SkColor4f> colors;
   for (SkColor color : theme.colors) {
-    colors.push_back(ToolbarColorOf(color, dark));
+    colors.push_back(ColorOf(color, theme.opacity));
   }
   switch (colors.size()) {
     case 0:
@@ -404,22 +402,32 @@ bool PaintChromeBackground(gfx::Canvas* canvas,
       !controller->IsCollapsed()) {
     return true;
   }
-  // Zen's .zen-toolbar-background in compact mode (zen-compact-mode.css): an
-  // opaque base, the toolbar gradient laid out on the whole window
-  // (background-attachment: fixed) and a light 1px edge.
+  // Zen's .zen-toolbar-background in compact mode (zen-compact-mode.css),
+  // acrylic (zen.theme.acrylic-sidebar): in an active window what it floats
+  // over shows through, blurred (ChromeBackgroundBlur()) and at half its
+  // brightness; otherwise an opaque base. Over it the toolbar gradient laid
+  // out on the whole window (background-attachment: fixed), the grain and a
+  // light 1px edge.
   const bool dark = IsDark(view);
+  const float blur = view->layer() ? view->layer()->background_blur() : 0;
+  const bool acrylic = blur > 0 && view->GetWidget()->IsActive();
   gfx::ScopedCanvas scoped(canvas);
   canvas->ClipPath(path, true);
   const gfx::Rect bounds = view->GetLocalBounds();
-  canvas->DrawColor(dark ? SkColorSetRGB(0x13, 0x13, 0x13)
-                         : SkColorSetRGB(0xe9, 0xe9, 0xe9));
+  if (acrylic) {
+    // backdrop-filter: brightness(0.5).
+    canvas->DrawColor(SkColorSetA(SK_ColorBLACK, 0x80));
+  } else {
+    canvas->DrawColor(dark ? SkColorSetRGB(0x13, 0x13, 0x13)
+                           : SkColorSetRGB(0xe9, 0xe9, 0xe9));
+  }
   gfx::RectF window(view->GetWidget()->GetRootView()->bounds());
   views::View::ConvertRectToTarget(view->GetWidget()->GetRootView(), view,
                                    &window);
   const Theme theme = ParseTheme(ThemeJson(browser_view));
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(kLogBackgroundSwitch)) {
     LOG(ERROR) << "cromarc floating sidebar: colors=" << theme.colors.size()
-               << " texture=" << theme.texture;
+               << " texture=" << theme.texture << " blur=" << blur;
   }
   PaintToolbarTheme(canvas, bounds, window, theme, dark);
   cc::PaintFlags edge;
@@ -429,6 +437,21 @@ bool PaintChromeBackground(gfx::Canvas* canvas,
   edge.setColor(SkColorSetA(SK_ColorWHITE, 0x26));
   canvas->DrawPath(path, edge);
   return true;
+}
+
+std::optional<float> ChromeBackgroundBlur(const views::View* view,
+                                          const BrowserView* browser_view) {
+  if (!ThemesWindow(browser_view) ||
+      !views::IsViewClass<VerticalTabStripRegionView>(view)) {
+    return std::nullopt;
+  }
+  auto* controller = tabs::VerticalTabStripStateController::From(
+      const_cast<BrowserView*>(browser_view)->browser());
+  if (!controller || !controller->IsCollapsed()) {
+    return std::nullopt;
+  }
+  // backdrop-filter: blur(42px).
+  return 42.0f;
 }
 
 void RepaintWindowBackground(BrowserWindowInterface* browser) {

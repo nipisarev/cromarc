@@ -5,6 +5,8 @@
 #ifndef CROMARC_BROWSER_UI_SIDEBAR_CROMARC_SIDEBAR_H_
 #define CROMARC_BROWSER_UI_SIDEBAR_CROMARC_SIDEBAR_H_
 
+#include <optional>
+
 #include "ui/gfx/geometry/insets.h"
 
 class BrowserView;
@@ -71,6 +73,12 @@ bool PaintChromeBackground(gfx::Canvas* canvas,
                            const views::View* view,
                            const SkPath& path,
                            const BrowserView* browser_view);
+
+// Hook H17, from CustomCornersBackground::SetUseBackgroundBlur(): the blur of
+// what `view` floats over, nothing to leave it to Chrome. The sidebar out
+// over the page in compact mode is acrylic (zen.theme.acrylic-sidebar).
+std::optional<float> ChromeBackgroundBlur(const views::View* view,
+                                          const BrowserView* browser_view);
 
 }  // namespace cromarc
 

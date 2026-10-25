@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sun, 25 Oct 2026 20:24:30 +0100
+Subject: [PATCH] Cromarc H17: the compact sidebar blurs what it floats over
+
+CustomCornersBackground::SetUseBackgroundBlur() asks Cromarc first: the
+sidebar out over the page in compact mode is acrylic, as Zen's with
+zen.theme.acrylic-sidebar, and Cromarc gives its layer that blur.
+
+diff --git a/chrome/browser/ui/views/frame/custom_corners_background.cc b/chrome/browser/ui/views/frame/custom_corners_background.cc
+index 5745cfb8cb117..4ed3e231f750d 100644
+--- a/chrome/browser/ui/views/frame/custom_corners_background.cc
++++ b/chrome/browser/ui/views/frame/custom_corners_background.cc
+@@ -156,6 +156,14 @@ void CustomCornersBackground::SetUseBackgroundBlur(bool use_background_blur) {
+   }
+   auto* const layer = view_->layer();
+   CHECK(!layer->fills_bounds_opaquely());
++  // Cromarc: the sidebar floating in compact mode blurs what it is over.
++  if (const std::optional<float> blur =
++          cromarc::ChromeBackgroundBlur(&*view_, &browser_view())) {
++    layer->SetBackgroundBlur(*blur);
++    layer->SetBackdropFilterBounds(GetBackgroundPath(view_->GetLocalBounds()));
++    SchedulePaintHost();
++    return;
++  }
+   if (!use_background_blur) {
+     layer->SetBackgroundBlur(0.0f);
+     return;
