@@ -40,6 +40,65 @@ enum HistorySort {
   kLastVisited,
 };
 
+enum DownloadState {
+  kInProgress,
+  kComplete,
+  kCancelled,
+  kInterrupted,
+};
+
+// A download as the Library and the download stack show it
+// (zen:library/sections/ZenLibraryDownloadsSection.mjs,
+// ZenLibraryWidget.sys.mjs).
+struct Download {
+  uint32 id;
+  string file_name;
+  // Where the file is, or is going; "" until a name is chosen.
+  string path;
+  url.mojom.Url url;
+  DownloadState state;
+  bool paused;
+  // The finished file is gone from where it was put.
+  bool missing;
+  // Held back as dangerous until the user decides.
+  bool dangerous;
+  bool can_resume;
+  bool open_when_complete;
+  int64 received_bytes;
+  // -1 while the size is not known.
+  int64 total_bytes;
+  // Bytes a second while it comes in.
+  int64 speed;
+  // Seconds left, -1 while not known.
+  int64 time_left;
+  // In milliseconds since the Unix epoch; end_time 0 until it ends.
+  double start_time;
+  double end_time;
+  // The finished file itself as a picture, under this page, or "".
+  string preview_url;
+};
+
+// What a row of the Library's downloads, or of the download stack, does.
+enum DownloadCommand {
+  // A finished file opens; one still coming in opens when it is done, or
+  // no longer.
+  kOpen,
+  kShow,
+  kCancel,
+  kPause,
+  kResume,
+  kRetry,
+  // Out of the list, the file left where it is.
+  kHide,
+  kDeleteFile,
+  kCopyFile,
+  kCopyLink,
+  kKeepDangerous,
+  kDiscardDangerous,
+  // The file dragged out, onto the page or another app.
+  kDrag,
+};
+
 struct LinkRoute {
   string id;
   string reference;
@@ -230,6 +289,12 @@ interface PageHandler {
   // itself (it cannot fetch its own resources).
   GetLibrarySprite(string name) => (string svg);
 
+  // This profile's downloads, oldest first, as chrome://downloads lists them.
+  GetDownloads() => (array<Download> downloads);
+  DoDownload(uint32 id, DownloadCommand command);
+  // The finished ones out of the list (Zen's "Clear all downloads").
+  ClearDownloads();
+
   // The Library's link rules. `default_external` "" is the space used last.
   GetRoutes() => (array<LinkRoute> routes, string default_external);
   AddRoute(string reference, string match, string space);
@@ -256,4 +321,6 @@ interface Page {
   OnSwipe(Swipe swipe);
   // History or the archive changed while the Library may be showing them.
   OnHistoryChanged();
+  // A download came, changed or went; at most four times a second.
+  OnDownloadsChanged();
 };

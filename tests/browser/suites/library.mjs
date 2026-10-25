@@ -67,7 +67,7 @@ check('the library button brings the Library out on its spring', !!(await settle
 const wide = await until(async () => { const w = await evaluate(sb, 'innerWidth'); return w >= 418 && w; }, 4000);
 check('…and the column widens to Zen\'s 418px', !!wide, `${narrow} → ${await evaluate(sb, 'innerWidth')}`);
 const rail = await evaluate(sb, `${ALL('.tab .tab-label')}.map(n => n.textContent)`);
-check('its rail holds Routes and History, History chosen', rail.join() === 'Маршруты,История' &&
+check('its rail holds Routes, Downloads and History, History chosen', rail.join() === 'Маршруты,Загрузки,История' &&
     await evaluate(sb, `${IN('.tab[active]')}.dataset.section`) === 'history', JSON.stringify(rail));
 check('the rail icons are Zen\'s sprites, coloured', !!(await until(() => evaluate(sb,
     `${IN('.tab[active] .tab-icon-image')}.style.backgroundImage.startsWith('url("data:image/svg+xml;base64')`))));
@@ -140,6 +140,57 @@ check('editing keeps one route, changed', !!(await until(async () => {
 await evaluate(sb, `${IN(`${R} .routing-row .row-action`)}.click(), true`);
 check('the bin removes it', !!(await until(async () => (await evaluate(sb,
     `${APP}.proxy_.handler.getRoutes().then(r => r.routes.length)`)) === 0)));
+
+// Downloads: the runner points them at the profile's folder; DevTools is
+// told so too, in case.
+const downloadDir = process.env.CROMARC_TEST_DOWNLOADS;
+if (!downloadDir) {
+  console.log('FAIL: no CROMARC_TEST_DOWNLOADS: downloads would go to ~/Downloads');
+  process.exit(1);
+}
+await send(await browserWs(), 'Browser.setDownloadBehavior', {behavior: 'allow', downloadPath: downloadDir});
+const {targetId} = (await send(await browserWs(), 'Target.createTarget', {url: `${site}/download.html`})).result;
+const page = await until(async () => (await targets()).find(t => t.id === targetId));
+await until(() => evaluate(page, `!!document.getElementById('picture')`));
+await evaluate(page, `document.getElementById('file').click(), true`);
+await sleep(800);
+await evaluate(page, `document.getElementById('picture').click(), true`);
+// The new tab shut the Library (Zen's onTabOpen).
+check('a tab opening shuts the Library', !!(await settled(false)));
+await evaluate(sb, `${APP}.shadowRoot.querySelector('#library-button').click()`);
+await settled(true);
+const D = 'cromarc-library-downloads';
+await evaluate(sb, `${IN('.tab[data-section="downloads"]')}.click(), true`);
+const files = await until(async () => {
+  const t = await titles(D);
+  return t.includes('sample.bin') && t.includes('pixel.png') && t;
+}, 15000);
+const paths = await evaluate(sb, `${APP}.proxy_.handler.getDownloads().then(r => r.downloads.map(d => d.path))`);
+check('setup: the files land in the run\'s folder, not ~/Downloads', !!downloadDir &&
+    paths.length > 0 && paths.every(p => p.startsWith(downloadDir)), JSON.stringify(paths));
+if (!paths.every(p => p.startsWith(downloadDir ?? '\0'))) {
+  process.exit(1);
+}
+check('Downloads lists them, newest first', !!files && files[0] === 'pixel.png', JSON.stringify(await titles(D)));
+const status = await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'sample.bin').querySelector('.download-status').textContent`);
+check('…with Firefox\'s status: size — site — time', /^22 байт — 127\.0\.0\.1 — \d\d:\d\d$/.test(status), status);
+const preview = await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'pixel.png').querySelector('.file-icon[preview]')?.style.backgroundImage ?? ''`);
+check('a finished picture shows itself', preview.includes('download-preview/'), preview);
+const drawn = await evaluate(sb, `new Promise(r => { const i = new Image(); i.onload = () => r(i.naturalWidth); i.onerror = () => r(-1); i.src = ${JSON.stringify(preview.match(/url\("([^"]+)"\)/)?.[1] ?? '')}; })`);
+check('…served from the page, the file itself', drawn === 1, String(drawn));
+check('the others get their file icon', (await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'sample.bin').querySelector('.file-icon').style.backgroundImage`)).includes('chrome://fileicon/'));
+const typed = async option => { await chip(D, 'type', option); await sleep(200); const t = await titles(D); await chip(D, 'type', option); return t; };
+await evaluate(sb, `${IN(`${D} .filter-button`)}.click(), true`);
+check('the type filter keeps pictures', JSON.stringify(await typed('images')) === '["pixel.png"]');
+await evaluate(sb, `${IN(`${D} .filter-done`)}.click(), true`);
+const binId = await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'sample.bin').dataset.id`);
+// 7: sidebar.mojom DownloadCommand.kDeleteFile.
+await evaluate(sb, `${APP}.proxy_.handler.doDownload(${binId}, 7), true`);
+check('deleting the file leaves it as gone', !!(await until(async () => (await evaluate(sb,
+    `${ALL(`${D} .row[missing] .row-title`)}.map(n => n.textContent)`)).includes('sample.bin'))));
+await evaluate(sb, `${APP}.testMenuChoice = 'Очистить все загрузки'; ${IN('.tab[data-section="downloads"]')}.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})), true`);
+check('the tab\'s menu clears them all', !!(await until(async () => (await titles(D)).length === 0)), JSON.stringify(await titles(D)));
+await evaluate(sb, `${IN('.tab[data-section="space-routing"]')}.click(), true`);
 
 // Escape shuts it; the rail remembers the section.
 await evaluate(sb, `document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}))`);

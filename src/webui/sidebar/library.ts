@@ -8,12 +8,15 @@ import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 import type {Space} from '../sidebar.mojom-webui.js';
 
 import {BrowserProxy} from './browser_proxy.js';
+import {isPending, progressOf} from './downloads_model.js';
+import {downloadsStore} from './downloads_store.js';
 import {getCss} from './library.css.js';
 import {getHtml} from './library.html.js';
 import {libraryStrings} from './library_strings.js';
 import {spriteUrl} from './library_sprites.js';
 import {showMenu} from './menu.js';
 import type {MenuItem} from './menu.js';
+import './library_downloads.js';
 import './library_history.js';
 import './library_routing.js';
 
@@ -42,6 +45,7 @@ export interface LibraryConfirm {
 // here yet are still to come over.
 const SECTIONS: LibraryTab[] = [
   {id: 'space-routing', label: libraryStrings.routing},
+  {id: 'downloads', label: libraryStrings.downloads},
   {id: 'history', label: libraryStrings.history},
 ];
 const LAST_TAB_KEY = 'cromarc.library.lastTab';
@@ -112,6 +116,7 @@ export class LibraryElement extends CrLitElement {
       toast_: {type: String},
       confirm_: {type: Object},
       spriteColors_: {type: Object},
+      downloading_: {type: Boolean},
       strings: {type: Object},
     };
   }
@@ -129,6 +134,9 @@ export class LibraryElement extends CrLitElement {
   protected accessor toast_: string = '';
   protected accessor confirm_: LibraryConfirm|null = null;
   protected accessor spriteColors_ = {stroke: '', fill: ''};
+  // The newest download is coming in: its tab fills and rings (Zen's
+  // zen-library-downloading, from ZenLibraryWidget).
+  protected accessor downloading_: boolean = false;
   protected accessor strings: typeof libraryStrings = libraryStrings;
   private readonly proxy_ = BrowserProxy.getInstance();
   private toastTimer_ = 0;
@@ -136,6 +144,7 @@ export class LibraryElement extends CrLitElement {
   private readonly onSchemeChange_ = () => this.readSpriteColors_();
   private readonly onDocumentKeydown_ = (e: KeyboardEvent) =>
       this.onEscapeKey_(e);
+  private unsubscribe_ = () => {};
 
   constructor() {
     super();
@@ -153,6 +162,13 @@ export class LibraryElement extends CrLitElement {
     super.connectedCallback();
     this.scheme_.addEventListener('change', this.onSchemeChange_);
     document.addEventListener('keydown', this.onDocumentKeydown_);
+    this.unsubscribe_ = downloadsStore().subscribe(downloads => {
+      const newest = downloads[downloads.length - 1];
+      this.downloading_ = !!newest && isPending(newest);
+      this.style.setProperty(
+          '--download-progress',
+          `${newest ? Math.round(progressOf(newest)) : 0}%`);
+    });
   }
 
   override disconnectedCallback() {
@@ -160,6 +176,7 @@ export class LibraryElement extends CrLitElement {
     this.scheme_.removeEventListener('change', this.onSchemeChange_);
     document.removeEventListener('keydown', this.onDocumentKeydown_);
     clearTimeout(this.toastTimer_);
+    this.unsubscribe_();
   }
 
   override updated(changed: PropertyValues<this>) {
@@ -225,7 +242,8 @@ export class LibraryElement extends CrLitElement {
     if (!this.spriteColors_.stroke) {
       return '';
     }
-    const active = id === this.activeTab_;
+    const active = id === this.activeTab_ ||
+        (id === 'downloads' && this.downloading_);
     return spriteUrl(
         id, this.spriteColors_.stroke,
         active ? this.spriteColors_.fill : 'transparent',
@@ -281,6 +299,21 @@ export class LibraryElement extends CrLitElement {
   // the way to the page it stands in for (Zen: tabMenu, legacyLibraryView).
   protected onTabContextmenu_(e: MouseEvent) {
     const id = (e.currentTarget as HTMLElement).dataset['section'];
+    if (id === 'downloads') {
+      e.preventDefault();
+      showMenu(e.clientX, e.clientY, [
+        {
+          label: this.strings.downloadsClearAll,
+          action: () => this.proxy_.handler.clearDownloads(),
+        },
+        {label: ''},
+        {
+          label: this.strings.openLegacyDownloads,
+          action: () => this.openPage('chrome://downloads/'),
+        },
+      ]);
+      return;
+    }
     if (id !== 'history') {
       return;
     }

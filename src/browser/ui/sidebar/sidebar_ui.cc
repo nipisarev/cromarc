@@ -10,6 +10,7 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_service_feature.h"
 #include "chrome/browser/ui/webui/favicon_source.h"
+#include "chrome/browser/ui/webui/fileicon_source.h"
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "chrome/grit/cromarc_resources.h"
 #include "chrome/grit/cromarc_resources_map.h"
@@ -25,6 +26,7 @@
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
+#include "cromarc/browser/ui/sidebar/library_downloads.h"
 #include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
 #include "ui/webui/webui_util.h"
 
@@ -46,6 +48,12 @@ SidebarUI::SidebarUI(content::WebUI* web_ui)
   content::URLDataSource::Add(
       profile, std::make_unique<FaviconSource>(
                    profile, chrome::FaviconUrlFormat::kFavicon2));
+  // The Library's downloads: file icons, and finished pictures as previews.
+  content::URLDataSource::Add(profile, std::make_unique<FileIconSource>());
+  source->SetRequestFilter(
+      base::BindRepeating(&LibraryDownloads::IsPreviewPath),
+      base::BindRepeating(&LibraryDownloads::ServePreview,
+                          base::Unretained(profile)));
 }
 
 SidebarUI::~SidebarUI() = default;

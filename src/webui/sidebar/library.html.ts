@@ -19,6 +19,7 @@ export function getHtml(this: LibraryElement) {
             ?active="${tab.id === this.activeTab_}"
             ?hidden-tab="${this.isHidden_(tab.id)}"
             ?animate="${tab.id === this.animatingTab_}"
+            ?downloading="${tab.id === 'downloads' && this.downloading_}"
             @click="${this.onTabClick_}"
             @contextmenu="${this.onTabContextmenu_}">
           <div class="tab-icon">
@@ -55,6 +56,10 @@ export function getHtml(this: LibraryElement) {
           ?hidden="${this.activeTab_ !== 'space-routing'}"
           .library="${this}" .spaces="${this.spaces}">
       </cromarc-library-routing>` : nothing}
+    ${this.isMounted_('downloads') ? html`
+      <cromarc-library-downloads class="section" data-section="downloads"
+          ?hidden="${this.activeTab_ !== 'downloads'}" .library="${this}">
+      </cromarc-library-downloads>` : nothing}
     ${this.isMounted_('history') ? html`
       <cromarc-library-history class="section" data-section="history"
           ?hidden="${this.activeTab_ !== 'history'}" .library="${this}">

@@ -217,6 +217,13 @@ SidebarPageHandler::SidebarPageHandler(
           archive_service_,
           base::BindRepeating(
               [](SidebarPageHandler* self) { self->page_->OnHistoryChanged(); },
+              base::Unretained(this)))),
+      downloads_(std::make_unique<LibraryDownloads>(
+          browser_,
+          base::BindRepeating(
+              [](SidebarPageHandler* self) {
+                self->page_->OnDownloadsChanged();
+              },
               base::Unretained(this)))) {
   SpaceController::Get()->AddSidebar(browser_, this);
 }
@@ -652,6 +659,19 @@ void SidebarPageHandler::ClearHistory(double begin) {
 
 void SidebarPageHandler::OpenUrl(const GURL& url, bool background) {
   library_->OpenUrl(url, background);
+}
+
+void SidebarPageHandler::GetDownloads(GetDownloadsCallback callback) {
+  std::move(callback).Run(downloads_->List());
+}
+
+void SidebarPageHandler::DoDownload(uint32_t id,
+                                    mojom::DownloadCommand command) {
+  downloads_->Do(id, command);
+}
+
+void SidebarPageHandler::ClearDownloads() {
+  downloads_->Clear();
 }
 
 void SidebarPageHandler::GetLibrarySprite(const std::string& name,

@@ -517,6 +517,123 @@ button {
   width: 18px;
 }
 
+/* Downloads (zen-library.css). */
+.tab[downloading]::after {
+  background:
+      conic-gradient(var(--zen-accent-button-background) var(--download-progress, 0%),
+          currentColor 0) border-box,
+      color-mix(in srgb, var(--zen-primary-color), light-dark(white, rgba(0, 0, 0, .5)) 80%)
+          padding-box;
+  border: 3px solid transparent;
+  border-radius: 100%;
+  box-shadow: 0 0 6px 2px rgba(0, 0, 0, .1);
+  box-sizing: border-box;
+  content: '';
+  height: var(--sprite-size);
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 16px;
+  translate: -50% 0;
+  width: var(--sprite-size);
+  z-index: -1;
+}
+
+.row-icon-box {
+  display: flex;
+  flex: none;
+  position: relative;
+}
+
+.download-row .file-icon {
+  border-radius: 5px;
+  height: 22px;
+  width: 22px;
+}
+
+.download-row .file-icon[preview] {
+  background-size: cover;
+  border-radius: 6px;
+  height: 34px;
+  margin-inline: -4px;
+  width: 34px;
+}
+
+.row[missing] {
+  opacity: .6;
+}
+
+.row[missing] .file-icon {
+  background: var(--pill-bg) !important;
+}
+
+/* Zen's forward arrow turned down while it comes in. */
+.pending-icon {
+  background: var(--color-sys-primary, AccentColor);
+  height: 22px;
+  margin-inline: 2px 1px;
+  rotate: -90deg;
+  scale: .8;
+  width: 22px;
+}
+
+.row-progress {
+  height: 32px;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  translate: -50% -50%;
+  width: 32px;
+}
+
+.row-progress circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.row-progress-track {
+  stroke: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.row-progress-arc {
+  rotate: -90deg;
+  stroke: var(--color-sys-primary, AccentColor);
+  transform-origin: center;
+  transition: stroke-dasharray .2s ease;
+}
+
+.row[paused] .row-progress-arc {
+  stroke: color-mix(in srgb, var(--color-sys-primary, AccentColor) 50%, transparent);
+}
+
+.row[indeterminate] .row-progress-arc {
+  animation: ring-spin 1s linear infinite;
+  transition: none;
+}
+
+@keyframes ring-spin {
+  from {
+    rotate: -90deg;
+  }
+
+  to {
+    rotate: 270deg;
+  }
+}
+
+.download-url {
+  display: none;
+}
+
+.row:hover:not([pending]) .download-status {
+  display: none;
+}
+
+.row:hover:not([pending]) .download-url {
+  display: inline;
+}
+
 /* Space routing. */
 .routing-match-types {
   display: grid;

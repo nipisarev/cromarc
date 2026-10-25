@@ -14,6 +14,7 @@
 #include "base/memory/weak_ptr.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/sidebar/library_backend.h"
+#include "cromarc/browser/ui/sidebar/library_downloads.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -117,6 +118,9 @@ class SidebarPageHandler : public mojom::PageHandler,
   void OpenUrl(const GURL& url, bool background) override;
   void GetLibrarySprite(const std::string& name,
                         GetLibrarySpriteCallback callback) override;
+  void GetDownloads(GetDownloadsCallback callback) override;
+  void DoDownload(uint32_t id, mojom::DownloadCommand command) override;
+  void ClearDownloads() override;
   void GetRoutes(GetRoutesCallback callback) override;
   void AddRoute(const std::string& reference,
                 const std::string& match,
@@ -163,6 +167,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   base::CallbackListSubscription lifecycle_subscription_;
   std::unique_ptr<ContextMenu> context_menu_;
   std::unique_ptr<LibraryBackend> library_;
+  std::unique_ptr<LibraryDownloads> downloads_;
   base::WeakPtrFactory<SidebarPageHandler> weak_factory_{this};
 };
 
