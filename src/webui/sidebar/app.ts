@@ -26,7 +26,7 @@ import type {SpaceEdit} from './space_editor.js';
 import {iconMask} from './space_icon.js';
 import {themeFromJson} from './theme_model.js';
 import type {SpaceTheme} from './theme_model.js';
-import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
+import {ADD_SWIPE_ENTRY, ADD_SWIPE_SHIFT, ADD_SWIPE_TRAVEL, addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, librarySwipeProgress, moveSpace, neighbourIndex, spring, SWITCH_DURATION, SwipeState} from './spaces.js';
 import type {DropPosition, PinnedRow, SidebarView, TreeRow} from './sidebar_model.js';
 import {strings} from './strings.js';
 import {TabListModel} from './tab_list_model.js';
@@ -159,7 +159,8 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor libraryShown_: boolean = false;
   protected accessor libraryOpen_: boolean = false;
   // How far a swipe has pulled the Library in, 0–1; -1 when no swipe does.
-  protected accessor libraryDrag_: number = -1;
+  // How far open the Library is while a swipe moves it.
+  protected accessor libraryDrag_: number|null = null;
   // Zen's add-space swipe past the last space: 1 is ready.
   protected accessor addProgress_: number = 0;
   // Zen's collapsible pins: the space header folds the pinned tabs away.
@@ -169,12 +170,16 @@ export class SidebarAppElement extends CrLitElement {
   // What a swipe at the edge of the spaces does (zen ZenSpacesSwipe actions).
   private edgeAction_: 'library'|'add'|null = null;
   private edgeAllowed_ = {library: false, add: false};
+  private libraryBefore_ = 0;
   // The space whose window is being made ready for a switch, -1 for none.
   private prepared_ = -1;
   private libraryTimer_ = 0;
   private deferred_: Set<string> = new Set();
   private clearedTimer_ = 0;
   private swipe_: SwipeState|null = null;
+  // A switch animating, and a space list that came in meanwhile.
+  private moving_ = false;
+  private pendingSpaces_: Space[]|null = null;
   private swipeOffset_ = 0;
   private animationFrame_ = 0;
 
@@ -312,13 +317,37 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   private setSpaces_(spaces: Space[]) {
+    // Mid-swipe or mid-switch only how the spaces look changes (a space's
+    // profile loading brings its icon); a new order waits for the strips to
+    // rest.
+    if (this.swipe_ || this.moving_) {
+      const ids = (list: Space[]) => list.map(s => s.id).join('\n');
+      if (ids(spaces) === ids(this.spaces_)) {
+        this.spaces_ = spaces;
+      } else {
+        this.pendingSpaces_ = spaces;
+      }
+      return;
+    }
+    this.pendingSpaces_ = null;
     this.spaces_ = spaces;
     this.snapshots_ = new Map();
     this.rest_();
   }
 
+  // Back at this window's space, unless a swipe or switch has started since.
+  private settle_() {
+    if (!this.swipe_ && !this.moving_) {
+      this.rest_();
+    }
+  }
+
   // Every strip in its place for this window's own space.
   private rest_() {
+    if (this.pendingSpaces_) {
+      this.setSpaces_(this.pendingSpaces_);
+      return;
+    }
     cancelAnimationFrame(this.animationFrame_);
     const current = this.currentIndex_;
     const count = this.spaces_.length;
@@ -396,10 +425,12 @@ export class SidebarAppElement extends CrLitElement {
         cancelAnimationFrame(this.animationFrame_);
         this.swipe_ = new SwipeState();
         this.swipeOffset_ = 0;
-        // Past the first space the Library, past the last a new space.
-        this.edgeAction_ = null;
+        // Past the first space the Library, past the last a new space; with
+        // the Library open, every swipe moves the Library.
+        this.edgeAction_ = this.libraryOpen_ ? 'library' : null;
+        this.libraryBefore_ = this.libraryOpen_ ? 1 : 0;
         this.edgeAllowed_ = {
-          library: current === 0 && !this.libraryOpen_,
+          library: this.libraryOpen_ || current === 0,
           add: current === count - 1 && !this.editor_,
         };
         this.loadSnapshots_();
@@ -418,7 +449,8 @@ export class SidebarAppElement extends CrLitElement {
           this.edgeAction_ = 'add';
         }
         if (this.edgeAction_ === 'library') {
-          this.libraryDrag_ = Math.min(1, Math.max(0, offset / this.offsetWidth * 2));
+          this.libraryDrag_ = librarySwipeProgress(
+              this.libraryBefore_, offset, this.offsetWidth);
           return;
         }
         if (this.edgeAction_ === 'add') {
@@ -448,8 +480,11 @@ export class SidebarAppElement extends CrLitElement {
           this.prepare_(-1);
         }
         if (action === 'library') {
-          const open = swipe.direction === -1 || this.libraryDrag_ >= 0.5;
-          this.libraryDrag_ = -1;
+          // Zen's stopSwipe: the way the swipe went; a swipe that fell short
+          // settles on the nearer end.
+          const open = swipe.direction !== 0 ? swipe.direction === -1 :
+                                               (this.libraryDrag_ ?? 0) >= 0.5;
+          this.libraryDrag_ = null;
           open ? this.openLibrary_() : this.closeLibrary_();
           return;
         }
@@ -458,7 +493,7 @@ export class SidebarAppElement extends CrLitElement {
             this.onAddSpaceClick_();
           }
           this.addProgress_ = 0;
-          this.animateTo_(current);
+          this.animateTo_(current).then(() => this.settle_());
           return;
         }
         if (count < 2) {
@@ -466,7 +501,7 @@ export class SidebarAppElement extends CrLitElement {
         }
         if (swipe.direction === 0) {
           this.prepare_(-1);
-          this.animateTo_(current);
+          this.animateTo_(current).then(() => this.settle_());
           return;
         }
         const target = (current + swipe.direction + count) % count;
@@ -501,6 +536,7 @@ export class SidebarAppElement extends CrLitElement {
         (_, i) => target === current || isAnimatedStrip(i, current, target, count));
     const progress = spring(0, 1, SWITCH_DURATION);
     const start = performance.now();
+    this.moving_ = true;
     return new Promise(resolve => {
       let done = false;
       const finish = () => {
@@ -508,6 +544,7 @@ export class SidebarAppElement extends CrLitElement {
           return;
         }
         done = true;
+        this.moving_ = false;
         cancelAnimationFrame(this.animationFrame_);
         this.stripX_ = to;
         this.blendBackground_(target, 1);
@@ -540,7 +577,14 @@ export class SidebarAppElement extends CrLitElement {
     // and waits at rest for the next time it is shown.
     this.proxy_.handler.switchToSpace(space.id);
     this.prepared_ = -1;
-    setTimeout(() => this.rest_(), 300);
+    setTimeout(() => {
+      // Zen's Library belongs to the window on screen, not to a space: it
+      // doesn't wait here for the space to come back.
+      clearTimeout(this.libraryTimer_);
+      this.libraryOpen_ = false;
+      this.libraryShown_ = false;
+      this.rest_();
+    }, 300);
   }
 
   protected onSpaceClick_(e: Event) {
@@ -563,8 +607,7 @@ export class SidebarAppElement extends CrLitElement {
   }
 
   protected libraryStyle_(): string {
-    const reveal = this.libraryDrag_ >= 0 ? this.libraryDrag_ :
-                                            (this.libraryOpen_ ? 1 : 0);
+    const reveal = this.libraryDrag_ ?? (this.libraryOpen_ ? 1 : 0);
     return `transform: translateX(${(reveal - 1) * 100}%)`;
   }
 

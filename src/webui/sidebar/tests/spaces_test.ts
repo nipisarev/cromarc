@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, moveSpace, neighbourIndex, spring, stripTransform, SwipeState} from '../spaces.ts';
+import {addSwipeProgress, circularDiff, easeInOut, isAnimatedStrip, librarySwipeProgress, moveSpace, neighbourIndex, spring, stripTransform, SwipeState} from '../spaces.ts';
 
 const near = (a: number, b: number, eps = 1e-3) =>
     assert.ok(Math.abs(a - b) < eps, `${a} ≉ ${b}`);
@@ -81,4 +81,14 @@ test('the add-space swipe is ready at 80% of a swipe, like Zen', () => {
   near(easeInOut(0), 0);
   near(easeInOut(0.5), 0.5);
   near(easeInOut(1), 1);
+});
+
+test('the Library follows 80% of the swipe from where it was, like Zen', () => {
+  near(librarySwipeProgress(0, 100, 250), 0.32);
+  near(librarySwipeProgress(1, -100, 250), 0.68);
+  // Past shut or fully open it only gives a little.
+  const past = librarySwipeProgress(1, 250, 250);
+  assert.ok(past > 1 && past < 1.2, String(past));
+  const before = librarySwipeProgress(0, -250, 250);
+  assert.ok(before < 0 && before > -0.2, String(before));
 });

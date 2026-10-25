@@ -152,8 +152,9 @@ class SpaceController : public ProfileAttributesStorageObserver,
   void OnProfileNameChanged(const base::FilePath& profile_path,
                             const std::u16string& old_profile_name) override;
 
-  // ProfileManagerObserver:
-  using ProfileManagerObserver::OnProfileAdded;
+  // ProfileManagerObserver: a space's icon, theme and place in the order are
+  // in its profile's prefs, known once it has loaded.
+  void OnProfileAdded(Profile* profile) override;
   // The storage goes with the profile manager; this singleton outlives both.
   void OnProfileManagerDestroying() override;
 

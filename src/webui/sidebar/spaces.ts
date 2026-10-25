@@ -140,3 +140,34 @@ export function easeInOut(x: number): number {
   const clamped = Math.min(Math.max(x, 0), 1);
   return -(Math.cos(Math.PI * clamped) - 1) / 2;
 }
+
+// zen:library/ZenLibrary.mjs, swipeProgress: the Library opens 80% of the
+// swipe's share of the strip on top of where it started, rubber-banded past
+// shut and fully open.
+const LIBRARY_SWIPE_FULL = 0.8;
+const LIBRARY_DAMPING_DIMENSION = 0.2;
+const LIBRARY_RUBBER_BAND_CONSTANT = 0.08;
+
+function rubberBand(offset: number, dimension: number, constant: number):
+    number {
+  if (offset === 0 || dimension === 0) {
+    return 0;
+  }
+  return dimension * (1 - Math.exp(-(Math.abs(offset) * constant) / dimension)) *
+      Math.sign(offset);
+}
+
+export function librarySwipeProgress(
+    before: number, offset: number, stripWidth: number): number {
+  const progress = before + offset / stripWidth * LIBRARY_SWIPE_FULL;
+  if (progress < 0) {
+    return rubberBand(
+        progress, LIBRARY_DAMPING_DIMENSION, LIBRARY_RUBBER_BAND_CONSTANT);
+  }
+  if (progress > 1) {
+    return 1 +
+        rubberBand(progress - 1, LIBRARY_DAMPING_DIMENSION,
+                   LIBRARY_RUBBER_BAND_CONSTANT);
+  }
+  return progress;
+}

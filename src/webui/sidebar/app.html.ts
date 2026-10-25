@@ -317,7 +317,7 @@ ${this.addProgress_ > 0 ? html`
     <span class="svg" style="mask-image: url(sidebar/ui_icons/add.svg)"></span>
   </div>` : nothing}
 ${this.libraryShown_ ? html`
-  <cromarc-library id="library" ?dragging="${this.libraryDrag_ >= 0}"
+  <cromarc-library id="library" ?dragging="${this.libraryDrag_ !== null}"
       .spaces="${this.spaces_}"
       style="${this.libraryStyle_()}"
       @library-close="${this.onLibraryClose_}">

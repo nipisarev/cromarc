@@ -715,6 +715,10 @@ void SpaceController::OnProfileAdded(const base::FilePath& profile_path) {
   NotifySpacesChanged();
 }
 
+void SpaceController::OnProfileAdded(Profile* profile) {
+  NotifySpacesChanged();
+}
+
 void SpaceController::OnProfileWasRemoved(const base::FilePath& profile_path,
                                           const std::u16string& profile_name) {
   NotifySpacesChanged();
