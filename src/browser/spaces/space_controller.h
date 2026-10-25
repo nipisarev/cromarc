@@ -164,7 +164,22 @@ class SpaceController : public ProfileAttributesStorageObserver,
   SpaceController();
   ~SpaceController() override;
 
+  struct SidebarState {
+    bool collapsed = false;
+    int width = 0;
+
+    bool operator==(const SidebarState&) const = default;
+  };
+
   void NotifySpacesChanged();
+  // Zen keeps one sidebar in its window whichever space it shows: compact or
+  // not, and as wide. The space windows are that one window here, so a change
+  // in one goes to the others and to the windows the spaces open later.
+  void ShareSidebarState(BrowserWindowInterface* from);
+  // `browser`'s sidebar as the shared state has it.
+  void ApplySidebarState(BrowserWindowInterface* browser);
+  // A new window of `profile` starts as the shared state.
+  void SeedSidebarState(Profile* profile);
   void HideInactiveSpaceWindows();
   // Warm switching: every space gets a hidden window after startup, so a
   // switch only has to swap windows (design, component 4).
@@ -193,6 +208,12 @@ class SpaceController : public ProfileAttributesStorageObserver,
   std::map<BrowserWindowInterface*, raw_ptr<Sidebar>> sidebars_;
   std::map<BrowserWindowInterface*, base::CallbackListSubscription>
       close_subscriptions_;
+  std::map<BrowserWindowInterface*,
+           std::vector<base::CallbackListSubscription>>
+      sidebar_state_subscriptions_;
+  std::optional<SidebarState> sidebar_state_;
+  // While the shared state goes to the windows, their changes are its own.
+  bool sharing_sidebar_state_ = false;
   bool warm_windows_scheduled_ = false;
   // The window PrepareSwitch() brought over the visible one, and the space it
   // was asked for while its profile loads.

@@ -8,6 +8,7 @@
 #include <array>
 #include <utility>
 
+#include "base/auto_reset.h"
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
 #include "base/values.h"
@@ -32,6 +33,8 @@
 #include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: as above
 #include "chrome/browser/ui/profiles/profile_colors_util.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: as above
+#include "chrome/common/pref_names.h"
 #include "chrome/common/webui_url_constants.h"
 #include "components/prefs/pref_service.h"
 #include "cromarc/browser/spaces/space_prefs.h"
@@ -197,10 +200,94 @@ void SpaceController::AddSidebar(BrowserWindowInterface* browser,
   close_subscriptions_[browser] = browser->RegisterBrowserDidClose(
       base::BindRepeating(&SpaceController::OnSpaceWindowClosed,
                           base::Unretained(this)));
+  auto* controller = tabs::VerticalTabStripStateController::From(browser);
+  if (!controller) {
+    return;
+  }
+  std::vector<base::CallbackListSubscription>& subscriptions =
+      sidebar_state_subscriptions_[browser];
+  subscriptions.clear();
+  subscriptions.push_back(controller->RegisterOnCollapseChanged(
+      base::BindRepeating(
+          [](SpaceController* self, BrowserWindowInterface* browser,
+             tabs::VerticalTabStripCollapseState) {
+            self->ShareSidebarState(browser);
+          },
+          base::Unretained(this), browser)));
+  // A width the user drags is shared once the drag ends.
+  subscriptions.push_back(controller->RegisterOnResizingChanged(
+      base::BindRepeating(
+          [](SpaceController* self, BrowserWindowInterface* browser,
+             bool resizing) {
+            if (!resizing) {
+              self->ShareSidebarState(browser);
+            }
+          },
+          base::Unretained(this), browser)));
+  if (sidebar_state_) {
+    base::AutoReset<bool> sharing(&sharing_sidebar_state_, true);
+    ApplySidebarState(browser);
+  } else {
+    ShareSidebarState(browser);
+  }
 }
 
 void SpaceController::RemoveSidebar(BrowserWindowInterface* browser) {
   sidebars_.erase(browser);
+  sidebar_state_subscriptions_.erase(browser);
+}
+
+void SpaceController::ShareSidebarState(BrowserWindowInterface* from) {
+  auto* controller = tabs::VerticalTabStripStateController::From(from);
+  if (sharing_sidebar_state_ || !controller || controller->IsResizing()) {
+    return;
+  }
+  // Collapsing counts as collapsed: that is where it is going.
+  const SidebarState state{
+      .collapsed = controller->GetCollapseState() !=
+                   tabs::VerticalTabStripCollapseState::kExpanded,
+      .width = controller->GetUncollapsedWidth()};
+  if (sidebar_state_ == state) {
+    return;
+  }
+  sidebar_state_ = state;
+  base::AutoReset<bool> sharing(&sharing_sidebar_state_, true);
+  for (const auto& [browser, sidebar] : sidebars_) {
+    if (browser != from) {
+      ApplySidebarState(browser);
+    }
+  }
+  for (Profile* profile :
+       g_browser_process->profile_manager()->GetLoadedProfiles()) {
+    SeedSidebarState(profile);
+  }
+}
+
+void SpaceController::ApplySidebarState(BrowserWindowInterface* browser) {
+  auto* controller = tabs::VerticalTabStripStateController::From(browser);
+  if (!controller || !sidebar_state_) {
+    return;
+  }
+  if (controller->GetUncollapsedWidth() != sidebar_state_->width) {
+    controller->SetUncollapsedWidth(sidebar_state_->width);
+  }
+  const bool collapsed = controller->GetCollapseState() !=
+                         tabs::VerticalTabStripCollapseState::kExpanded;
+  if (collapsed != sidebar_state_->collapsed) {
+    controller->RequestCollapse(sidebar_state_->collapsed);
+  }
+}
+
+void SpaceController::SeedSidebarState(Profile* profile) {
+  if (!sidebar_state_ || profile->IsOffTheRecord()) {
+    return;
+  }
+  // What Chrome gives a window that session restore does not bring back.
+  PrefService* prefs = profile->GetPrefs();
+  prefs->SetBoolean(prefs::kVerticalTabsCollapsedState,
+                    sidebar_state_->collapsed);
+  prefs->SetInteger(prefs::kVerticalTabsUncollapsedWidth,
+                    sidebar_state_->width);
 }
 
 void SpaceController::OnSpaceWindowClosed(BrowserWindowInterface* browser) {
@@ -268,6 +355,7 @@ BrowserWindowInterface* SpaceController::EnsureHiddenWindow(Profile* profile) {
       break;
     }
   }
+  SeedSidebarState(profile);
   BrowserWindowCreateParams params(*profile, /*from_user_gesture=*/false);
   params.initial_bounds = bounds;
   BrowserWindowInterface* browser = CreateBrowserWindow(std::move(params));
@@ -454,6 +542,7 @@ BrowserWindowInterface* SpaceController::EnsureWindow(Profile* profile,
   if (BrowserWindowInterface* window = GetWindowFor(profile)) {
     return window;
   }
+  SeedSidebarState(profile);
   BrowserWindowCreateParams params(*profile, /*from_user_gesture=*/true);
   params.initial_bounds = bounds;
   BrowserWindowInterface* window = CreateBrowserWindow(std::move(params));
