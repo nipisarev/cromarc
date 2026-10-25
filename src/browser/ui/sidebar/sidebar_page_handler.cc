@@ -9,6 +9,8 @@
 #include <string_view>
 #include <utility>
 
+#include "base/barrier_callback.h"
+#include "base/base64.h"
 #include "base/functional/bind.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/strings/utf_string_conversions.h"
@@ -18,13 +20,17 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_model_impl/converters/tab_converters.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/common/webui_url_constants.h"
 #include "chrome/grit/cromarc_resources_map.h"
+#include "chrome/browser/favicon/favicon_service_factory.h"
 #include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/bookmarks/browser/bookmark_node.h"
-#include "components/favicon/content/content_favicon_driver.h"
+#include "components/favicon/core/favicon_service.h"
+#include "components/favicon_base/favicon_types.h"
+#include "components/keyed_service/core/service_access_type.h"
 #include "components/prefs/pref_service.h"
 #include "components/browser_apis/tab_strip/types/node_id.h"
 #include "components/tabs/public/tab_interface.h"
@@ -40,13 +46,13 @@
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
+#include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "ui/base/base_window.h"
 #include "ui/base/mojom/menu_source_type.mojom.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/webui/web_ui_util.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
-#include "ui/gfx/image/image.h"
 #include "ui/menus/simple_menu_model.h"
 #include "ui/views/controls/menu/menu_runner.h"
 #include "ui/views/view.h"
@@ -99,14 +105,18 @@ std::vector<mojom::TreeNodePtr> BuildChildren(
   return nodes;
 }
 
-std::string FaviconDataUrl(content::WebContents* contents) {
-  auto* driver = favicon::ContentFaviconDriver::FromWebContents(contents);
-  if (!driver) {
-    return std::string();
+// As the sidebar asks chrome://favicon2: 16 DIP at 2x.
+constexpr int kSnapshotFaviconPx = 32;
+
+void CollectHomeUrls(const std::vector<mojom::TreeNodePtr>& nodes,
+                     std::set<GURL>& urls) {
+  for (const mojom::TreeNodePtr& node : nodes) {
+    if (node->is_folder) {
+      CollectHomeUrls(node->children, urls);
+    } else {
+      urls.insert(node->home_url);
+    }
   }
-  const gfx::Image image = driver->GetFavicon();
-  return image.IsEmpty() ? std::string()
-                         : webui::GetBitmapDataUrl(*image.ToSkBitmap());
 }
 
 }  // namespace
@@ -493,6 +503,9 @@ void SidebarPageHandler::GetSpaces(GetSpacesCallback callback) {
 
 void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
                                           GetSpaceSnapshotCallback callback) {
+  // Answered even when the space's profile goes away mid-lookup.
+  callback = mojo::WrapCallbackWithDefaultInvokeIfNotRun(std::move(callback),
+                                                         nullptr);
   Profile* profile = SpaceController::Get()->GetLoadedProfile(id);
   TreeService* tree_service = profile ? TreeService::Get(profile) : nullptr;
   if (!tree_service || !tree_service->loaded()) {
@@ -503,21 +516,53 @@ void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
   snapshot->tree = BuildChildren(tree_service, tree_service->tree().Root());
   if (BrowserWindowInterface* window = SpaceController::GetWindowFor(profile)) {
     TabStripModel* model = window->GetTabStripModel();
-    // Today, newest first, as the sidebar shows it.
-    for (int i = model->count() - 1; i >= 0; --i) {
+    for (int i = 0; i < model->count(); ++i) {
       tabs::TabInterface* tab = model->GetTabAtIndex(i);
-      if (tree_service->GetItemForTab(tab)) {
-        continue;
-      }
-      content::WebContents* contents = tab->GetContents();
-      auto snapshot_tab = mojom::SnapshotTab::New();
-      snapshot_tab->title = base::UTF16ToUTF8(contents->GetTitle());
-      snapshot_tab->url = contents->GetLastCommittedURL();
-      snapshot_tab->favicon = FaviconDataUrl(contents);
-      snapshot->today.push_back(std::move(snapshot_tab));
+      snapshot->tabs.push_back(tabs_api::converters::BuildMojoTab(
+          tab, tab->GetContents()->GetColorProvider(),
+          {.is_active = tab->IsActivated(), .is_selected = tab->IsSelected()}));
     }
   }
-  std::move(callback).Run(std::move(snapshot));
+  std::set<GURL> home_urls;
+  CollectHomeUrls(snapshot->tree, home_urls);
+  favicon::FaviconService* favicons = FaviconServiceFactory::GetForProfile(
+      profile, ServiceAccessType::EXPLICIT_ACCESS);
+  if (home_urls.empty() || !favicons) {
+    std::move(callback).Run(std::move(snapshot));
+    return;
+  }
+  auto found = base::BarrierCallback<std::pair<std::string, std::string>>(
+      home_urls.size(),
+      base::BindOnce(
+          [](mojom::SpaceSnapshotPtr snapshot,
+             GetSpaceSnapshotCallback callback,
+             std::vector<std::pair<std::string, std::string>> results) {
+            for (auto& [url, data_url] : results) {
+              if (!data_url.empty()) {
+                snapshot->favicons.emplace(std::move(url), std::move(data_url));
+              }
+            }
+            std::move(callback).Run(std::move(snapshot));
+          },
+          std::move(snapshot), std::move(callback)));
+  for (const GURL& url : home_urls) {
+    favicons->GetRawFaviconForPageURL(
+        url, {favicon_base::IconType::kFavicon}, kSnapshotFaviconPx,
+        /*fallback_to_host=*/true,
+        base::BindOnce(
+            [](std::string url,
+               const favicon_base::FaviconRawBitmapResult& result) {
+              return std::make_pair(
+                  std::move(url),
+                  result.is_valid()
+                      ? "data:image/png;base64," +
+                            base::Base64Encode(*result.bitmap_data)
+                      : std::string());
+            },
+            url.spec())
+            .Then(found),
+        &favicon_tracker_);
+  }
 }
 
 void SidebarPageHandler::SwitchToSpace(const std::string& id) {

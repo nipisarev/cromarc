@@ -4,6 +4,7 @@
 
 module cromarc.mojom;
 
+import "components/browser_apis/tab_strip/tab_strip_api_data_model.mojom";
 import "components/browser_apis/tab_strip/tab_strip_api_types.mojom";
 import "url/mojom/url.mojom";
 
@@ -182,17 +183,16 @@ struct Space {
   string theme;
 };
 
-struct SnapshotTab {
-  string title;
-  url.mojom.Url url;
-  // data: URL, or "" (the page then asks chrome://favicon2).
-  string favicon;
-};
-
-// Another space's sidebar content, for its strip while switching.
+// A space's sidebar content as its own window's sidebar has it, for its
+// strip in another window while switching and its card in the Library.
 struct SpaceSnapshot {
   array<TreeNode> tree;
-  array<SnapshotTab> today;
+  // Its window's tabs, as the tab strip API gives them to that window's
+  // sidebar.
+  array<tabs_api.mojom.Tab> tabs;
+  // Favicons of pinned items' home URLs, data: URLs from the space's own
+  // profile: chrome://favicon2 asks the profile of the page showing it.
+  map<string, string> favicons;
 };
 
 enum SwipeType {

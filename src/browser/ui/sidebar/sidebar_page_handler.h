@@ -12,6 +12,7 @@
 #include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/task/cancelable_task_tracker.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/sidebar/library_backend.h"
 #include "cromarc/browser/ui/sidebar/library_downloads.h"
@@ -175,6 +176,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   std::unique_ptr<ContextMenu> context_menu_;
   std::unique_ptr<LibraryBackend> library_;
   std::unique_ptr<LibraryDownloads> downloads_;
+  base::CancelableTaskTracker favicon_tracker_;
   base::WeakPtrFactory<SidebarPageHandler> weak_factory_{this};
 };
 

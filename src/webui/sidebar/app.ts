@@ -82,11 +82,16 @@ export interface DropIndicator {
   position: DropPosition;
 }
 
-// Another space's strip content, built from its snapshot.
-export interface SnapshotView {
+// What a space's strip draws: this window's sidebar (live) or another
+// space's, from its snapshot, with its pinned items' favicons by home URL
+// (data: URLs from that space's profile).
+export interface StripContent {
   view: SidebarView;
-  today: Array<{title: string, url: string, favicon: string}>;
+  live: boolean;
+  favicons: {[url: string]: string};
 }
+
+const NO_FAVICONS: {[url: string]: string} = {};
 
 export class SidebarAppElement extends CrLitElement {
   static get is() {
@@ -160,7 +165,7 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor cleared_: string[] = [];
   // Spaces in order; each has a strip (design, component 4).
   protected accessor spaces_: Space[] = [];
-  protected accessor snapshots_: Map<string, SnapshotView> = new Map();
+  protected accessor snapshots_: Map<string, StripContent> = new Map();
   // Horizontal position of every strip, in % of the sidebar width.
   protected accessor stripX_: number[] = [];
   // Background tint: the space's colour, blended while switching.
@@ -389,7 +394,6 @@ export class SidebarAppElement extends CrLitElement {
     }
     this.pendingSpaces_ = null;
     this.spaces_ = spaces;
-    this.snapshots_ = new Map();
     this.rest_();
   }
 
@@ -449,26 +453,27 @@ export class SidebarAppElement extends CrLitElement {
     this.primary_ = primary ? primary.join(',') : '';
   }
 
-  // The other spaces' content, for their strips while switching.
+  // The other spaces' content, for their strips while switching: fresh at
+  // every switch, the last one shown until it comes.
   private async loadSnapshots_() {
-    const snapshots = new Map(this.snapshots_);
-    for (const space of this.spaces_) {
-      if (space.current || snapshots.has(space.id)) {
-        continue;
-      }
-      const {snapshot} = await this.proxy_.handler.getSpaceSnapshot(space.id);
-      snapshots.set(space.id, this.snapshotView_(snapshot));
-    }
-    this.snapshots_ = snapshots;
+    const others = this.spaces_.filter(space => !space.current);
+    const snapshots = await Promise.all(others.map(
+        space => this.proxy_.handler.getSpaceSnapshot(space.id)));
+    const next = new Map(this.snapshots_);
+    others.forEach((space, i) => {
+      next.set(space.id, this.snapshotContent_(snapshots[i]!.snapshot));
+    });
+    this.snapshots_ = next;
   }
 
-  private snapshotView_(snapshot: SpaceSnapshot|null): SnapshotView {
+  private snapshotContent_(snapshot: SpaceSnapshot|null): StripContent {
     if (!snapshot) {
-      return {view: buildSidebar([], []), today: []};
+      return {view: buildSidebar([], []), live: false, favicons: NO_FAVICONS};
     }
     return {
-      view: buildSidebar(snapshot.tree, []),
-      today: snapshot.today.map(t => ({title: t.title, url: t.url, favicon: t.favicon})),
+      view: buildSidebar(snapshot.tree, snapshot.tabs),
+      live: false,
+      favicons: snapshot.favicons,
     };
   }
 
@@ -1310,12 +1315,21 @@ export class SidebarAppElement extends CrLitElement {
     this.proxy_.handler.previewSpaceTheme('');
   }
 
-  protected snapshotOf_(id: string): SnapshotView {
-    return this.snapshots_.get(id) ?? {view: buildSidebar([], []), today: []};
+  protected snapshotOf_(id: string): StripContent {
+    return this.snapshots_.get(id) ??
+        {view: buildSidebar([], []), live: false, favicons: NO_FAVICONS};
   }
 
-  protected snapshotFavicon_(url: string, favicon: string): string {
-    return favicon ? `url("${favicon}")` : getFaviconForPageURL(url, false);
+  // Every space's strip: this window's own live, the others from their
+  // snapshots, drawn alike so the swap of windows shows no seam. A snapshot
+  // is inert: its buttons would act on another window's tabs.
+  protected strips_(): Array<{space: Space, content: StripContent}> {
+    return this.stripSpaces_.map(space => {
+      const content = space.current ?
+          {view: this.view_, live: true, favicons: NO_FAVICONS} :
+          this.snapshotOf_(space.id);
+      return {space, content};
+    });
   }
 
   private setLifecycles_(tabs: TabLifecycle[]) {
@@ -1364,11 +1378,14 @@ export class SidebarAppElement extends CrLitElement {
 
   // Template helpers.
 
-  protected faviconFor_(url: string, tab: Tab|null): string {
+  protected faviconFor_(
+      url: string, tab: Tab|null,
+      favicons: {[url: string]: string} = NO_FAVICONS): string {
     if (tab && tab.favicon.dataUrl) {
       return `url("${tab.favicon.dataUrl}")`;
     }
-    return getFaviconForPageURL(url, false);
+    const known = favicons[url];
+    return known ? `url("${known}")` : getFaviconForPageURL(url, false);
   }
 
   protected isActive_(tab: Tab|null): boolean {

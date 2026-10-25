@@ -51,7 +51,7 @@ export function getHtml(this: LibrarySpacesElement) {
                   ?open="${!this.isCollapsed_(row)}"></cromarc-folder-icon>` :
               html`
               <span class="space-row-icon"
-                  style="background-image: ${this.rowFavicon_(row)}"></span>`}
+                  style="background-image: ${this.rowFavicon_(space, row)}"></span>`}
             <span class="space-row-title">${row.title}</span>
           </div>`)}
         ${this.visibleRows_(space).length && this.cardOf_(space).today.length ?

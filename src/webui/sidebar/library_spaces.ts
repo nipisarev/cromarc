@@ -6,7 +6,9 @@ import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 
-import type {SnapshotTab, Space} from '../sidebar.mojom-webui.js';
+import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
+
+import type {Space} from '../sidebar.mojom-webui.js';
 
 import {BrowserProxy} from './browser_proxy.js';
 import type {LibraryElement} from './library.js';
@@ -19,10 +21,12 @@ import {gradientOf, themeFromJson} from './theme_model.js';
 import './folder_icon.js';
 import './icon_picker.js';
 
-// What a card lists: its pinned rows (folders, at their depth) and Today.
+// What a card lists: its pinned rows (folders, at their depth) and Today,
+// with the favicons of its pinned items' home URLs from the space's profile.
 export interface SpaceCard {
   rows: TreeRow[];
-  today: SnapshotTab[];
+  today: Tab[];
+  favicons: {[url: string]: string};
 }
 
 // ZenLibrarySpacesSection: the strip scrolls sideways a little under the
@@ -121,11 +125,10 @@ export class LibrarySpacesElement extends CrLitElement {
     const cards: Record<string, SpaceCard> = {};
     for (const space of this.spaces) {
       const {snapshot} = await this.proxy_.handler.getSpaceSnapshot(space.id);
-      cards[space.id] = snapshot ? {
-        rows: buildSidebar(snapshot.tree, []).rows,
-        today: snapshot.today,
-      } :
-                                   {rows: [], today: []};
+      const view = snapshot ? buildSidebar(snapshot.tree, snapshot.tabs) : null;
+      cards[space.id] = view ?
+          {rows: view.rows, today: view.today, favicons: snapshot!.favicons} :
+          {rows: [], today: [], favicons: {}};
     }
     this.cards_ = cards;
   }
@@ -167,7 +170,7 @@ export class LibrarySpacesElement extends CrLitElement {
   }
 
   protected cardOf_(space: Space): SpaceCard {
-    return this.cards_[space.id] ?? {rows: [], today: []};
+    return this.cards_[space.id] ?? {rows: [], today: [], favicons: {}};
   }
 
   // A folder closed here hides what is under it.
@@ -195,14 +198,22 @@ export class LibrarySpacesElement extends CrLitElement {
         (this.collapsed_[row.id] ?? row.collapsed);
   }
 
-  protected rowFavicon_(row: TreeRow): string {
-    return row.kind === 'pinned' ? getFaviconForPageURL(row.homeUrl, false) :
-                                   '';
+  // As the space's own sidebar draws them: its tab's, else its home URL's
+  // from the space's profile (this page's chrome://favicon2 asks this one).
+  protected rowFavicon_(space: Space, row: TreeRow): string {
+    if (row.kind !== 'pinned') {
+      return '';
+    }
+    if (row.tab?.favicon.dataUrl) {
+      return `url("${row.tab.favicon.dataUrl}")`;
+    }
+    const known = this.cardOf_(space).favicons[row.homeUrl];
+    return known ? `url("${known}")` : getFaviconForPageURL(row.homeUrl, false);
   }
 
-  protected todayFavicon_(tab: SnapshotTab): string {
-    return tab.favicon ? `url("${tab.favicon}")` :
-                         getFaviconForPageURL(tab.url, false);
+  protected todayFavicon_(tab: Tab): string {
+    return tab.favicon.dataUrl ? `url("${tab.favicon.dataUrl}")` :
+                                 getFaviconForPageURL(tab.url, false);
   }
 
   protected rowIndent_(row: TreeRow): string {

@@ -135,6 +135,8 @@ build_webui("build") {
   mojo_files_deps = [
     "//components/browser_apis/tab_strip:mojom_ts__copy_converters",
     "//components/browser_apis/tab_strip:mojom_ts__generator",
+    "//components/tab_groups/public/mojom:mojo_bindings_ts__generator",
+    "//components/tabs/public/mojom:mojom_ts__generator",
     "//cromarc/browser/ui/arc_import:mojo_bindings_ts__generator",
     "//cromarc/browser/ui/command_bar:mojo_bindings_ts__generator",
     "//cromarc/browser/ui/sidebar:mojo_bindings_ts__generator",
@@ -142,8 +144,11 @@ build_webui("build") {
   ]
   mojo_files = [
     "$root_gen_dir/components/browser_apis/tab_strip/node_id_converter.ts",
+    "$root_gen_dir/components/browser_apis/tab_strip/tab_strip_api_data_model.mojom-webui.ts",
     "$root_gen_dir/components/browser_apis/tab_strip/tab_strip_api_types.mojom-converters.ts",
     "$root_gen_dir/components/browser_apis/tab_strip/tab_strip_api_types.mojom-webui.ts",
+    "$root_gen_dir/components/tab_groups/public/mojom/tab_group_types.mojom-webui.ts",
+    "$root_gen_dir/components/tabs/public/mojom/tabs.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/arc_import/arc_import.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/command_bar/command_bar.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/sidebar/sidebar.mojom-webui.ts",

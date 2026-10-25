@@ -14,16 +14,16 @@ export function getHtml(this: SidebarAppElement) {
 <div id="viewport" ?editing="${!!this.editor_ || !!this.themeEditor_}"
     ?stack-open="${this.stackOpen_}"
     ?stack-closing="${this.stackClosing_}">
-  ${this.stripSpaces_.map((space, index) => html`
+  ${this.strips_().map(({space, content: strip}, index) => html`
   <div class="strip" style="${this.stripStyle_(index)}">
-  ${space.current ? html`
-    <div id="sidebar" class="sidebar"
+    <div id="${strip.live ? 'sidebar' : nothing}"
+          class="sidebar ${strip.live ? '' : 'snapshot'}" ?inert="${!strip.live}"
           @contextmenu="${this.onBackgroundContextmenu_}">
-      <div id="essentials" class="essentials"
-          layout="${essentialsLayout(this.view_.essentials.length)}"
+      <div id="${strip.live ? 'essentials' : nothing}" class="essentials"
+          layout="${essentialsLayout(strip.view.essentials.length)}"
           @dragover="${this.onEssentialsDragover_}"
           @drop="${this.onEssentialsDrop_}">
-        ${this.essentialsPromo_() ? html`
+        ${strip.live && this.essentialsPromo_() ? html`
           <div class="essentials-promo ${this.promoOver_ ? 'over' : ''}"
               @dragover="${this.onPromoDragover_}"
               @dragleave="${this.onPromoDragleave_}">
@@ -33,23 +33,24 @@ export function getHtml(this: SidebarAppElement) {
             <span class="promo-sublabel">${
                 this.strings.essentialsPromoSublabel}</span>
           </div>` : html`${
-          repeat(this.essentialCells_(), e => e?.id ?? '', e => e ? html`
+          repeat(strip.live ? this.essentialCells_() : strip.view.essentials, e => e?.id ?? '', e => e ? html`
           <div class="essential ${this.isDragged_(e.id) ? 'dragging' : ''}"
               data-id="${e.id}" data-kind="item"
               draggable="true" title="${e.title}" state="${e.state}"
               ?active="${this.isActive_(e.tab)}"
-              style="--essential-icon: ${this.faviconFor_(e.homeUrl, e.tab)}"
+              style="--essential-icon: ${this.faviconFor_(e.homeUrl, e.tab, strip.favicons)}"
               @click="${this.onItemClick_}"
               @contextmenu="${this.onItemContextmenu_}"
               @dragstart="${this.onDragstart_}" @dragend="${this.onDragend_}">
             <span class="favicon"
-                style="background-image: ${this.faviconFor_(e.homeUrl, e.tab)}">
+                style="background-image: ${this.faviconFor_(e.homeUrl, e.tab, strip.favicons)}">
             </span>
           </div>` : html`<div class="essential slot"></div>`)}`}
       </div>
-      <div class="space-header ${this.dropZone_ === 'header' ? 'over' : ''}"
-          ?has-pins="${this.view_.rows.length > 0}"
-          ?collapsed="${this.pinsCollapsed_}"
+      <div class="space-header ${
+          strip.live && this.dropZone_ === 'header' ? 'over' : ''}"
+          ?has-pins="${strip.view.rows.length > 0}"
+          ?collapsed="${strip.live && this.pinsCollapsed_}"
           @click="${this.onHeaderClick_}"
           @dragover="${this.onHeaderDragover_}"
           @dragleave="${this.onZoneDragleave_}"
@@ -70,9 +71,9 @@ export function getHtml(this: SidebarAppElement) {
           </span>
         </button>
       </div>
-      <div id="tabs" class="tabs">
-      <div id="tree" role="tree">
-        ${this.visibleRows_().map(row => row.kind === 'folder' ? html`
+      <div id="${strip.live ? 'tabs' : nothing}" class="tabs">
+      <div id="${strip.live ? 'tree' : nothing}" class="tree" role="tree">
+        ${(strip.live ? this.visibleRows_() : strip.view.rows).map(row => row.kind === 'folder' ? html`
           <div class="row folder ${this.dropClass_(row.id)}" data-id="${row.id}"
               data-kind="item" draggable="true" style="--depth: ${row.depth}"
               ?collapsed="${row.collapsed}"
@@ -101,11 +102,11 @@ export function getHtml(this: SidebarAppElement) {
                   @click="${this.onResetClick_}"
                   @mousemove="${this.onResetMousemove_}">
                 <span class="favicon"
-                    style="background-image: ${this.faviconFor_(row.homeUrl, null)}">
+                    style="background-image: ${this.faviconFor_(row.homeUrl, null, strip.favicons)}">
                 </span>
               </button>` : nothing}
             <span class="favicon current"
-                style="background-image: ${this.faviconFor_(row.homeUrl, row.tab)}">
+                style="background-image: ${this.faviconFor_(row.homeUrl, row.tab, strip.favicons)}">
             </span>
             ${this.renaming_ === row.id ? html`
               <input class="rename" .value="${row.title}"
@@ -126,12 +127,13 @@ export function getHtml(this: SidebarAppElement) {
                     style="mask-image: url(sidebar/ui_icons/close.svg)"></span>
               </button>` : nothing}
           </div>`)}
-        <div id="tree-end" class="${this.dropZone_ === 'end' ? 'over' : ''}"
+        <div id="${strip.live ? 'tree-end' : nothing}" class="tree-end ${
+            strip.live && this.dropZone_ === 'end' ? 'over' : ''}"
             @dragover="${this.onTreeEndDragover_}"
             @dragleave="${this.onZoneDragleave_}"
             @drop="${this.onTreeEndDrop_}"></div>
       </div>
-      <div class="separator" ?hidden="${this.view_.today.length === 0}"
+      <div class="separator" ?hidden="${strip.view.today.length === 0}"
           @dragover="${this.onTreeEndDragover_}"
           @dragleave="${this.onZoneDragleave_}"
           @drop="${this.onTreeEndDrop_}">
@@ -143,13 +145,13 @@ export function getHtml(this: SidebarAppElement) {
           <span>${this.strings.clear}</span>
         </button>
       </div>
-      ${this.view_.attention.length ? html`
+      ${strip.view.attention.length ? html`
         <div class="section-header attention">⚠ ${this.strings.needsAttention}</div>
-        ${this.view_.attention.map(tab => html`
+        ${strip.view.attention.map(tab => html`
           <div class="row attention" data-id="${tab.id}" title="${tab.title}"
               ?active="${tab.isActive}" @click="${this.onTodayClick_}">
             <span class="favicon"
-                style="background-image: ${this.faviconFor_(tab.url, tab)}">
+                style="background-image: ${this.faviconFor_(tab.url, tab, strip.favicons)}">
             </span>
             <span class="title">${tab.title || tab.url}
               <span class="subtitle">${this.strings.unsavedInput}</span>
@@ -167,9 +169,10 @@ export function getHtml(this: SidebarAppElement) {
         </span>
         <span class="title">${this.strings.newTab}</span>
       </div>
-      <div id="today" @dragover="${this.onTodayDragover_}"
+      <div id="${strip.live ? 'today' : nothing}" class="today-list"
+          @dragover="${this.onTodayDragover_}"
           @drop="${this.onTodayDrop_}">
-        ${this.view_.today.map(tab => html`
+        ${strip.view.today.map(tab => html`
           <div class="row today" data-id="${tab.id}" data-kind="tab"
               draggable="true" ?active="${tab.isActive}"
               title="${this.todayTooltip_(tab)}"
@@ -177,7 +180,7 @@ export function getHtml(this: SidebarAppElement) {
               @contextmenu="${this.onTodayContextmenu_}"
               @dragstart="${this.onDragstart_}" @dragend="${this.onDragend_}">
             <span class="favicon"
-                style="background-image: ${this.faviconFor_(tab.url, tab)}">
+                style="background-image: ${this.faviconFor_(tab.url, tab, strip.favicons)}">
             </span>
             <span class="title">${tab.title || tab.url}</span>
             <button class="close" title="${this.strings.close}"
@@ -189,58 +192,7 @@ export function getHtml(this: SidebarAppElement) {
           </div>`)}
       </div>
       </div>
-    </div>` : html`
-    <div class="sidebar snapshot">
-      <div class="essentials" layout="${
-          essentialsLayout(this.snapshotOf_(space.id).view.essentials.length)}">
-        ${this.snapshotOf_(space.id).view.essentials.map(e => html`
-          <div class="essential" state="asleep" title="${e.title}">
-            <span class="favicon"
-                style="background-image: ${this.faviconFor_(e.homeUrl, null)}">
-            </span>
-          </div>`)}
-      </div>
-      <div class="space-header">
-        <span class="space-icon-stack" ?no-icon="${!space.icon}">
-        <span class="space-icon" ?no-icon="${!space.icon}">${
-            this.iconMask_(space.icon) ? html`
-            <span class="svg" style="mask-image: ${this.iconMask_(space.icon)}">
-            </span>` : html`${space.icon}`}</span>
-        </span>
-        <span class="space-name">${space.name}</span>
-      </div>
-      <div class="tabs">
-      ${this.snapshotOf_(space.id).view.rows.map(row => row.kind === 'folder' ?
-        html`
-          <div class="row folder" style="--depth: ${row.depth}"
-              ?collapsed="${row.collapsed}">
-            <cromarc-folder-icon ?open="${!row.collapsed}"></cromarc-folder-icon>
-            <span class="title">${row.title}</span>
-          </div>` : html`
-          <div class="row pinned" state="asleep" style="--depth: ${row.depth}">
-            <span class="favicon"
-                style="background-image: ${this.faviconFor_(row.homeUrl, null)}">
-            </span>
-            <span class="title">${row.title}</span>
-          </div>`)}
-      <div class="separator"
-          ?hidden="${this.snapshotOf_(space.id).today.length === 0}">
-        <span class="line"></span>
-      </div>
-      <div class="row new-tab">
-        <span class="svg" style="mask-image: url(sidebar/ui_icons/add.svg)">
-        </span>
-        <span class="title">${this.strings.newTab}</span>
-      </div>
-      ${this.snapshotOf_(space.id).today.map(t => html`
-        <div class="row today">
-          <span class="favicon"
-              style="background-image: ${this.snapshotFavicon_(t.url, t.favicon)}">
-          </span>
-          <span class="title">${t.title || t.url}</span>
-        </div>`)}
-      </div>
-    </div>`}
+    </div>
   </div>`)}
 </div>
 ${this.editor_ ? html`
@@ -395,3 +347,4 @@ ${this.libraryShown_ ? html`
 <!--_html_template_end_-->`;
   // clang-format on
 }
+
