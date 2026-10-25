@@ -44,6 +44,7 @@ const clickMenu = async label => evaluate(await sidebar(), `(async () => {
 })()`);
 
 const before = await width();
+const heightPinned = await evaluate(await sidebar(), 'window.innerHeight');
 const pageBefore = await pageWidth();
 console.log('sidebar', before, 'page', pageBefore);
 check('the sidebar has width', before > 100);
@@ -51,7 +52,17 @@ check('menu has "Скрыть сайдбар"', await clickMenu('Скрыть с
 check('collapsed: the sidebar is gone', (await until(async () => (await width()) <= 2)) === true, String(await width()));
 const pageCompact = await until(async () => { const w = await pageWidth(); return w > pageBefore && w; });
 console.log('page in compact', pageCompact);
-check('the page takes the window', pageCompact >= pageBefore + before - 2, `${pageCompact} vs ${pageBefore}+${before}`);
+// Zen's #zen-tabbox-wrapper in compact mode: 8px on both sides.
+check('…with Zen\'s margin on both sides', !!(await until(async () =>
+    (await evaluate(await page(), 'window.outerWidth - window.innerWidth')) === 16)),
+    String(await evaluate(await page(), 'window.outerWidth - window.innerWidth')));
+// Over the sidebar in compact mode only its button: the hidden tab search and
+// tab groups buttons take no room.
+const heightCompact = await evaluate(await sidebar(), 'window.innerHeight');
+check('the compact sidebar\'s top row is its button alone', heightCompact >= heightPinned - 45,
+    `${heightCompact} vs ${heightPinned}`);
+// Less Zen's 8px margin on the side the sidebar left (compact-mode/sidebar.inc.css).
+check('the page takes the window', pageCompact >= pageBefore + before - 8 - 2, `${pageCompact} vs ${pageBefore}+${before}`);
 
 // A tab opened in the background flashes the sidebar over the page (Zen's
 // flashSidebar); floating, it gets Zen's opaque toolbar background, which

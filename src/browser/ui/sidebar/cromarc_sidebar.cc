@@ -10,6 +10,7 @@
 #include "base/check.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
+#include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/frame_separator.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/tabs/shared/tab_strip_combo_button.h"  // nogncheck: as above
@@ -69,8 +70,19 @@ gfx::Insets PageInsets(BrowserView* browser_view) {
     return gfx::Insets();
   }
   // Zen: margin on the page's far sides, none toward the sidebar and the
-  // toolbar.
-  return gfx::Insets::TLBR(0, 0, kPageSeparation, kPageSeparation);
+  // toolbar; in compact mode, where the sidebar is not there, on its side
+  // too (compact-mode/sidebar.inc.css, #zen-tabbox-wrapper).
+  auto* controller = tabs::VerticalTabStripStateController::From(browser);
+  const bool compact = controller && controller->IsCollapsed();
+  return gfx::Insets::TLBR(0, compact ? kPageSeparation : 0, kPageSeparation,
+                           kPageSeparation);
+}
+
+gfx::RoundedCornersF PageCorners(BrowserView* browser_view,
+                                 const gfx::RoundedCornersF& chrome_corners) {
+  return PageInsets(browser_view).IsEmpty()
+             ? chrome_corners
+             : gfx::RoundedCornersF(kPageCornerRadius);
 }
 
 }  // namespace cromarc

@@ -27,6 +27,7 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/views/bookmarks/bookmark_bar_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/grit/cromarc_resources.h"
@@ -437,6 +438,11 @@ bool PaintChromeBackground(gfx::Canvas* canvas,
   edge.setColor(SkColorSetA(SK_ColorWHITE, 0x26));
   canvas->DrawPath(path, edge);
   return true;
+}
+
+bool PaintsOnSpaceTheme(const views::View* view,
+                        const BrowserView* browser_view) {
+  return ThemesWindow(browser_view) && views::IsViewClass<BookmarkBarView>(view);
 }
 
 std::optional<float> ChromeBackgroundBlur(const views::View* view,

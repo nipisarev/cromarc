@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "ui/gfx/geometry/insets.h"
+#include "ui/gfx/geometry/rounded_corners_f.h"
 
 class BrowserView;
 class BrowserWindowInterface;
@@ -27,10 +28,12 @@ namespace cromarc {
 inline constexpr char kSidebarHost[] = "cromarc-sidebar.top-chrome";
 inline constexpr char kSidebarURL[] = "chrome://cromarc-sidebar.top-chrome/";
 
-// Zen's zen.theme.content-element-separation, and its inner radius on macOS:
-// max(5px, (7px - 8px / 2) * 1.3).
+// Zen's zen.theme.content-element-separation, and the page's radius on macOS
+// (zen-browser-container.css): --zen-native-inner-radius over the squircle,
+// max(5px, (11px - 8px / 2) * 1.3) / 1.3, --zen-border-radius being 11px from
+// Tahoe on (zenThemeModifier.js).
 inline constexpr int kPageSeparation = 8;
-inline constexpr float kPageCornerRadius = 5;
+inline constexpr float kPageCornerRadius = 7;
 
 // Hook H2, called by the vertical tab strip region right after it adds its
 // native tab list to `parent`: hides that list, the New Tab button under it,
@@ -50,6 +53,16 @@ int RegionWidth(BrowserWindowInterface* browser, int width);
 // space round the page in a window with the sidebar, so the page is a card on
 // the window's background (Zen's element separation). None in tab fullscreen.
 gfx::Insets PageInsets(BrowserView* browser_view);
+
+// Hook H18, from the browser view's layout: the page's corners, all round
+// where it is a card, otherwise `chrome_corners`.
+gfx::RoundedCornersF PageCorners(BrowserView* browser_view,
+                                 const gfx::RoundedCornersF& chrome_corners);
+
+// Hook H18, from ThemedBackground: true when `view` paints nothing, the space
+// theme under it showing, as Zen's toolbox does (the bookmarks bar).
+bool PaintsOnSpaceTheme(const views::View* view,
+                        const BrowserView* browser_view);
 
 // Hook H14: Zen draws the space theme (its gradient and grain) under the whole
 // window and Chrome's frame, toolbar and page backgrounds stay clear over it,
