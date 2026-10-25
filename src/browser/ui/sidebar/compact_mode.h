@@ -10,8 +10,11 @@
 #include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/scoped_observation.h"
 #include "base/timer/timer.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "ui/views/view.h"
+#include "ui/views/view_observer.h"
 
 class BrowserWindowInterface;
 class ExpandOnHoverLock;
@@ -31,8 +34,9 @@ class SidebarView;
 // sidebar slides out over the page when the cursor reaches the window's left
 // edge and goes 150 ms after it leaves (zen.view.compact.sidebar-keep-hover),
 // and flashes for 800 ms when a tab opens in the background (Zen's
-// flashSidebar).
-class CompactMode : public TabStripModelObserver {
+// flashSidebar). Hidden, nothing of the strip shows, as Zen's sidebar is off
+// the window then.
+class CompactMode : public TabStripModelObserver, public views::ViewObserver {
  public:
   explicit CompactMode(SidebarView* sidebar);
   CompactMode(const CompactMode&) = delete;
@@ -44,6 +48,8 @@ class CompactMode : public TabStripModelObserver {
   static bool Toggle(BrowserWindowInterface* browser);
 
   bool IsCompact() const;
+  // Once the sidebar is in its window's vertical tab strip region.
+  void ObserveRegion();
   // The cursor is at `screen_point` over this window.
   void OnMouseMoved(const gfx::Point& screen_point);
   void Flash();
@@ -53,6 +59,10 @@ class CompactMode : public TabStripModelObserver {
       TabStripModel* tab_strip_model,
       const TabStripModelChange& change,
       const TabStripSelectionChange& selection) override;
+
+  // views::ViewObserver (the region):
+  void OnViewBoundsChanged(views::View* observed_view) override;
+  void OnViewIsDeleting(views::View* observed_view) override;
 
  private:
   VerticalTabStripRegionView* Region() const;
@@ -66,6 +76,8 @@ class CompactMode : public TabStripModelObserver {
   // a move out of the window ends it, unless just past the sidebar's edge.
   base::ScopedClosureRunner mouse_watch_;
   base::OneShotTimer hide_timer_;
+  base::ScopedObservation<views::View, views::ViewObserver> region_observation_{
+      this};
   base::WeakPtrFactory<CompactMode> weak_factory_{this};
 };
 

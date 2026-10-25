@@ -15,6 +15,7 @@
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "cromarc/browser/ui/sidebar/space_input.h"
 #include "ui/base/base_window.h"
+#include "ui/compositor/layer.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/views/view_utils.h"
@@ -63,6 +64,27 @@ VerticalTabStripRegionView* CompactMode::Region() const {
     }
   }
   return nullptr;
+}
+
+void CompactMode::ObserveRegion() {
+  VerticalTabStripRegionView* region = Region();
+  if (!region || region_observation_.IsObservingSource(region)) {
+    return;
+  }
+  region_observation_.Reset();
+  region_observation_.Observe(region);
+  OnViewBoundsChanged(region);
+}
+
+void CompactMode::OnViewBoundsChanged(views::View* region) {
+  // At no width the strip still showed its top buttons over the page: they
+  // paint to layers of their own, which the strip's layer doesn't clip. Not
+  // while it has width: its shadow falls outside.
+  region->layer()->SetMasksToBounds(region->width() == 0);
+}
+
+void CompactMode::OnViewIsDeleting(views::View* region) {
+  region_observation_.Reset();
 }
 
 void CompactMode::OnMouseMoved(const gfx::Point& screen_point) {

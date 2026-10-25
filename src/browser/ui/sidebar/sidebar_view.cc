@@ -187,6 +187,7 @@ void SidebarView::PrimaryMainFrameRenderProcessGone(
 
 void SidebarView::AddedToWidget() {
   views::WebView::AddedToWidget();
+  compact_mode_->ObserveRegion();
   // The window's features, fullscreen among them, come after its views.
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE, base::BindOnce(&SidebarView::ObserveFullscreen,
