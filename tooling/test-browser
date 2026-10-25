@@ -9,7 +9,8 @@
 # our code trips fails its suite. webauthn_opaque_origin runs as the daily
 # build does. --sites also loads popular sites as the daily build (needs the
 # network) and lists the DCHECKs they trip in Chromium's code.
-# Test windows show on screen; leave the Mac alone while they run.
+# The browsers run headless: nothing shows on screen or in the Dock and the
+# Mac stays the user's (CROMARC_TEST_WINDOWED=1 shows them).
 # Usage: tooling/test-browser [--sites] [suite...]
 #   CROMARC_APP picks another app (default: out/release/Cromarc.app).
 
@@ -92,6 +93,10 @@ launch() {
     --disable-features=MacAppCodeSignClone)
   is_daily "$name" ||
     args+=("--enable-features=DcheckIsFatal,PartitionAllocDanglingPtr")
+  # No window on screen, no Dock icon, no focus taken from whoever is at the
+  # Mac (Chrome's headless mode, the browser and its views as they are);
+  # CROMARC_TEST_WINDOWED=1 shows the windows, to watch a run.
+  [ -n "${CROMARC_TEST_WINDOWED:-}" ] || args+=(--headless=new)
   case "$name" in
     theme | compact) args+=(--cromarc-test-log-background) ;;
     import) args+=(--cromarc-arc-sidebar="$fixtures/arc_sidebar.json") ;;
