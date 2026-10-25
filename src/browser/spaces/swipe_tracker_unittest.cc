@@ -92,5 +92,26 @@ TEST_F(SwipeTrackerTest, MomentumAfterTheSwipeIsSwallowed) {
   EXPECT_FALSE(tracker_.consuming());
 }
 
+// The swipe brought another window up, which got the momentum, or there was
+// none: the mouse wheel must scroll again.
+TEST_F(SwipeTrackerTest, AWheelEndsTheWaitForMomentumThatWentElsewhere) {
+  Feed(Phase::kBegan, 0, 0);
+  Feed(Phase::kChanged, -80, 0);
+  Feed(Phase::kEnded, 0, 0);
+  ASSERT_TRUE(tracker_.consuming());
+  EXPECT_TRUE(Feed(Phase::kNone, 0, 10).empty());
+  EXPECT_FALSE(tracker_.consuming());
+}
+
+TEST_F(SwipeTrackerTest, AWheelCancelsASwipeUnderWay) {
+  Feed(Phase::kBegan, 0, 0);
+  Feed(Phase::kChanged, -80, 0);
+  std::vector<SwipeTracker::Event> events = Feed(Phase::kNone, 0, 10);
+  ASSERT_EQ(events.size(), 1u);
+  EXPECT_EQ(events[0].type, SwipeTracker::EventType::kEnd);
+  EXPECT_EQ(events[0].direction, 0);
+  EXPECT_FALSE(tracker_.consuming());
+}
+
 }  // namespace
 }  // namespace cromarc

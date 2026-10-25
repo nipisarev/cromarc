@@ -23,7 +23,8 @@ class SwipeTracker {
   static constexpr double kSuccessThreshold = 0.25;
   static constexpr double kSuccessVelocityContribution = 0.5;
 
-  enum class Phase { kBegan, kChanged, kEnded, kCancelled };
+  // kNone: a scroll outside any gesture, as a mouse wheel's.
+  enum class Phase { kNone, kBegan, kChanged, kEnded, kCancelled };
 
   struct Input {
     Phase phase;

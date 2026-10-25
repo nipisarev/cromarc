@@ -7,8 +7,8 @@
 #import <AppKit/AppKit.h>
 #include <Carbon/Carbon.h>
 
-#include <map>
 #include <memory>
+#include <vector>
 
 #include "base/functional/bind.h"
 #include "base/no_destructor.h"
@@ -33,19 +33,23 @@ constexpr NSEventModifierFlags kModifierMask =
     NSEventModifierFlagCommand | NSEventModifierFlagOption |
     NSEventModifierFlagControl | NSEventModifierFlagShift;
 
-struct WindowSwipe {
+// One trackpad, one gesture at a time, whichever window gets its events: a
+// swipe's momentum goes on in the window the swipe brought up.
+struct Swipe {
   SwipeTracker tracker;
   // The window whose sidebar the swipe began over.
   SessionID browser_id = SessionID::InvalidValue();
 };
 
-// Keyed by window address: an NSWindow* key would keep closed windows alive.
-std::map<uintptr_t, WindowSwipe>& Swipes() {
-  static base::NoDestructor<std::map<uintptr_t, WindowSwipe>> swipes;
-  return *swipes;
+Swipe& CurrentSwipe() {
+  static base::NoDestructor<Swipe> swipe;
+  return *swipe;
 }
 
 SwipeTracker::Phase PhaseOf(NSEventPhase phase) {
+  if (phase == NSEventPhaseNone) {
+    return SwipeTracker::Phase::kNone;
+  }
   if (phase & NSEventPhaseBegan) {
     return SwipeTracker::Phase::kBegan;
   }
@@ -104,39 +108,48 @@ NSEvent* HandleScroll(NSEvent* event) {
   if (!window) {
     return event;
   }
-  WindowSwipe& swipe =
-      Swipes()[reinterpret_cast<uintptr_t>((__bridge void*)window)];
+  Swipe& swipe = CurrentSwipe();
   const bool trackpad = event.phase != NSEventPhaseNone ||
                         event.momentumPhase != NSEventPhaseNone;
+  SidebarView* sidebar = SidebarView::FindAt(
+      gfx::NativeWindow(window),
+      gfx::ScreenPointFromNSPoint([NSEvent mouseLocation]));
 
-  if (!swipe.tracker.consuming()) {
-    SidebarView* sidebar = SidebarView::FindAt(
-        gfx::NativeWindow(window),
-        gfx::ScreenPointFromNSPoint([NSEvent mouseLocation]));
-    if (!trackpad) {
-      // Ctrl + wheel over the sidebar: one space per notch.
-      if (sidebar && (event.modifierFlags & NSEventModifierFlagControl) &&
-          event.scrollingDeltaY != 0) {
-        static base::TimeTicks last;
-        if (base::TimeTicks::Now() - last > kWheelCooldown) {
-          last = base::TimeTicks::Now();
-          SpaceController::Get()->RequestSwitchBy(
-              sidebar->browser(), event.scrollingDeltaY > 0 ? -1 : 1);
-        }
-        return nil;
+  if (!trackpad) {
+    // A swipe left waiting for momentum (which went to the window it brought
+    // up, or never came) took the wheel's scrolling until the next trackpad
+    // gesture.
+    const std::vector<SwipeTracker::Event> ended = swipe.tracker.Process(
+        {SwipeTracker::Phase::kNone, false, 0, 0, base::TimeTicks::Now()});
+    if (BrowserWindowInterface* browser =
+            BrowserWindowInterface::FromSessionID(swipe.browser_id)) {
+      for (const SwipeTracker::Event& e : ended) {
+        SpaceController::Get()->OnSwipe(browser, e);
       }
-      return event;
     }
-    // Only gestures that begin over the sidebar can switch spaces, and not in
-    // native fullscreen: there the switch is macOS's Space animation, which a
-    // swipe cannot drive.
-    if (event.phase == NSEventPhaseBegan) {
-      const bool fullscreen =
-          (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
-      swipe.browser_id = sidebar && !fullscreen
-                             ? sidebar->browser()->GetSessionID()
-                             : SessionID::InvalidValue();
+    // Ctrl + wheel over the sidebar: one space per notch.
+    if (sidebar && (event.modifierFlags & NSEventModifierFlagControl) &&
+        event.scrollingDeltaY != 0) {
+      static base::TimeTicks last;
+      if (base::TimeTicks::Now() - last > kWheelCooldown) {
+        last = base::TimeTicks::Now();
+        SpaceController::Get()->RequestSwitchBy(
+            sidebar->browser(), event.scrollingDeltaY > 0 ? -1 : 1);
+      }
+      return nil;
     }
+    return event;
+  }
+  // Only gestures that begin over the sidebar can switch spaces, and not in
+  // native fullscreen: there the switch is macOS's Space animation, which a
+  // swipe cannot drive. Fingers down again start a new gesture, wherever
+  // the last one's momentum went.
+  if (event.phase == NSEventPhaseBegan) {
+    const bool fullscreen =
+        (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
+    swipe.browser_id = sidebar && !fullscreen
+                           ? sidebar->browser()->GetSessionID()
+                           : SessionID::InvalidValue();
   }
   BrowserWindowInterface* browser =
       BrowserWindowInterface::FromSessionID(swipe.browser_id);

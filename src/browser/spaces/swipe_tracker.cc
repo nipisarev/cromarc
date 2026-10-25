@@ -40,6 +40,16 @@ std::vector<SwipeTracker::Event> SwipeTracker::Process(const Input& input) {
   }
 
   switch (input.phase) {
+    // A wheel turning: no gesture is going on, whatever this still waited
+    // for (a swipe's momentum may never come); a swipe cut short is
+    // cancelled.
+    case Phase::kNone:
+      if (state_ == State::kSwiping) {
+        events.push_back({EventType::kEnd, amount_, 0});
+      }
+      state_ = State::kIdle;
+      return events;
+
     case Phase::kBegan:
       state_ = State::kDeciding;
       amount_ = 0;
