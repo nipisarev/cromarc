@@ -86,7 +86,10 @@ launch() {
   local args=(--user-data-dir="$profile" --remote-debugging-port="$port"
     --no-first-run --no-default-browser-check --use-mock-keychain
     --disable-backgrounding-occluded-windows --disable-renderer-backgrounding
-    "--window-size=1100,800")
+    "--window-size=1100,800"
+    # Each launch would leave a clone of the app in /var/folders/.../X when
+    # the browser is stopped hard; over hundreds of runs they filled the disk.
+    --disable-features=MacAppCodeSignClone)
   is_daily "$name" ||
     args+=("--enable-features=DcheckIsFatal,PartitionAllocDanglingPtr")
   case "$name" in
