@@ -7,9 +7,11 @@ Zen draws the space theme, its gradient and grain, under the whole window,
 and the toolbar and the space round the page stay clear over it. In Cromarc
 windows (normal ones, with the sidebar) the frame view paints the theme
 through cromarc::PaintWindowBackground, over the glass or the frame colour;
-the glass covers the whole window without Chrome's tint; and
-CustomCornersBackground (toolbar, top container, tab strip region) and
-MultiContentsBackgroundView leave their areas clear.
+the glass covers the whole window without Chrome's tint;
+MultiContentsBackgroundView leaves its area clear; and
+CustomCornersBackground (toolbar, top container, tab strip region) lets
+Cromarc paint instead: nothing, but Zen's compact toolbar background for the
+sidebar floating over the page.
 
 diff --git a/chrome/browser/ui/views/frame/browser_frame_view_mac.mm b/chrome/browser/ui/views/frame/browser_frame_view_mac.mm
 index 8354a9179ef79..aa04e7a5f54a3 100644
