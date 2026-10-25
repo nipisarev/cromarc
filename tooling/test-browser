@@ -41,6 +41,11 @@ if [ ${#suites[@]} -eq 0 ] && ! $sites; then
   done
 fi
 
+# Each run keeps its profiles and logs for a look afterwards; only the last
+# three stay, the rest would fill the disk.
+# shellcheck disable=SC2012 # mktemp's names have nothing odd in them
+ls -dt "${TMPDIR:-/tmp}"/cromarc-tests.* 2>/dev/null | tail -n +3 |
+  while read -r old; do rm -rf "$old"; done
 work="$(mktemp -d "${TMPDIR:-/tmp}/cromarc-tests.XXXXXX")"
 # Window helpers some suites read the window list with.
 export CROMARC_TEST_TOOLS="$work/tools"
