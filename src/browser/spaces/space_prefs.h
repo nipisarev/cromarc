@@ -9,20 +9,12 @@
 
 #include "base/no_destructor.h"
 #include "chrome/browser/profiles/profile_keyed_service_factory.h"
+#include "cromarc/browser/spaces/space_pref_names.h"
 
 namespace cromarc {
 
-// Per-space settings live in the space's own profile prefs.
-// Emoji or "icon:<name>" shown for the space; "" = none (Zen's no-icon).
-inline constexpr char kSpaceIconPref[] = "cromarc.space.icon";
-// Position among spaces; -1 = after the ordered ones, by name.
-inline constexpr char kSpaceOrderPref[] = "cromarc.space.order";
-// Last time the space was the visible one.
-inline constexpr char kSpaceLastActivePref[] = "cromarc.space.last_active";
-// The theme editor's JSON: {colors: [[r, g, b]...], opacity, texture, scheme}.
-inline constexpr char kSpaceThemePref[] = "cromarc.space.theme";
-
-// Registers the prefs above for every profile. Builds no service.
+// Registers the space prefs (space_pref_names.h) for every profile. Builds
+// no service.
 class SpacePrefsFactory : public ProfileKeyedServiceFactory {
  public:
   static SpacePrefsFactory* GetInstance();

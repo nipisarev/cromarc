@@ -112,7 +112,18 @@ void FakeWindows::ToggleFullscreen(BrowserWindowInterface* window) {
 BrowserWindowInterface* FakeWindows::Create(Profile* profile,
                                             const gfx::Rect& new_bounds,
                                             bool from_user_gesture) {
-  return OpenPopup(profile, new_bounds, GURL());
+  if (popups.empty()) {
+    return nullptr;
+  }
+  BrowserWindowInterface* window = popups.front();
+  popups.erase(popups.begin());
+  profiles[window] = profile;
+  bounds[window] = new_bounds;
+  // Not shown yet.
+  off_screen.insert(window);
+  windows.push_back(window);
+  normal_windows[profile].push_back(window);
+  return window;
 }
 
 void FakeWindows::Close(BrowserWindowInterface* window) {

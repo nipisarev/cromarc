@@ -84,7 +84,8 @@ class FakeWindows : public Windows {
   std::map<BrowserWindowInterface*, gfx::Rect> bounds;
   std::vector<BrowserWindowInterface*> activated;
   std::vector<BrowserWindowInterface*> closed;
-  // OpenPopup() gives these, in turn, and records what it opened.
+  // Create() and OpenPopup() give these, in turn; OpenPopup() records what it
+  // opened.
   std::vector<BrowserWindowInterface*> popups;
   std::vector<GURL> popup_urls;
   std::map<BrowserWindowInterface*, int> toolbar_views;

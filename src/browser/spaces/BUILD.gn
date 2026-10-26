@@ -19,13 +19,14 @@ source_set("shared_sidebar_state") {
   deps = [ "//cromarc/browser/ports" ]
 }
 
-# The space controller (browser-process singleton) and per-space prefs.
-source_set("spaces") {
+# The space controller: switching, warm windows and space settings, on the
+# ports.
+source_set("controller") {
   sources = [
     "space_controller.cc",
     "space_controller.h",
-    "space_prefs.cc",
-    "space_prefs.h",
+    "space_pref_names.cc",
+    "space_pref_names.h",
     "space_window.h",
   ]
   if (is_mac) {
@@ -35,18 +36,30 @@ source_set("spaces") {
   public_deps = [
     ":shared_sidebar_state",
     ":swipe_tracker",
-    "//chrome/browser:browser_public_dependencies",
-    "//components/sessions",
+    "//cromarc/browser/ports",
     "//skia",
+    "//ui/gfx",
   ]
   deps = [
     "//base:i18n",
-    "//components/pref_registry",
-    "//cromarc/browser/ports",
     "//components/prefs",
-    "//ui/base",
-    "//ui/gfx",
-    "//url",
+  ]
+}
+
+# The space prefs' registration, a keyed service factory.
+source_set("spaces") {
+  sources = [
+    "space_prefs.cc",
+    "space_prefs.h",
+  ]
+  public_deps = [
+    ":controller",
+    "//chrome/browser:browser_public_dependencies",
+  ]
+  deps = [
+    "//chrome/browser/profiles:profile",
+    "//components/pref_registry",
+    "//components/prefs",
   ]
 }
 
@@ -54,10 +67,14 @@ source_set("unit_tests") {
   testonly = true
   sources = [
     "shared_sidebar_state_unittest.cc",
+    "space_controller_unittest.cc",
     "swipe_tracker_unittest.cc",
   ]
   deps = [
+    ":controller",
     ":shared_sidebar_state",
+    "//base/test:test_support",
+    "//components/prefs:test_support",
     ":swipe_tracker",
     "//cromarc/browser/ports:test_support",
     "//testing/gtest",

@@ -7,6 +7,7 @@
 
 #include "base/no_destructor.h"
 #include "cromarc/browser/chromium/adapters.h"
+#include "cromarc/browser/ports/profiles.h"
 #include "cromarc/browser/spaces/space_controller.h"
 
 namespace cromarc {
@@ -17,6 +18,16 @@ SpaceController* SpaceController::Get() {
       ChromiumProfiles(), ChromiumWindows(), ChromiumTabs(), ChromiumTheme(),
       ChromiumStripDefaults());
   return instance.get();
+}
+
+// static
+std::string SpaceController::IdOf(Profile* profile) {
+  return ChromiumProfiles().IdOf(profile);
+}
+
+// static
+BrowserWindowInterface* SpaceController::GetWindowFor(Profile* profile) {
+  return Get()->WindowFor(profile);
 }
 
 }  // namespace cromarc

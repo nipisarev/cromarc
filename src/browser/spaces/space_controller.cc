@@ -20,7 +20,7 @@
 #include "cromarc/browser/ports/strip_defaults.h"
 #include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ports/theme.h"
-#include "cromarc/browser/spaces/space_prefs.h"
+#include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/spaces/space_window.h"
 
 namespace cromarc {
@@ -106,10 +106,7 @@ void SpaceController::ApplyTheme(Profile* profile, const std::string& json) {
                                                   : Theme::Scheme::kSystem);
 }
 
-// static
-std::string SpaceController::IdOf(Profile* profile) {
-  return Get()->profiles_->IdOf(profile);
-}
+
 
 std::vector<SpaceController::Space> SpaceController::GetSpaces() {
   struct Ordered {
@@ -153,11 +150,10 @@ Profile* SpaceController::GetLoadedProfile(const std::string& space_id) {
   return profiles_->GetLoaded(space_id);
 }
 
-// static
-BrowserWindowInterface* SpaceController::GetWindowFor(Profile* profile) {
-  Windows& windows = *Get()->windows_;
-  for (BrowserWindowInterface* browser : windows.AllByActivation()) {
-    if (windows.ProfileOf(browser) == profile && windows.IsNormal(browser)) {
+BrowserWindowInterface* SpaceController::WindowFor(Profile* profile) {
+  for (BrowserWindowInterface* browser : windows_->AllByActivation()) {
+    if (windows_->ProfileOf(browser) == profile &&
+        windows_->IsNormal(browser)) {
       return browser;
     }
   }
@@ -236,7 +232,7 @@ void SpaceController::PrepareWarmWindows() {
 }
 
 BrowserWindowInterface* SpaceController::EnsureHiddenWindow(Profile* profile) {
-  if (BrowserWindowInterface* window = GetWindowFor(profile)) {
+  if (BrowserWindowInterface* window = WindowFor(profile)) {
     return window;
   }
   // Same frame as the visible space window, so the swap shows no jump.
@@ -263,7 +259,7 @@ void SpaceController::RequestSwitchTo(BrowserWindowInterface* from,
   // the sidebar's would run before it for nothing.
   Profile* target = GetLoadedProfile(id);
   const bool fullscreen =
-      IsFullscreen(from) || IsFullscreen(target ? GetWindowFor(target) : nullptr);
+      IsFullscreen(from) || IsFullscreen(target ? WindowFor(target) : nullptr);
   auto it = sidebars_.find(from);
   if (it != sidebars_.end() && !fullscreen) {
     it->second->OnSwitchRequested(id);
@@ -285,7 +281,7 @@ void SpaceController::RequestSwitchBy(BrowserWindowInterface* from, int step) {
   if (spaces.size() < 2) {
     return;
   }
-  const std::string current = IdOf(windows_->ProfileOf(from));
+  const std::string current = profiles_->IdOf(windows_->ProfileOf(from));
   auto it = std::ranges::find(spaces, current, &Space::id);
   const int count = static_cast<int>(spaces.size());
   const int index = it == spaces.end() ? 0 : it - spaces.begin();
@@ -294,7 +290,7 @@ void SpaceController::RequestSwitchBy(BrowserWindowInterface* from, int step) {
 
 void SpaceController::SwitchTo(BrowserWindowInterface* from,
                                const std::string& id) {
-  if (IdOf(windows_->ProfileOf(from)) == id) {
+  if (profiles_->IdOf(windows_->ProfileOf(from)) == id) {
     return;
   }
   if (Profile* target = GetLoadedProfile(id)) {
@@ -318,7 +314,7 @@ void SpaceController::SwitchTo(BrowserWindowInterface* from,
 void SpaceController::PrepareSwitch(BrowserWindowInterface* from,
                                     const std::string& id) {
   preparing_.clear();
-  if (id.empty() || IdOf(windows_->ProfileOf(from)) == id ||
+  if (id.empty() || profiles_->IdOf(windows_->ProfileOf(from)) == id ||
       IsFullscreen(from)) {
     ClearPrepared(/*hide=*/true);
     return;
@@ -417,8 +413,8 @@ void SpaceController::SwitchToLoaded(WindowId from_id, Profile* target) {
   windows_->Show(to);
   windows_->Activate(to);
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(kLogSpacesSwitch)) {
-    LOG(ERROR) << "cromarc space switch: " << IdOf(windows_->ProfileOf(from))
-               << " -> " << IdOf(target);
+    LOG(ERROR) << "cromarc space switch: " << profiles_->IdOf(windows_->ProfileOf(from))
+               << " -> " << profiles_->IdOf(target);
   }
   if (IsFullscreen(from)) {
     // Out of the fullscreen Space to the desktop, then into one of its own.
@@ -430,7 +426,7 @@ void SpaceController::SwitchToLoaded(WindowId from_id, Profile* target) {
 
 BrowserWindowInterface* SpaceController::EnsureWindow(Profile* profile,
                                                       const gfx::Rect& bounds) {
-  if (BrowserWindowInterface* window = GetWindowFor(profile)) {
+  if (BrowserWindowInterface* window = WindowFor(profile)) {
     return window;
   }
   SeedSidebarState(profile);
@@ -471,7 +467,7 @@ void SpaceController::ShowLoadedSpace(
     profiles_->PrefsOf(target)->SetTime(kSpaceLastActivePref,
                                         base::Time::Now());
   }
-  std::move(then).Run(GetWindowFor(target));
+  std::move(then).Run(WindowFor(target));
 }
 
 BrowserWindowInterface* SpaceController::GetVisibleSpaceWindow() {
@@ -604,7 +600,7 @@ bool SpaceController::DeleteSpace(BrowserWindowInterface* from,
         profiles->Delete(id);
       },
       base::Unretained(&profiles_.get()), id);
-  if (IdOf(windows_->ProfileOf(from)) != id) {
+  if (profiles_->IdOf(windows_->ProfileOf(from)) != id) {
     std::move(schedule).Run(nullptr);
     return true;
   }

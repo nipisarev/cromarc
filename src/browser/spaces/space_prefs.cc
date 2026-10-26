@@ -23,10 +23,7 @@ SpacePrefsFactory::~SpacePrefsFactory() = default;
 
 void SpacePrefsFactory::RegisterProfilePrefs(
     user_prefs::PrefRegistrySyncable* registry) {
-  registry->RegisterStringPref(kSpaceIconPref, std::string());
-  registry->RegisterIntegerPref(kSpaceOrderPref, -1);
-  registry->RegisterTimePref(kSpaceLastActivePref, base::Time());
-  registry->RegisterStringPref(kSpaceThemePref, std::string());
+  RegisterSpacePrefs(registry);
 }
 
 std::unique_ptr<KeyedService>

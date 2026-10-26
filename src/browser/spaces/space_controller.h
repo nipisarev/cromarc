@@ -66,7 +66,16 @@ class SpaceController {
     virtual ~Sidebar() = default;
   };
 
+  // The browser-process singleton (chromium/space_controller_get.cc).
   static SpaceController* Get();
+
+  // Get() builds it with the Chromium ports; tests, with fakes.
+  SpaceController(Profiles& profiles,
+                  Windows& windows,
+                  Tabs& tabs,
+                  Theme& theme,
+                  StripDefaults& strip_defaults);
+  ~SpaceController();
 
   SpaceController(const SpaceController&) = delete;
   SpaceController& operator=(const SpaceController&) = delete;
@@ -153,17 +162,11 @@ class SpaceController {
   void OnWindowCreated(BrowserWindowInterface* browser);
 
  private:
-  friend base::NoDestructor<SpaceController>;
 
-  // Get() builds it with the Chromium ports (chromium/space_controller_get.cc).
-  SpaceController(Profiles& profiles,
-                  Windows& windows,
-                  Tabs& tabs,
-                  Theme& theme,
-                  StripDefaults& strip_defaults);
-  ~SpaceController();
 
   void NotifySpacesChanged();
+  // `profile`'s most recently active normal window.
+  BrowserWindowInterface* WindowFor(Profile* profile);
   // Shown and not minimized.
   bool IsOnScreen(BrowserWindowInterface* browser);
   // Null-safe.
