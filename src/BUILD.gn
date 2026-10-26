@@ -22,6 +22,7 @@ group("cromarc") {
     "//cromarc/browser/ui/command_bar:impl",
     "//cromarc/browser/ui/sidebar:impl",
     "//cromarc/browser/ui/welcome:impl",
+    "//cromarc/hooks:impl",
   ]
 }
 
@@ -34,6 +35,7 @@ group("headers") {
     "//cromarc/browser/ui:webui_registration",
     "//cromarc/browser/ui/command_bar",
     "//cromarc/browser/ui/sidebar",
+    "//cromarc/hooks",
   ]
 }
 

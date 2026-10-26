@@ -4,27 +4,15 @@ Date: Sat, 24 Oct 2026 03:17:07 +0200
 Subject: [PATCH] Cromarc H5: links from other apps go to Cromarc first
 
 
-diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
-index 5aa5b0447d685..2fec09a62b85a 100644
---- a/chrome/browser/BUILD.gn
-+++ b/chrome/browser/BUILD.gn
-@@ -1538,6 +1538,7 @@ source_set("core") {
-     deps += [
-       ":app_controller_mac",
-       ":chrome_browser_application_mac",
-+      "//cromarc:headers",  # Cromarc
-       ":chrome_browser_main_mac",
-       ":fullscreen",
-       ":global_keyboard_shortcuts_mac",
 diff --git a/chrome/browser/app_controller_mac.mm b/chrome/browser/app_controller_mac.mm
-index ead883ef957da..11eb5a2b974c5 100644
+index ead883ef957da..054cfa33223e7 100644
 --- a/chrome/browser/app_controller_mac.mm
 +++ b/chrome/browser/app_controller_mac.mm
 @@ -134,6 +134,7 @@
  #include "components/sessions/core/tab_restore_service.h"
  #include "content/public/browser/download_manager.h"
  #include "content/public/browser/navigation_controller.h"
-+#include "cromarc/browser/ui/browser_commands.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
  #include "extensions/browser/extension_registry.h"
  #include "extensions/browser/extension_system.h"
  #include "extensions/buildflags/buildflags.h"
@@ -32,7 +20,7 @@ index ead883ef957da..11eb5a2b974c5 100644
      profile = ProfileManager::MaybeForceOffTheRecordMode(
          profile->GetOriginalProfile());
    }
-+  if (cromarc::OpenExternalLinks(tabs, profile)) {  // Cromarc
++  if (cromarc::hooks::OpenExternalLinks(tabs, profile)) {  // Cromarc
 +    return;
 +  }
    // Use FindTabbedBrowser() to ensure URLs open in a normal tabbed browser

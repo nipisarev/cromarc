@@ -386,7 +386,7 @@ def hook_code_kinds(removed_lines, added_lines):
     for line in added_lines:
         stripped = line.strip()
         if stripped.startswith('#'):
-            if stripped == HOOKS_HEADER:
+            if stripped.split('//', 1)[0].strip() == HOOKS_HEADER:
                 continue
             kinds.append('include-not-hooks-h' if stripped.startswith('#include')
                          else 'logic-line')
@@ -408,17 +408,18 @@ def hook_code_kinds(removed_lines, added_lines):
             if delim:
                 kinds.append('logic-line')
             continue
+        # A Chromium statement with one of its values wrapped in a hook call,
+        # an `if (...)` opening Chromium's own block among them.
+        match = next((r for r in removed if wraps(r, text)), None)
+        if match is not None:
+            removed.remove(match)
+            continue
         rest = guard_condition(text)
         if rest is not None:
             if rest == '' and delim == '{':
                 in_guard = True
             elif not (delim == ';' and GUARD_BODY.fullmatch(rest)):
                 kinds.append('logic-line')
-            continue
-        # A Chromium statement with one of its values wrapped in a hook call.
-        match = next((r for r in removed if wraps(r, text)), None)
-        if match is not None:
-            removed.remove(match)
             continue
         if delim == ';' and is_pure_hook_statement(text):
             continue

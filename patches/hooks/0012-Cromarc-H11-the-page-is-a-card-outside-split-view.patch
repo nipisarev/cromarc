@@ -8,36 +8,36 @@ its themed background behind them, as split view does; the corners come
 from SetBackgroundRadii, which Cromarc calls.
 
 diff --git a/chrome/browser/ui/views/frame/multi_contents_view.cc b/chrome/browser/ui/views/frame/multi_contents_view.cc
-index a756f076ffce5..6d3974cc20639 100644
+index a756f076ffce5..24c529e00f18b 100644
 --- a/chrome/browser/ui/views/frame/multi_contents_view.cc
 +++ b/chrome/browser/ui/views/frame/multi_contents_view.cc
 @@ -51,6 +51,7 @@
  #include "ui/views/layout/layout_types.h"
  #include "ui/views/layout/proposed_layout.h"
  #include "ui/views/view_class_properties.h"
-+#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
  
  namespace {
  constexpr int kSnapDistance = 15;
-@@ -507,8 +508,11 @@ views::ProposedLayout MultiContentsView::CalculateProposedLayout(
+@@ -507,8 +508,10 @@ views::ProposedLayout MultiContentsView::CalculateProposedLayout(
  
    gfx::Rect available_space = gfx::Rect(width, height);
  
 -  const bool show_background =
 -      drop_target_view_->GetVisible() || IsInSplitView();
 +  // Cromarc: outside split view the page is a card on the background.
-+  const gfx::Insets page_insets =
-+      IsInSplitView() ? gfx::Insets() : cromarc::PageInsets(browser_view_);
-+  const bool show_background = drop_target_view_->GetVisible() ||
-+                               IsInSplitView() || !page_insets.IsEmpty();
++  const bool show_background = cromarc::hooks::PageShowsBackground(
++      browser_view_, IsInSplitView(),
++      drop_target_view_->GetVisible() || IsInSplitView());
    layouts.child_layouts.emplace_back(background_view_.get(), show_background,
                                       available_space);
  
-@@ -523,6 +527,7 @@ views::ProposedLayout MultiContentsView::CalculateProposedLayout(
+@@ -523,6 +526,8 @@ views::ProposedLayout MultiContentsView::CalculateProposedLayout(
    if (IsInSplitView()) {
      available_space.Inset(split_view_insets_);
    }
-+  available_space.Inset(page_insets);  // Cromarc
++  available_space = cromarc::hooks::PageSpace(  // Cromarc
++      browser_view_, IsInSplitView(), available_space);
    ViewSizes sizes = GetViewSizes(available_space);
  
    gfx::Rect start_rect, resize_rect, end_rect;

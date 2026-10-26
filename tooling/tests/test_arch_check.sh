@@ -257,7 +257,8 @@ test_r3_wrapped_values() {
     "$(printf '%s\n' '-  const CGFloat a = GetTint(x);' \
       '+  const CGFloat a = cromarc::hooks::GlassTint(view, GetTint(x));' \
       '-BASE_FEATURE(kGlass, base::FEATURE_DISABLED_BY_DEFAULT);' \
-      '+BASE_FEATURE(kGlass, cromarc::hooks::GlassDefault(base::FEATURE_DISABLED_BY_DEFAULT));')"
+      '+BASE_FEATURE(kGlass, cromarc::hooks::GlassDefault(base::FEATURE_DISABLED_BY_DEFAULT));' \
+      '-    if (combo_button_) {' '+    if (cromarc::hooks::TakesRoom(combo_button_)) {')"
   out="$(check "$root")"
   expect "R3: a Chromium value wrapped in a hook call passes" "$out" $?
   hook_patch "$root/patches/hooks/0001-Cromarc-H1-x.patch" H1 \

@@ -222,38 +222,3 @@ R2 src/browser/ui/sidebar/window_background.cc GetBrowserViewForBrowser
 R2 src/browser/ui/sidebar/window_background.cc non_client_view()
 R2 src/browser/ui/sidebar/window_background.cc view-by-class<BookmarkBarView>
 R2 src/browser/ui/sidebar/window_background.cc view-by-class<VerticalTabStripRegionView> x2
-R3 H1 logic-line
-R3 H1 removed-line
-R3 H10 include-not-hooks-h
-R3 H10 logic-line
-R3 H11 include-not-hooks-h
-R3 H11 logic-line x3
-R3 H11 removed-line
-R3 H12 logic-line
-R3 H12 removed-line
-R3 H13 logic-line
-R3 H13 removed-line
-R3 H14 include-not-hooks-h x4
-R3 H14 logic-line x16
-R3 H14 removed-line
-R3 H15 include-not-hooks-h
-R3 H15 logic-line x5
-R3 H15 removed-line x4
-R3 H16 logic-line
-R3 H17 logic-line x6
-R3 H18 include-not-hooks-h x3
-R3 H18 logic-line x14
-R3 H18 removed-line x3
-R3 H2 include-not-hooks-h
-R3 H2 logic-line x2
-R3 H2 removed-line
-R3 H3 logic-line
-R3 H3 removed-line
-R3 H4 include-not-hooks-h x2
-R3 H4 logic-line x2
-R3 H5 include-not-hooks-h
-R3 H5 logic-line x3
-R3 H6 include-not-hooks-h
-R3 H6 logic-line x12
-R3 H8 include-not-hooks-h
-R3 H8 logic-line x5

@@ -20,18 +20,6 @@ index 238f8625e42d8..04e9137cf57dd 100644
        "//chrome/browser/ui/webui/organizer_panel",
        "//chrome/browser/ui/webui/page_action_internals",
        "//chrome/browser/ui/webui/settings",
-diff --git a/chrome/browser/ui/webui/BUILD.gn b/chrome/browser/ui/webui/BUILD.gn
-index 7341632b43d34..0416facf1ef2e 100644
---- a/chrome/browser/ui/webui/BUILD.gn
-+++ b/chrome/browser/ui/webui/BUILD.gn
-@@ -53,6 +53,7 @@ source_set("configs") {
-     ":signin_internals_ui",
-     ":webui",
-     "//chrome/browser/actor/ui:actor_overlay",
-+    "//cromarc:headers",  # Cromarc
-     "//chrome/browser/browser_actuator/internals",
-     "//chrome/browser/contextual_tasks:ui",
-     "//chrome/browser/glic",
 diff --git a/chrome/chrome_paks.gni b/chrome/chrome_paks.gni
 index 12a5e53584f9f..1ae206345213c 100644
 --- a/chrome/chrome_paks.gni

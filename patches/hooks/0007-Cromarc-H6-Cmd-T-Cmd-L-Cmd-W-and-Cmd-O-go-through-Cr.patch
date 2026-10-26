@@ -5,27 +5,15 @@ Subject: [PATCH] Cromarc H6: Cmd+T, Cmd+L, Cmd+W and Cmd+O go through Cromarc
  first
 
 
-diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
-index 04e9137cf57dd..fc91df078912c 100644
---- a/chrome/browser/ui/BUILD.gn
-+++ b/chrome/browser/ui/BUILD.gn
-@@ -657,6 +657,7 @@ if (!is_android) {
-       "//chrome/browser:browser_public_dependencies",
-     ]
-     deps = [
-+      "//cromarc:headers",  # Cromarc
-       ":accelerator_table",
-       ":browser_actions",
-       ":browser_commands",
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 921461b9e9bd0..757a6c8b2931e 100644
+index 921461b9e9bd0..26739ed72019c 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
 @@ -200,6 +200,8 @@
  
  static_assert(BUILDFLAG(ENABLE_EXTENSIONS));
  
-+#include "cromarc/browser/ui/browser_commands.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
 +
  using Extension = extensions::Extension;
  using ExtensionRegistry = extensions::ExtensionRegistry;
@@ -34,7 +22,7 @@ index 921461b9e9bd0..757a6c8b2931e 100644
        CloseWindow(browser_);
        break;
      case IDC_NEW_TAB: {
-+      if (cromarc::ShowCommandBar(browser_, false)) {  // Cromarc
++      if (cromarc::hooks::ShowCommandBar(browser_, false)) {  // Cromarc
 +        break;
 +      }
        NewTab(browser_, NewTabTypes::kNewTabCommand);
@@ -44,7 +32,7 @@ index 921461b9e9bd0..757a6c8b2931e 100644
      }
      case IDC_CLOSE_TAB:
        base::RecordAction(base::UserMetricsAction("CloseTabByKey"));
-+      if (cromarc::KeepWindowOnLastTabClose(browser_)) {  // Cromarc
++      if (cromarc::hooks::KeepWindowOnLastTabClose(browser_)) {  // Cromarc
 +        break;
 +      }
        CloseTab(browser_);
@@ -54,7 +42,7 @@ index 921461b9e9bd0..757a6c8b2931e 100644
        FocusToolbar(browser_);
        break;
      case IDC_FOCUS_LOCATION:
-+      if (cromarc::ShowCommandBar(browser_, true)) {  // Cromarc
++      if (cromarc::hooks::ShowCommandBar(browser_, true)) {  // Cromarc
 +        break;
 +      }
        if (!window()->IsLocationBarVisible()) {
@@ -64,7 +52,7 @@ index 921461b9e9bd0..757a6c8b2931e 100644
  
      // Show various bits of UI
      case IDC_OPEN_FILE:
-+      if (cromarc::OpenLittleInSpace(browser_)) {  // Cromarc
++      if (cromarc::hooks::OpenLittleInSpace(browser_)) {  // Cromarc
 +        break;
 +      }
        BrowserSelectFileDialogController::From(browser_)->OpenFile();

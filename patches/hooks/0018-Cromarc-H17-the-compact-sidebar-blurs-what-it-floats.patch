@@ -8,20 +8,18 @@ sidebar out over the page in compact mode is acrylic, as Zen's with
 zen.theme.acrylic-sidebar, and Cromarc gives its layer that blur.
 
 diff --git a/chrome/browser/ui/views/frame/custom_corners_background.cc b/chrome/browser/ui/views/frame/custom_corners_background.cc
-index 5745cfb8cb117..4ed3e231f750d 100644
+index 1c44a3d813da9..fceb33678aaa5 100644
 --- a/chrome/browser/ui/views/frame/custom_corners_background.cc
 +++ b/chrome/browser/ui/views/frame/custom_corners_background.cc
-@@ -156,6 +156,14 @@ void CustomCornersBackground::SetUseBackgroundBlur(bool use_background_blur) {
+@@ -156,6 +156,12 @@ void CustomCornersBackground::SetUseBackgroundBlur(bool use_background_blur) {
    }
    auto* const layer = view_->layer();
    CHECK(!layer->fills_bounds_opaquely());
 +  // Cromarc: the sidebar floating in compact mode blurs what it is over.
-+  if (const std::optional<float> blur =
-+          cromarc::ChromeBackgroundBlur(&*view_, &browser_view())) {
-+    layer->SetBackgroundBlur(*blur);
-+    layer->SetBackdropFilterBounds(GetBackgroundPath(view_->GetLocalBounds()));
-+    SchedulePaintHost();
-+    return;
++  if (cromarc::hooks::SetChromeBackgroundBlur(
++          &*view_, &browser_view(), layer,
++          GetBackgroundPath(view_->GetLocalBounds()))) {
++    return SchedulePaintHost();
 +  }
    if (!use_background_blur) {
      layer->SetBackgroundBlur(0.0f);

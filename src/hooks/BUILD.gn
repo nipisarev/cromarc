@@ -1,0 +1,28 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# What Chromium's own files include and call (patches/hooks). Declarations
+# only, so any upstream target may include it without a dependency cycle.
+source_set("hooks") {
+  sources = [ "hooks.h" ]
+  public_deps = [
+    "//base",
+    "//ui/gfx/geometry",
+  ]
+}
+
+source_set("impl") {
+  sources = [ "hooks.cc" ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    ":hooks",
+    "//chrome/app/vector_icons",
+    "//cromarc/browser:keyed_services",
+    "//cromarc/browser/ui:browser_commands",
+    "//cromarc/browser/ui:webui_registration",
+    "//cromarc/browser/ui/sidebar",
+    "//ui/compositor",
+    "//ui/views",
+  ]
+}

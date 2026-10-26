@@ -4,27 +4,15 @@ Date: Sat, 24 Oct 2026 03:50:14 +0200
 Subject: [PATCH] Cromarc H10: the link under the cursor goes to Cromarc too
 
 
-diff --git a/chrome/browser/ui/browser_web_contents_delegate/BUILD.gn b/chrome/browser/ui/browser_web_contents_delegate/BUILD.gn
-index d4dacf58974a5..baca7374edf8f 100644
---- a/chrome/browser/ui/browser_web_contents_delegate/BUILD.gn
-+++ b/chrome/browser/ui/browser_web_contents_delegate/BUILD.gn
-@@ -38,6 +38,7 @@ if (!is_android) {
-       "//chrome/browser/ui/views/frame:browser_view_header",
-       "//chrome/browser/ui/views/frame:contents_web_view",
-       "//chrome/browser/ui/web_applications",
-+      "//cromarc:headers",  # Cromarc
-       "//components/find_in_page",
-       "//components/headless/console_message_logger",
-       "//components/javascript_dialogs",
 diff --git a/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc b/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc
-index 3bc40bcc9139a..3a7247ab26acf 100644
+index 3bc40bcc9139a..290040d9e31b7 100644
 --- a/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc
 +++ b/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc
 @@ -88,6 +88,7 @@
  #include "content/public/common/drop_data.h"
  #include "content/public/common/url_constants.h"
  #include "content/public/common/window_container_type.mojom-shared.h"
-+#include "cromarc/browser/ui/browser_commands.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
  #include "extensions/browser/extension_registry.h"
  #include "extensions/browser/extension_system.h"
  #include "extensions/browser/guest_view/mime_handler_view/mime_handler_view_guest.h"
@@ -32,7 +20,7 @@ index 3bc40bcc9139a..3a7247ab26acf 100644
  
  void BrowserWebContentsDelegate::UpdateTargetURL(content::WebContents* source,
                                                   const GURL& url) {
-+  cromarc::OnTargetURL(source, url);  // Cromarc
++  cromarc::hooks::OnTargetURL(source, url);  // Cromarc
    std::vector<StatusBubble*> status_bubbles =
        browser_ui_controller_->GetStatusBubbles();
    for (StatusBubble* status_bubble : status_bubbles) {

@@ -14,44 +14,46 @@ Cromarc paint instead: nothing, but Zen's compact toolbar background for the
 sidebar floating over the page.
 
 diff --git a/chrome/browser/ui/views/frame/browser_frame_view_mac.mm b/chrome/browser/ui/views/frame/browser_frame_view_mac.mm
-index 8354a9179ef79..aa04e7a5f54a3 100644
+index 8354a9179ef79..cc472581d82bb 100644
 --- a/chrome/browser/ui/views/frame/browser_frame_view_mac.mm
 +++ b/chrome/browser/ui/views/frame/browser_frame_view_mac.mm
 @@ -66,6 +66,7 @@
  #include "ui/views/controls/label.h"
  #include "ui/views/layout/layout_types.h"
  #include "ui/views/widget/widget.h"
-+#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
  
  namespace {
  
-@@ -502,6 +503,8 @@ void BrowserFrameViewMac::OnPaint(gfx::Canvas* canvas) {
+@@ -502,6 +503,9 @@ void BrowserFrameViewMac::OnPaint(gfx::Canvas* canvas) {
    if (is_glass_frame_eligible_) {
      // In glass mode, painting to frame color happens in the opaque background
      // view instead.
 +    // Cromarc: the space theme over the glass.
-+    cromarc::PaintWindowBackground(canvas, GetLocalBounds(), GetBrowserView());
++    cromarc::hooks::PaintWindowBackground(canvas, GetLocalBounds(),
++                                          GetBrowserView());
      return;
    }
  
-@@ -514,6 +517,8 @@ void BrowserFrameViewMac::OnPaint(gfx::Canvas* canvas) {
+@@ -514,6 +518,9 @@ void BrowserFrameViewMac::OnPaint(gfx::Canvas* canvas) {
    if (!theme_service->UsingSystemTheme()) {
      PaintThemedFrame(canvas);
    }
 +  // Cromarc: the space theme over the frame colour.
-+  cromarc::PaintWindowBackground(canvas, GetLocalBounds(), GetBrowserView());
++  cromarc::hooks::PaintWindowBackground(canvas, GetLocalBounds(),
++                                        GetBrowserView());
  }
  
  void BrowserFrameViewMac::Layout(PassKey) {
 diff --git a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
-index 818924fc76681..a658afa867ecb 100644
+index 818924fc76681..4f7487bbc36af 100644
 --- a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
 +++ b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
 @@ -76,6 +76,7 @@
  #include "ui/native_theme/native_theme.h"
  #import "ui/views/cocoa/native_widget_mac_ns_window_host.h"
  #include "ui/views/interaction/element_tracker_views.h"
-+#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
  
  namespace {
  
@@ -60,36 +62,34 @@ index 818924fc76681..a658afa867ecb 100644
  
  std::optional<int> BrowserNativeWidgetMac::GetGlassFrameWidth() const {
 +  // Cromarc: glass under the whole window, as Zen's vibrancy.
-+  if (cromarc::ThemesWindow(browser_view_)) {
++  if (cromarc::hooks::ThemesWindow(browser_view_)) {
 +    return std::nullopt;
 +  }
    // If vertical tabs are not being drawn (e.g. horizontal tab strip mode,
    // popup/app windows, or window too narrow to render vertical tabs), the glass
    // effect view spans the full window width without horizontal restriction.
-@@ -1163,8 +1168,12 @@ void BrowserNativeWidgetMac::UpdateBackgroundColor() {
+@@ -1163,8 +1168,10 @@ void BrowserNativeWidgetMac::UpdateBackgroundColor() {
    const CGFloat r = SkColorGetR(theme_color) / 255.0;
    const CGFloat g = SkColorGetG(theme_color) / 255.0;
    const CGFloat b = SkColorGetB(theme_color) / 255.0;
 -  const CGFloat a = GetGlassFrameTintOpacity(color_utils::IsDark(theme_color),
 -                                             is_vertical_tabs);
-+  // Cromarc: the space theme is the tint (cromarc::PaintWindowBackground).
-+  const CGFloat a = cromarc::ThemesWindow(browser_view_)
-+                        ? 0
-+                        : GetGlassFrameTintOpacity(
-+                              color_utils::IsDark(theme_color),
-+                              is_vertical_tabs);
++  // Cromarc: the space theme is the tint.
++  const CGFloat a = cromarc::hooks::GlassTint(
++      browser_view_, GetGlassFrameTintOpacity(color_utils::IsDark(theme_color),
++                                              is_vertical_tabs));
  
    tint_view_.layer.backgroundColor =
        [NSColor colorWithSRGBRed:r green:g blue:b alpha:a].CGColor;
 diff --git a/chrome/browser/ui/views/frame/custom_corners_background.cc b/chrome/browser/ui/views/frame/custom_corners_background.cc
-index 824f76b00e3d0..5745cfb8cb117 100644
+index 824f76b00e3d0..1c44a3d813da9 100644
 --- a/chrome/browser/ui/views/frame/custom_corners_background.cc
 +++ b/chrome/browser/ui/views/frame/custom_corners_background.cc
 @@ -36,6 +36,7 @@
  #include "ui/views/view.h"
  #include "ui/views/view_utils.h"
  #include "ui/views/widget/widget.h"
-+#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
  
  namespace {
  // Radius of the corner blur used for the glass frame.
@@ -99,22 +99,22 @@ index 824f76b00e3d0..5745cfb8cb117 100644
    }
 +  // Cromarc: the space theme under the window shows through, or Cromarc
 +  // paints the floating sidebar.
-+  if (cromarc::PaintChromeBackground(canvas, view, GetBackgroundPath(),
-+                                     &browser_view())) {
++  if (cromarc::hooks::PaintChromeBackground(canvas, view, GetBackgroundPath(),
++                                            &browser_view())) {
 +    return;
 +  }
  
    if (view->layer()) {
      CHECK(!view->layer()->fills_bounds_opaquely());
 diff --git a/chrome/browser/ui/views/frame/multi_contents_background_view.cc b/chrome/browser/ui/views/frame/multi_contents_background_view.cc
-index 56e57faa10148..01ed4ff7be474 100644
+index 56e57faa10148..138c97afa4460 100644
 --- a/chrome/browser/ui/views/frame/multi_contents_background_view.cc
 +++ b/chrome/browser/ui/views/frame/multi_contents_background_view.cc
 @@ -8,6 +8,7 @@
  #include "ui/base/metadata/metadata_impl_macros.h"
  #include "ui/compositor/layer_solid_color.h"
  #include "ui/gfx/geometry/rounded_corners_f.h"
-+#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
  
  MultiContentsBackgroundView::MultiContentsBackgroundView(
      BrowserView* browser_view)
@@ -123,19 +123,18 @@ index 56e57faa10148..01ed4ff7be474 100644
  void MultiContentsBackgroundView::OnPaint(gfx::Canvas* canvas) {
    CHECK(layer()->AsTextured());
 +  // Cromarc: the space theme under the window shows through.
-+  if (cromarc::ThemesWindow(browser_view_)) {
++  if (cromarc::hooks::ThemesWindow(browser_view_)) {
 +    return;
 +  }
    ThemedBackground::PaintBackground(canvas, this, browser_view_);
  }
  
-@@ -54,6 +59,11 @@ ui::LayerType MultiContentsBackgroundView::CalculateLayerType() const {
+@@ -54,6 +59,10 @@ ui::LayerType MultiContentsBackgroundView::CalculateLayerType() const {
  
  void MultiContentsBackgroundView::UpdateSolidLayerColor() {
    CHECK(layer()->AsSolidColor());
 +  // Cromarc: the space theme under the window shows through.
-+  if (cromarc::ThemesWindow(browser_view_)) {
-+    layer()->AsSolidColor()->SetColor(SkColors::kTransparent);
++  if (cromarc::hooks::ClearSolidLayer(layer(), browser_view_)) {
 +    return;
 +  }
    if (auto color = ThemedBackground::GetBackgroundColor(this, browser_view_)) {

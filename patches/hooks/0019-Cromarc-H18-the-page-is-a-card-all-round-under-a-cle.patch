@@ -11,55 +11,51 @@ the space theme show; and the vertical tab strip's top row leaves no room
 for a combo button that is hidden.
 
 diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc b/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
-index 389c6f8c6e667..8cea69ecc4775 100644
+index 389c6f8c6e667..789834916349a 100644
 --- a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
 +++ b/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
-@@ -4,6 +4,9 @@
+@@ -4,6 +4,8 @@
  
  #include "chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.h"
  
-+#include "chrome/browser/ui/views/frame/browser_view.h"  // Cromarc
-+#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
 +
  #include <algorithm>
  #include <memory>
  #include <optional>
-@@ -1258,6 +1261,11 @@ BrowserViewTabbedLayoutImpl::CalculateProposedLayout(
+@@ -1258,6 +1260,9 @@ BrowserViewTabbedLayoutImpl::CalculateProposedLayout(
          content_corners.set_lower_left(radius);
        }
      }
 +    // Cromarc: outside split view the page is a card, round all over.
-+    if (auto* const browser_view =
-+            views::AsViewClass<BrowserView>(views().browser_view.get())) {
-+      content_corners = cromarc::PageCorners(browser_view, content_corners);
-+    }
++    content_corners = cromarc::hooks::PageCorners(views().browser_view.get(),
++                                                  content_corners);
      views().multi_contents_view->SetBackgroundRadii(content_corners);
    }
  
 diff --git a/chrome/browser/ui/views/frame/multi_contents_view.cc b/chrome/browser/ui/views/frame/multi_contents_view.cc
-index 6d3974cc20639..77dddb8d7a97b 100644
+index 24c529e00f18b..efc7ed9f3e620 100644
 --- a/chrome/browser/ui/views/frame/multi_contents_view.cc
 +++ b/chrome/browser/ui/views/frame/multi_contents_view.cc
-@@ -848,6 +848,10 @@ void MultiContentsView::OnDragAndDropPrefStateChange() {
+@@ -848,6 +848,9 @@ void MultiContentsView::OnDragAndDropPrefStateChange() {
  }
  
  void MultiContentsView::SetShouldShowTopSeparator(bool should_show) {
 +  // Cromarc: a page that is a card has no line over it.
-+  if (!IsInSplitView() && !cromarc::PageInsets(browser_view_).IsEmpty()) {
-+    should_show = false;
-+  }
++  should_show = cromarc::hooks::ShowsTopSeparator(browser_view_, IsInSplitView(),
++                                                  should_show);
    if (contents_separators_.should_show_top == should_show) {
      return;
    }
 diff --git a/chrome/browser/ui/views/frame/themed_background.cc b/chrome/browser/ui/views/frame/themed_background.cc
-index 169aee34fb385..567aacb814703 100644
+index 169aee34fb385..940c4fb5d64d6 100644
 --- a/chrome/browser/ui/views/frame/themed_background.cc
 +++ b/chrome/browser/ui/views/frame/themed_background.cc
 @@ -4,6 +4,8 @@
  
  #include "chrome/browser/ui/views/frame/themed_background.h"
  
-+#include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"  // Cromarc
++#include "cromarc/hooks/hooks.h"  // Cromarc
 +
  #include <optional>
  
@@ -69,14 +65,14 @@ index 169aee34fb385..567aacb814703 100644
  
  void ThemedBackground::Paint(gfx::Canvas* canvas, views::View* view) const {
 +  // Cromarc: the space theme shows through, as in Zen's toolbox.
-+  if (cromarc::PaintsOnSpaceTheme(view, browser_view_)) {
++  if (cromarc::hooks::PaintsOnSpaceTheme(view, browser_view_)) {
 +    return;
 +  }
    PaintBackground(canvas, view, browser_view_, theme_choice_);
  }
  
 diff --git a/chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.cc b/chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.cc
-index d69e4dd30f732..ba96117c9dea6 100644
+index d69e4dd30f732..bb8caa98795d0 100644
 --- a/chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.cc
 +++ b/chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.cc
 @@ -147,7 +147,8 @@ views::ProposedLayout VerticalTabStripTopContainer::CalculateProposedLayout(
@@ -85,35 +81,32 @@ index d69e4dd30f732..ba96117c9dea6 100644
  
 -    if (combo_button_) {
 +    // Cromarc: a hidden combo button takes no room.
-+    if (combo_button_ && combo_button_->GetVisible()) {
++    if (cromarc::hooks::TakesRoom(combo_button_)) {
        // In the case that neither of the combo button components are visible, we
        // do not want to add any extra padding to the top container.
        bool start_button_visible = combo_button_->start_button() &&
-@@ -430,11 +431,13 @@ int VerticalTabStripTopContainer::GetPreferredWidth() const {
-   int padding =
+@@ -431,10 +432,11 @@ int VerticalTabStripTopContainer::GetPreferredWidth() const {
        GetLayoutConstant(LayoutConstant::kVerticalTabStripTopButtonPadding);
  
--  // Combo Button
+   // Combo Button
 -  total_width += combo_button_
 -                     ->GetPreferredSizeForOrientation(
 -                         views::LayoutOrientation::kHorizontal)
 -                     .width();
-+  // Combo Button (Cromarc: when shown)
-+  if (combo_button_->GetVisible()) {
-+    total_width += combo_button_
-+                       ->GetPreferredSizeForOrientation(
-+                           views::LayoutOrientation::kHorizontal)
-+                       .width();
-+  }
++  total_width += cromarc::hooks::ComboButtonWidth(  // Cromarc: when shown
++      combo_button_, combo_button_
++                         ->GetPreferredSizeForOrientation(
++                             views::LayoutOrientation::kHorizontal)
++                         .width());
  
    // Collapse Button
    if (collapse_button_ && collapse_button_->GetVisible()) {
-@@ -459,7 +462,7 @@ int VerticalTabStripTopContainer::GetBaselineMinHeight() const {
+@@ -459,7 +461,7 @@ int VerticalTabStripTopContainer::GetBaselineMinHeight() const {
      min_height =
          std::max(min_height, collapse_button_->GetPreferredSize().height());
    }
 -  if (combo_button_) {
-+  if (combo_button_ && combo_button_->GetVisible()) {  // Cromarc
++  if (cromarc::hooks::TakesRoom(combo_button_)) {  // Cromarc
      min_height =
          std::max(min_height, combo_button_
                                   ->GetPreferredSizeForOrientation(

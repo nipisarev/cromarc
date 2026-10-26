@@ -9,17 +9,26 @@ behind the vertical tab strip region, where the Cromarc sidebar lives, on
 macOS 26 and later; Cromarc turns it on.
 
 diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
-index 75d95b11bbc67..9eba7ecd4d5aa 100644
+index 75d95b11bbc67..f3adf9e138c62 100644
 --- a/ui/base/ui_base_features.cc
 +++ b/ui/base/ui_base_features.cc
-@@ -500,7 +500,9 @@ BASE_FEATURE_PARAM(int,
+@@ -10,6 +10,7 @@
+ #include "base/feature_list.h"
+ #include "base/metrics/field_trial_params.h"
+ #include "build/build_config.h"
++#include "cromarc/hooks/hooks.h"  // Cromarc
+ 
+ #if BUILDFLAG(IS_ANDROID)
+ #include "base/android/android_info.h"
+@@ -500,7 +501,10 @@ BASE_FEATURE_PARAM(int,
  
  BASE_FEATURE(kDesktopGlowUp, base::FEATURE_DISABLED_BY_DEFAULT);
  
 -BASE_FEATURE(kGlassFrame, base::FEATURE_DISABLED_BY_DEFAULT);
 +// Cromarc: the sidebar on a translucent window, as Zen's macOS window
 +// vibrancy (zen.widget.macos.window-vibrancy).
-+BASE_FEATURE(kGlassFrame, base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kGlassFrame,
++             cromarc::hooks::GlassFrameDefault(base::FEATURE_DISABLED_BY_DEFAULT));
  BASE_FEATURE_PARAM(bool, kGlassExpandOnHoverEnabled, &kGlassFrame, true);
  
  BASE_FEATURE(kRoundedIcons, base::FEATURE_DISABLED_BY_DEFAULT);
