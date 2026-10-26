@@ -15,10 +15,11 @@ namespace cromarc {
 // leaves it (hook H14). A second call does nothing.
 void InstallWindowMaterial(gfx::NativeWindow window);
 
-// The material of a native macOS popover, which Zen's panels are
-// (widget.macos.native-popovers), under a translucent panel window, its
-// corners rounded by `corner_radius`. A second call does nothing.
-void InstallPanelMaterial(gfx::NativeWindow window, int corner_radius);
+// The frame of a native macOS popover, which Zen's panels are (an NSPopover,
+// zen:external-patches/firefox/native_macos_popovers_fix.patch), under a
+// translucent panel window: on macOS 26 and later its glass, before that its
+// material. A second call does nothing.
+void InstallPanelMaterial(gfx::NativeWindow window);
 
 }  // namespace cromarc
 

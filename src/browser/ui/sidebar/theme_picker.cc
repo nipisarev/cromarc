@@ -36,8 +36,6 @@ constexpr int kWidth = 380;
 constexpr int kInitialHeight = 540;
 // openThemePicker: the panel's left edge 10px over the sidebar's right one.
 constexpr int kOverlap = 10;
-// zen-popup.css: --panel-border-radius on macOS from Tahoe on.
-constexpr int kCornerRadius = 12;
 
 std::map<BrowserWindowInterface*, std::unique_ptr<ThemePicker>>& Pickers() {
   static base::NoDestructor<
@@ -188,7 +186,7 @@ void ThemePicker::CreateWidget() {
   widget_->Init(std::move(params));
   widget_observation_.Observe(widget_.get());
 #if BUILDFLAG(IS_MAC)
-  InstallPanelMaterial(widget_->GetNativeWindow(), kCornerRadius);
+  InstallPanelMaterial(widget_->GetNativeWindow());
 #endif
 }
 

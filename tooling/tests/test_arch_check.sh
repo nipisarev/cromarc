@@ -201,6 +201,11 @@ test_r4_window_material() {
   status=$?
   [ "$status" -eq 1 ] && [[ "$out" == *"R4 src/browser/feature/m.mm appkit-global"* ]]
   expect "R4: a material under a window outside its registered file fails" "$status: $out" $?
+  echo 'NSView* g = [[NSGlassEffectView alloc] init];' >"$root/src/browser/feature/m.mm"
+  out="$(check "$root")"
+  status=$?
+  [ "$status" -eq 1 ] && [[ "$out" == *"R4 src/browser/feature/m.mm appkit-global"* ]]
+  expect "R4: glass under a window outside its registered file fails" "$status: $out" $?
 }
 
 test_baseline_ratchet() {
