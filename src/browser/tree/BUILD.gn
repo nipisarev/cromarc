@@ -2,28 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-source_set("tree") {
-  sources = [
-    "tree.cc",
-    "tree.h",
-  ]
-  public_deps = [
-    "//base",
-    "//components/bookmarks/browser",
-  ]
-  deps = [
-    "//components/bookmarks/common",
-    "//url",
-  ]
-}
-
 source_set("unit_tests") {
   testonly = true
-  sources = [ "tree_unittest.cc" ]
+  sources = [ "tree_service_unittest.cc" ]
   deps = [
-    ":tree",
-    "//base/test:test_support",
-    "//components/bookmarks/test",
+    ":tree_service",
+    "//cromarc/browser/ports:test_support",
     "//testing/gtest",
     "//url",
   ]
@@ -36,7 +20,6 @@ source_set("tree_service") {
     "tree_service.h",
   ]
   public_deps = [
-    ":tree",
     "//components/keyed_service/core",
     "//cromarc/browser/ports",
   ]
@@ -57,5 +40,6 @@ source_set("service") {
     "//chrome/browser/bookmarks",
     "//chrome/browser/profiles:profile",
     "//cromarc/browser/chromium:adapters",
+    "//cromarc/browser/chromium:bookmark_tree",
   ]
 }

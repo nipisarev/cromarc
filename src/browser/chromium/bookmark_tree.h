@@ -2,8 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef CROMARC_BROWSER_TREE_TREE_H_
-#define CROMARC_BROWSER_TREE_TREE_H_
+#ifndef CROMARC_BROWSER_CHROMIUM_BOOKMARK_TREE_H_
+#define CROMARC_BROWSER_CHROMIUM_BOOKMARK_TREE_H_
 
 #include <set>
 #include <string>
@@ -12,6 +12,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/scoped_observation.h"
 #include "components/bookmarks/browser/bookmark_model_observer.h"
+#include "cromarc/browser/ports/tree.h"
 
 class GURL;
 
@@ -22,52 +23,40 @@ class BookmarkNode;
 
 namespace cromarc {
 
-// The Arc-style tree of one space (= profile): folders nested to any depth and
-// pinned items, kept in Chromium bookmarks under a "Cromarc" folder in Other
-// bookmarks, so that sync carries it like any bookmark. A folder of the tree is
-// a bookmark folder; a pinned item is a URL bookmark whose URL is its home URL.
-// Cromarc's own fields live in the bookmark's meta info.
-//
-// Items are addressed by bookmark UUID; "" means the tree root. Every method
-// needs a loaded BookmarkModel.
-class Tree : public bookmarks::BookmarkModelObserver {
+// Tree in Chromium bookmarks, under a "Cromarc" folder in Other bookmarks, so
+// that sync carries it like any bookmark. A folder of the tree is a bookmark
+// folder; a pinned item is a URL bookmark whose URL is its home URL; an
+// item's id is its bookmark's UUID. Cromarc's own fields live in the
+// bookmark's meta info.
+class BookmarkTree : public Tree, public bookmarks::BookmarkModelObserver {
  public:
-  static constexpr size_t kMaxEssentials = 12;
+  explicit BookmarkTree(bookmarks::BookmarkModel* model);
+  BookmarkTree(const BookmarkTree&) = delete;
+  BookmarkTree& operator=(const BookmarkTree&) = delete;
+  ~BookmarkTree() override;
 
-  explicit Tree(bookmarks::BookmarkModel* model);
-  Tree(const Tree&) = delete;
-  Tree& operator=(const Tree&) = delete;
-  ~Tree() override;
-
-  static std::string IdOf(const bookmarks::BookmarkNode* node);
-  static bool IsCollapsed(const bookmarks::BookmarkNode* node);
-  static bool IsEssential(const bookmarks::BookmarkNode* node);
-
-  // The "Cromarc" folder, created when missing.
-  const bookmarks::BookmarkNode* Root();
-  // Null for ids outside the tree.
-  const bookmarks::BookmarkNode* Find(const std::string& id);
-
-  const bookmarks::BookmarkNode* CreateFolder(const std::string& parent_id,
-                                              size_t index,
-                                              const std::u16string& title);
-  const bookmarks::BookmarkNode* AddPinned(const std::string& parent_id,
-                                           size_t index,
-                                           const std::u16string& title,
-                                           const GURL& home_url);
-  bool Move(const std::string& id, const std::string& parent_id, size_t index);
-  bool Rename(const std::string& id, const std::u16string& title);
-  bool Remove(const std::string& id);
-  bool SetHomeUrl(const std::string& id, const GURL& url);
-  bool SetCollapsed(const std::string& id, bool collapsed);
-  bool SetEssential(const std::string& id, bool essential);
-  size_t EssentialCount();
-
-  bool Contains(const bookmarks::BookmarkNode* node);
-
-  // Runs after every change inside the tree, and once the model loads.
+  // Tree:
+  bool IsLoaded() const override;
+  Node Root() override;
+  std::optional<Node> Find(const std::string& id) override;
+  std::optional<std::string> CreateFolder(const std::string& parent_id,
+                                          size_t index,
+                                          const std::u16string& title) override;
+  std::optional<std::string> AddPinned(const std::string& parent_id,
+                                       size_t index,
+                                       const std::u16string& title,
+                                       const GURL& home_url) override;
+  bool Move(const std::string& id,
+            const std::string& parent_id,
+            size_t index) override;
+  bool Rename(const std::string& id, const std::u16string& title) override;
+  bool Remove(const std::string& id) override;
+  bool SetHomeUrl(const std::string& id, const GURL& url) override;
+  bool SetCollapsed(const std::string& id, bool collapsed) override;
+  bool SetEssential(const std::string& id, bool essential) override;
+  size_t EssentialCount() override;
   base::CallbackListSubscription RegisterOnChanged(
-      base::RepeatingClosure callback);
+      base::RepeatingClosure callback) override;
 
   // bookmarks::BookmarkModelObserver:
   void BookmarkModelLoaded(bool ids_reassigned) override;
@@ -93,8 +82,13 @@ class Tree : public bookmarks::BookmarkModelObserver {
                                    const base::Location& location) override;
 
  private:
+  // The "Cromarc" folder, created when missing.
+  const bookmarks::BookmarkNode* RootFolder();
   // The "Cromarc" folder if it exists; never creates it (safe in observers).
   const bookmarks::BookmarkNode* FindRoot() const;
+  bool Contains(const bookmarks::BookmarkNode* node) const;
+  // Null for ids outside the tree.
+  const bookmarks::BookmarkNode* FindNode(const std::string& id);
   // Folder for `parent_id`: the root for "", a tree folder, or null.
   const bookmarks::BookmarkNode* FindFolder(const std::string& parent_id);
   void NotifyIfInside(const bookmarks::BookmarkNode* node);
@@ -111,4 +105,4 @@ class Tree : public bookmarks::BookmarkModelObserver {
 
 }  // namespace cromarc
 
-#endif  // CROMARC_BROWSER_TREE_TREE_H_
+#endif  // CROMARC_BROWSER_CHROMIUM_BOOKMARK_TREE_H_

@@ -16,7 +16,6 @@
 #include "base/time/time.h"
 #include "build/build_config.h"
 #include "chrome/grit/cromarc_resources_map.h"
-#include "components/bookmarks/browser/bookmark_node.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
@@ -30,7 +29,7 @@
 #include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/routing/space_routing.h"
 #include "cromarc/browser/sync/icloud_sync.h"
-#include "cromarc/browser/tree/tree.h"
+#include "cromarc/browser/ports/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/browser_commands.h"
@@ -60,20 +59,19 @@ namespace {
 std::vector<mojom::TreeNodePtr> BuildChildren(
     TreeService* tree_service,
     TabStripApi& tab_strip_api,
-    const bookmarks::BookmarkNode* folder) {
+    const Tree::Node& folder) {
   std::vector<mojom::TreeNodePtr> nodes;
-  for (const auto& child : folder->children()) {
+  for (const Tree::Node& child : folder.children) {
     auto node = mojom::TreeNode::New();
-    node->id = Tree::IdOf(child.get());
-    node->title = base::UTF16ToUTF8(child->GetTitle());
-    node->is_folder = child->is_folder();
-    if (child->is_folder()) {
-      node->collapsed = Tree::IsCollapsed(child.get());
-      node->children =
-          BuildChildren(tree_service, tab_strip_api, child.get());
+    node->id = child.id;
+    node->title = base::UTF16ToUTF8(child.title);
+    node->is_folder = child.is_folder;
+    if (child.is_folder) {
+      node->collapsed = child.collapsed;
+      node->children = BuildChildren(tree_service, tab_strip_api, child);
     } else {
-      node->essential = Tree::IsEssential(child.get());
-      node->home_url = child->url();
+      node->essential = child.essential;
+      node->home_url = child.home_url;
       if (std::optional<TabId> tab = tree_service->GetLiveTab(node->id)) {
         node->tab = tab_strip_api.NodeIdOf(*tab);
       }
@@ -265,9 +263,9 @@ void SidebarPageHandler::CreateFolder(const std::string& parent_id,
                                       uint32_t index,
                                       const std::string& title,
                                       CreateFolderCallback callback) {
-  const bookmarks::BookmarkNode* folder = tree_service_->tree().CreateFolder(
+  const std::optional<std::string> folder = tree_service_->tree().CreateFolder(
       parent_id, index, base::UTF8ToUTF16(title));
-  std::move(callback).Run(folder ? Tree::IdOf(folder) : std::string());
+  std::move(callback).Run(folder.value_or(std::string()));
 }
 
 void SidebarPageHandler::PinTab(const tabs_api::NodeId& tab_id,
@@ -284,14 +282,14 @@ void SidebarPageHandler::PinTab(const tabs_api::NodeId& tab_id,
   // it asleep, in two places, or in none.
   bool added = false;
   tree_service_->Batch([&] {
-    const bookmarks::BookmarkNode* node =
+    const std::optional<std::string> item =
         tree.AddPinned(parent_id, index, contents->GetTitle(),
                        contents->GetLastCommittedURL());
-    if (!node) {
+    if (!item) {
       return;
     }
     added = true;
-    const std::string id = Tree::IdOf(node);
+    const std::string& id = *item;
     if (essential) {
       tree.SetEssential(id, true);
     }
@@ -313,33 +311,33 @@ void SidebarPageHandler::RenameItem(const std::string& id,
   tree_service_->tree().Rename(id, base::UTF8ToUTF16(title));
 }
 
-void SidebarPageHandler::ReleaseLiveTabs(const bookmarks::BookmarkNode* node) {
-  if (node->is_url()) {
-    const std::string id = Tree::IdOf(node);
+void SidebarPageHandler::ReleaseLiveTabs(const Tree::Node& node) {
+  if (!node.is_folder) {
+    const std::string& id = node.id;
     if (std::optional<TabId> tab = tree_service_->GetLiveTab(id)) {
       tabs_->SetPinned(*tab, false);
       tree_service_->Unlink(id);
     }
     return;
   }
-  for (const auto& child : node->children()) {
-    ReleaseLiveTabs(child.get());
+  for (const Tree::Node& child : node.children) {
+    ReleaseLiveTabs(child);
   }
 }
 
-void SidebarPageHandler::ArchiveFolder(const bookmarks::BookmarkNode* folder,
+void SidebarPageHandler::ArchiveFolder(const Tree::Node& folder,
                                        const std::string& path) {
   const std::string here =
-      path.empty() ? base::UTF16ToUTF8(folder->GetTitle())
-                   : path + " / " + base::UTF16ToUTF8(folder->GetTitle());
-  for (const auto& child : folder->children()) {
-    if (child->is_folder()) {
-      ArchiveFolder(child.get(), here);
+      path.empty() ? base::UTF16ToUTF8(folder.title)
+                   : path + " / " + base::UTF16ToUTF8(folder.title);
+  for (const Tree::Node& child : folder.children) {
+    if (child.is_folder) {
+      ArchiveFolder(child, here);
       continue;
     }
     ArchiveEntry entry;
-    entry.url = child->url();
-    entry.title = child->GetTitle();
+    entry.url = child.home_url;
+    entry.title = child.title;
     entry.closed_at = base::Time::Now();
     entry.reason = "folder";
     entry.folder_path = here;
@@ -348,29 +346,29 @@ void SidebarPageHandler::ArchiveFolder(const bookmarks::BookmarkNode* folder,
 }
 
 void SidebarPageHandler::RemoveItem(const std::string& id) {
-  const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
+  const std::optional<Tree::Node> node = tree_service_->tree().Find(id);
   if (!node) {
     return;
   }
-  ReleaseLiveTabs(node);
+  ReleaseLiveTabs(*node);
   // A removed folder's pinned items stay findable in the archive (design,
   // UI section 3).
-  if (node->is_folder()) {
-    ArchiveFolder(node, std::string());
+  if (node->is_folder) {
+    ArchiveFolder(*node, std::string());
   }
   tree_service_->tree().Remove(id);
 }
 
 void SidebarPageHandler::ResetItem(const std::string& id) {
-  const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
+  const std::optional<Tree::Node> node = tree_service_->tree().Find(id);
   const std::optional<TabId> tab = tree_service_->GetLiveTab(id);
   content::WebContents* contents = tab ? tabs_->GetContents(*tab) : nullptr;
-  if (!node || !node->is_url() || !contents) {
+  if (!node || node->is_folder || !contents) {
     return;
   }
   // As Zen's reset (ZenPinnedTabManager #resetTabToStoredState): only the
   // pinned entry stays in the tab's history.
-  content::NavigationController::LoadURLParams params(node->url());
+  content::NavigationController::LoadURLParams params(node->home_url);
   params.transition_type = ui::PAGE_TRANSITION_AUTO_BOOKMARK;
   params.should_clear_history_list = true;
   contents->GetController().LoadURLWithParams(params);

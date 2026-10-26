@@ -6,6 +6,7 @@
 #define CROMARC_BROWSER_TREE_TREE_SERVICE_H_
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -15,15 +16,11 @@
 #include "base/memory/raw_ref.h"
 #include "components/keyed_service/core/keyed_service.h"
 #include "cromarc/browser/ports/tabs.h"
-#include "cromarc/browser/tree/tree.h"
+#include "cromarc/browser/ports/tree.h"
 
 class BrowserWindowInterface;
 class GURL;
 class Profile;
-
-namespace bookmarks {
-class BookmarkModel;
-}  // namespace bookmarks
 
 namespace cromarc {
 
@@ -38,13 +35,13 @@ class TreeService : public KeyedService {
   // Null for profiles without a tree (incognito, guest, system).
   static TreeService* Get(Profile* profile);
 
-  TreeService(bookmarks::BookmarkModel* model, Tabs& tabs, Windows& windows);
+  TreeService(std::unique_ptr<Tree> tree, Tabs& tabs, Windows& windows);
   TreeService(const TreeService&) = delete;
   TreeService& operator=(const TreeService&) = delete;
   ~TreeService() override;
 
   bool loaded() const;
-  Tree& tree() { return tree_; }
+  Tree& tree() { return *tree_; }
 
   // The live tab of a pinned item; nullopt when it sleeps.
   std::optional<TabId> GetLiveTab(const std::string& item_id);
@@ -70,7 +67,7 @@ class TreeService : public KeyedService {
  private:
   void NotifyChanged();
 
-  Tree tree_;
+  const std::unique_ptr<Tree> tree_;
   const raw_ref<Tabs> tabs_;
   const raw_ref<Windows> windows_;
   std::map<std::string, TabId> links_;
@@ -78,7 +75,6 @@ class TreeService : public KeyedService {
   bool batching_ = false;
   bool changed_in_batch_ = false;
   base::CallbackListSubscription tree_subscription_;
-  raw_ptr<bookmarks::BookmarkModel> model_;
 };
 
 }  // namespace cromarc

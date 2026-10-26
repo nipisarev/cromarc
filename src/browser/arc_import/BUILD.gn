@@ -14,10 +14,7 @@ source_set("arc_import") {
     "//skia",
     "//url",
   ]
-  deps = [
-    "//components/bookmarks/browser",
-    "//cromarc/browser/tree",
-  ]
+  deps = [ "//cromarc/browser/ports" ]
 }
 
 source_set("unit_tests") {
@@ -28,10 +25,7 @@ source_set("unit_tests") {
   ]
   deps = [
     ":arc_import",
-    "//base/test:test_support",
-    "//components/bookmarks/browser",
-    "//components/bookmarks/test",
-    "//cromarc/browser/tree",
+    "//cromarc/browser/ports:test_support",
     "//testing/gtest",
   ]
 }

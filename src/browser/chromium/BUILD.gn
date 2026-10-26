@@ -18,6 +18,8 @@ source_set("adapters") {
     "favicons_adapter.h",
     "local_sync_adapter.cc",
     "local_sync_adapter.h",
+    "omnibox_adapter.cc",
+    "omnibox_adapter.h",
     "profiles_adapter.cc",
     "profiles_adapter.h",
     "strip_defaults_adapter.cc",
@@ -47,8 +49,11 @@ source_set("adapters") {
     "//components/browser_apis/tab_strip/types",
     "//components/favicon/core",
     "//components/favicon_base",
+    "//chrome/browser/autocomplete",
+    "//components/omnibox/browser",
     "//components/sync/base",
     "//components/sync/service",
+    "//third_party/metrics_proto",
     "//components/prefs",
     "//components/performance_manager",
     "//components/tabs:public",
@@ -98,5 +103,37 @@ source_set("chromium") {
     "//ui/compositor",
     "//ui/gfx",
     "//ui/views",
+  ]
+}
+
+# Tree in Chromium bookmarks.
+source_set("bookmark_tree") {
+  sources = [
+    "bookmark_tree.cc",
+    "bookmark_tree.h",
+  ]
+  public_deps = [
+    "//components/bookmarks/browser",
+    "//cromarc/browser/ports",
+  ]
+  deps = [
+    "//base",
+    "//components/bookmarks/common",
+    "//url",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "bookmark_tree_unittest.cc" ]
+  deps = [
+    ":bookmark_tree",
+    "//base/test:test_support",
+    "//components/bookmarks/browser",
+    "//components/bookmarks/common",
+    "//components/bookmarks/test",
+    "//cromarc/browser/ports:test_support",
+    "//testing/gtest",
+    "//url",
   ]
 }

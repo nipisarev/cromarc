@@ -12,6 +12,7 @@ source_set("ports") {
     "favicons.h",
     "library.h",
     "local_sync.h",
+    "omnibox.h",
     "profiles.h",
     "select_file_policies.h",
     "shell.h",
@@ -19,6 +20,8 @@ source_set("ports") {
     "tab_strip_api.h",
     "tabs.h",
     "theme.h",
+    "tree.cc",
+    "tree.h",
     "vertical_strip.h",
     "windows.h",
   ]
@@ -30,6 +33,7 @@ source_set("ports") {
     "//ui/gfx",
     "//ui/gfx/geometry",
     "//skia",
+    "//url",
   ]
 }
 
@@ -45,6 +49,8 @@ source_set("test_support") {
     "fake_tabs.h",
     "fake_theme.cc",
     "fake_theme.h",
+    "fake_tree.cc",
+    "fake_tree.h",
     "fake_vertical_strip.cc",
     "fake_vertical_strip.h",
     "fake_windows.cc",

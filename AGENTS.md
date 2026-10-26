@@ -38,13 +38,22 @@ writes a file, at every commit, in CI and before an install.
 |---|---|---|---|
 | Hooks | `src/hooks/` (entry points), one-line calls in Chromium via `patches/hooks/` | anything | Chromium calls into Cromarc here and nowhere else |
 | Adapters | `src/browser/chromium/`, WebUI controllers (`*_ui.{h,cc}`, `webui_registration`), keyed service factories (`*_factory.{h,cc}`) | Chromium's internals: `chrome/browser/**`, `chrome/common/pref_names.h`, `components/{tabs,browser_apis,bookmarks,favicon,history,download,sessions,omnibox,sync}/**` | implement ports on top of Chromium; compose services |
-| Ports | `src/browser/ports/` | stable APIs only | narrow interfaces, one concern each, no Chromium types in their signatures |
+| Ports | `src/browser/ports/` | stable APIs only | narrow interfaces, one concern each; in their signatures our types, stable ones, our mojom types, and windows and profiles as handles only (`BrowserWindowInterface*`, `Profile*`, never dereferenced outside adapters) |
 | Features | everything else in `src/browser/` | stable APIs: `base/`, `build/`, `url/`, `mojo/public/`, `net/base/`, `ui/{gfx,base,views,compositor,events,color,menus,display,accessibility,native_theme,shell_dialogs}/`, `cc/paint/`, `content/public/`, `components/{prefs,pref_registry,keyed_service}/`, `third_party/{skia,abseil-cpp,blink/public,re2}/`, `sql/`, `skia/ext/`, `net/traffic_annotation/`, `components/input/native_web_keyboard_event.h`, icon sets (`components/vector_icons/`, `chrome/app/vector_icons/`), our generated `chrome/grit/cromarc_*`, `testing/`, `cromarc/` | spaces, tree, lifecycle, sidebar, compact mode, Glance, Little, command bar, Library, routing |
 | WebUI | `src/webui/` (TypeScript, Lit) | the Mojo interfaces in `src/browser/**/*.mojom` | the sidebar and pages; no Chromium C++ here |
 
 Features get their ports through their constructor (dependency inversion).
-The composition roots, keyed service factories and `SidebarView`, build the
-adapters and hand them in. Unit tests hand in fakes.
+The composition roots build the adapters and hand them in: keyed service
+factories, WebUI controllers, `InstallSidebar()` (hook H2, for a window's
+sidebar), `src/hooks/hooks.cc` (for the hook entry points), and the
+`*_get.cc` files in `src/browser/chromium/` for the browser-wide singletons
+(`SpaceController::Get()`, `SpaceRouting::Get()`). The process-wide adapters
+are in `src/browser/chromium/adapters.h`.
+
+Unit tests hand in fakes (`src/browser/ports/fake_*.{h,cc}`). A fake keeps
+its port's contract; where a port has behaviour of its own, its contract
+tests run on the adapter and on the fake alike (`Tree`:
+`src/browser/chromium/bookmark_tree_unittest.cc`).
 
 ## Adding a feature
 
@@ -87,10 +96,10 @@ commit. Reading a command-line switch is not a system change; adding one is.
 | Push | CI (`.github/workflows/check.yml`): `tooling/check` (arch-check `--strict` and its tests), baseline growth, `System-Change:` on every pushed commit |
 | Install | `tooling/install` refuses unless the tree is committed, arch-check passes, every suite passed on this very build (`tooling/test-browser` stamps it) and Chromium holds exactly `patches/hooks` |
 
-`tooling/arch/baseline.txt` lists the violations that were there when the
-check came in. Fixing one: `tooling/arch-check --update-baseline` takes it
-off. Nothing may be added to it; `--strict` also fails when a listed one is
-already fixed, so the list stays true.
+`tooling/arch/baseline.txt` listed the violations that were there when the
+check came in (350); it is empty now and stays empty. Nothing may be added
+to it: a new need for Chromium in feature code is a port method and its
+adapter, never an exception.
 
 ## Working order
 

@@ -13,8 +13,9 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
-#include "components/omnibox/browser/autocomplete_controller.h"
+#include "base/callback_list.h"
 #include "cromarc/browser/archive/archive.h"
+#include "cromarc/browser/ports/omnibox.h"
 #include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ui/command_bar/command_bar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
@@ -31,8 +32,7 @@ class TreeService;
 
 // Searches for the command bar of `browser`: its tabs, the space's pinned
 // items, the omnibox (history, bookmarks, search, typed URL) and the archive.
-class CommandBarPageHandler : public command_bar::mojom::PageHandler,
-                              public AutocompleteController::Observer {
+class CommandBarPageHandler : public command_bar::mojom::PageHandler {
  public:
   CommandBarPageHandler(
       mojo::PendingReceiver<command_bar::mojom::PageHandler> receiver,
@@ -40,7 +40,8 @@ class CommandBarPageHandler : public command_bar::mojom::PageHandler,
       BrowserWindowInterface* browser,
       TreeService* tree_service,
       ArchiveService* archive_service,
-      Tabs& tabs);
+      Tabs& tabs,
+      std::unique_ptr<Omnibox> omnibox);
   CommandBarPageHandler(const CommandBarPageHandler&) = delete;
   CommandBarPageHandler& operator=(const CommandBarPageHandler&) = delete;
   ~CommandBarPageHandler() override;
@@ -52,10 +53,6 @@ class CommandBarPageHandler : public command_bar::mojom::PageHandler,
   void Open(command_bar::mojom::ResultPtr result) override;
   void Close() override;
 
-  // AutocompleteController::Observer:
-  void OnResultChanged(AutocompleteController* controller,
-                       bool default_match_changed) override;
-
  private:
   void OnArchiveResults(std::u16string text, std::vector<ArchiveEntry> entries);
   void Publish();
@@ -66,7 +63,8 @@ class CommandBarPageHandler : public command_bar::mojom::PageHandler,
   raw_ptr<TreeService> tree_service_;
   raw_ptr<ArchiveService> archive_service_;
   const raw_ref<Tabs> tabs_;
-  std::unique_ptr<AutocompleteController> autocomplete_;
+  const std::unique_ptr<Omnibox> omnibox_;
+  base::CallbackListSubscription omnibox_changed_;
 
   std::u16string text_;
   // Results of the current query, per source.

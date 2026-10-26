@@ -7,6 +7,7 @@
 #include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "cromarc/browser/chromium/adapters.h"
+#include "cromarc/browser/chromium/bookmark_tree.h"
 #include "cromarc/browser/tree/tree_service.h"
 
 namespace cromarc {
@@ -40,8 +41,9 @@ std::unique_ptr<KeyedService>
 TreeServiceFactory::BuildServiceInstanceForBrowserContext(
     content::BrowserContext* context) const {
   return std::make_unique<TreeService>(
-      BookmarkModelFactory::GetForBrowserContext(context), ChromiumTabs(),
-      ChromiumWindows());
+      std::make_unique<BookmarkTree>(
+          BookmarkModelFactory::GetForBrowserContext(context)),
+      ChromiumTabs(), ChromiumWindows());
 }
 
 }  // namespace cromarc

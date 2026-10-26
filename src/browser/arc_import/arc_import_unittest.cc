@@ -9,11 +9,7 @@
 #include <vector>
 
 #include "base/strings/utf_string_conversions.h"
-#include "base/test/task_environment.h"
-#include "components/bookmarks/browser/bookmark_model.h"
-#include "components/bookmarks/browser/bookmark_node.h"
-#include "components/bookmarks/test/test_bookmark_client.h"
-#include "cromarc/browser/tree/tree.h"
+#include "cromarc/browser/ports/fake_tree.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
 namespace cromarc {
@@ -43,31 +39,26 @@ ArcSpace Space(const std::string& title, std::vector<ArcNode> pinned) {
 
 class ArcImportTest : public testing::Test {
  protected:
-  ArcImportTest()
-      : model_(bookmarks::TestBookmarkClient::CreateModel()),
-        tree_(model_.get()) {}
-
   // "Folder[child, child]" / "title" outline of the tree root.
-  std::string Outline(const bookmarks::BookmarkNode* folder) {
+  std::string Outline(const Tree::Node& folder) {
     std::string out;
-    for (const auto& child : folder->children()) {
+    for (const Tree::Node& child : folder.children) {
       if (!out.empty()) {
         out += ", ";
       }
-      out += base::UTF16ToUTF8(child->GetTitle());
-      if (child->is_folder()) {
-        out += "[" + Outline(child.get()) + "]";
+      out += base::UTF16ToUTF8(child.title);
+      if (child.is_folder) {
+        out += "[" + Outline(child) + "]";
       }
-      if (Tree::IsEssential(child.get())) {
+      if (child.essential) {
         out += "*";
       }
     }
     return out;
   }
 
-  base::test::TaskEnvironment task_environment_;
-  std::unique_ptr<bookmarks::BookmarkModel> model_;
-  Tree tree_;
+  // Tree's contract holds for it (bookmark_tree_unittest.cc).
+  FakeTree tree_;
 };
 
 TEST_F(ArcImportTest, OneArcSpaceGoesToTheRootWithEssentialsFirst) {

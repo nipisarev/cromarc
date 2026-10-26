@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "cromarc/browser/tree/tree.h"
+#include "cromarc/browser/chromium/bookmark_tree.h"
 
 #include <algorithm>
 
@@ -31,30 +31,52 @@ bool HasFlag(const BookmarkNode* node, const char* key) {
   return node->GetMetaInfo(key, &value) && value == "1";
 }
 
-}  // namespace
-
-Tree::Tree(BookmarkModel* model) : model_(model) {
-  observation_.Observe(model_);
-}
-
-Tree::~Tree() = default;
-
-// static
-std::string Tree::IdOf(const BookmarkNode* node) {
+std::string IdOf(const BookmarkNode* node) {
   return node->uuid().AsLowercaseString();
 }
 
-// static
-bool Tree::IsCollapsed(const BookmarkNode* node) {
-  return HasFlag(node, kCollapsedKey);
+Tree::Node NodeOf(const BookmarkNode* bookmark) {
+  Tree::Node node;
+  node.id = IdOf(bookmark);
+  node.title = bookmark->GetTitle();
+  node.is_folder = bookmark->is_folder();
+  if (node.is_folder) {
+    node.collapsed = HasFlag(bookmark, kCollapsedKey);
+    for (const auto& child : bookmark->children()) {
+      node.children.push_back(NodeOf(child.get()));
+    }
+  } else {
+    node.home_url = bookmark->url();
+    node.essential = HasFlag(bookmark, kEssentialKey);
+  }
+  return node;
 }
 
-// static
-bool Tree::IsEssential(const BookmarkNode* node) {
-  return HasFlag(node, kEssentialKey);
+}  // namespace
+
+BookmarkTree::BookmarkTree(BookmarkModel* model) : model_(model) {
+  observation_.Observe(model_);
 }
 
-const BookmarkNode* Tree::FindRoot() const {
+BookmarkTree::~BookmarkTree() = default;
+
+bool BookmarkTree::IsLoaded() const {
+  return model_->loaded();
+}
+
+Tree::Node BookmarkTree::Root() {
+  return NodeOf(RootFolder());
+}
+
+std::optional<Tree::Node> BookmarkTree::Find(const std::string& id) {
+  const BookmarkNode* node = FindNode(id);
+  if (!node) {
+    return std::nullopt;
+  }
+  return NodeOf(node);
+}
+
+const BookmarkNode* BookmarkTree::FindRoot() const {
   if (!model_->loaded()) {
     return nullptr;
   }
@@ -66,7 +88,7 @@ const BookmarkNode* Tree::FindRoot() const {
   return nullptr;
 }
 
-const BookmarkNode* Tree::Root() {
+const BookmarkNode* BookmarkTree::RootFolder() {
   CHECK(model_->loaded());
   if (const BookmarkNode* root = FindRoot()) {
     return root;
@@ -77,7 +99,7 @@ const BookmarkNode* Tree::Root() {
                            &meta_info);
 }
 
-bool Tree::Contains(const BookmarkNode* node) {
+bool BookmarkTree::Contains(const BookmarkNode* node) const {
   const BookmarkNode* root = FindRoot();
   if (!root) {
     return false;
@@ -90,7 +112,7 @@ bool Tree::Contains(const BookmarkNode* node) {
   return false;
 }
 
-const BookmarkNode* Tree::Find(const std::string& id) {
+const BookmarkNode* BookmarkTree::FindNode(const std::string& id) {
   const base::Uuid uuid = base::Uuid::ParseLowercase(id);
   if (!uuid.is_valid()) {
     return nullptr;
@@ -100,45 +122,47 @@ const BookmarkNode* Tree::Find(const std::string& id) {
   return node && Contains(node) ? node : nullptr;
 }
 
-const BookmarkNode* Tree::FindFolder(const std::string& parent_id) {
+const BookmarkNode* BookmarkTree::FindFolder(const std::string& parent_id) {
   if (parent_id.empty()) {
-    return Root();
+    return RootFolder();
   }
-  const BookmarkNode* node = Find(parent_id);
+  const BookmarkNode* node = FindNode(parent_id);
   return node && node->is_folder() ? node : nullptr;
 }
 
-const BookmarkNode* Tree::CreateFolder(const std::string& parent_id,
-                                       size_t index,
-                                       const std::u16string& title) {
+std::optional<std::string> BookmarkTree::CreateFolder(
+    const std::string& parent_id,
+    size_t index,
+    const std::u16string& title) {
   const BookmarkNode* parent = FindFolder(parent_id);
   if (!parent) {
-    return nullptr;
+    return std::nullopt;
   }
-  return model_->AddFolder(parent, std::min(index, parent->children().size()),
-                           title);
+  return IdOf(model_->AddFolder(
+      parent, std::min(index, parent->children().size()), title));
 }
 
-const BookmarkNode* Tree::AddPinned(const std::string& parent_id,
-                                    size_t index,
-                                    const std::u16string& title,
-                                    const GURL& home_url) {
+std::optional<std::string> BookmarkTree::AddPinned(
+    const std::string& parent_id,
+    size_t index,
+    const std::u16string& title,
+    const GURL& home_url) {
   const BookmarkNode* parent = FindFolder(parent_id);
   if (!parent || !home_url.is_valid()) {
-    return nullptr;
+    return std::nullopt;
   }
-  return model_->AddURL(parent, std::min(index, parent->children().size()),
-                        title, home_url, /*meta_info=*/nullptr,
-                        /*creation_time=*/std::nullopt, /*uuid=*/std::nullopt,
-                        /*added_by_user=*/true);
+  return IdOf(model_->AddURL(
+      parent, std::min(index, parent->children().size()), title, home_url,
+      /*meta_info=*/nullptr, /*creation_time=*/std::nullopt,
+      /*uuid=*/std::nullopt, /*added_by_user=*/true));
 }
 
-bool Tree::Move(const std::string& id,
-                const std::string& parent_id,
-                size_t index) {
-  const BookmarkNode* node = Find(id);
+bool BookmarkTree::Move(const std::string& id,
+                        const std::string& parent_id,
+                        size_t index) {
+  const BookmarkNode* node = FindNode(id);
   const BookmarkNode* parent = FindFolder(parent_id);
-  if (!node || !parent || node == Root()) {
+  if (!node || !parent || node == RootFolder()) {
     return false;
   }
   for (const BookmarkNode* n = parent; n; n = n->parent()) {
@@ -150,26 +174,26 @@ bool Tree::Move(const std::string& id,
   return true;
 }
 
-bool Tree::Rename(const std::string& id, const std::u16string& title) {
-  const BookmarkNode* node = Find(id);
-  if (!node || node == Root()) {
+bool BookmarkTree::Rename(const std::string& id, const std::u16string& title) {
+  const BookmarkNode* node = FindNode(id);
+  if (!node || node == RootFolder()) {
     return false;
   }
   model_->SetTitle(node, title, BookmarkEditSource::kUser);
   return true;
 }
 
-bool Tree::Remove(const std::string& id) {
-  const BookmarkNode* node = Find(id);
-  if (!node || node == Root()) {
+bool BookmarkTree::Remove(const std::string& id) {
+  const BookmarkNode* node = FindNode(id);
+  if (!node || node == RootFolder()) {
     return false;
   }
   model_->Remove(node, BookmarkEditSource::kUser, FROM_HERE);
   return true;
 }
 
-bool Tree::SetHomeUrl(const std::string& id, const GURL& url) {
-  const BookmarkNode* node = Find(id);
+bool BookmarkTree::SetHomeUrl(const std::string& id, const GURL& url) {
+  const BookmarkNode* node = FindNode(id);
   if (!node || !node->is_url() || !url.is_valid()) {
     return false;
   }
@@ -177,8 +201,8 @@ bool Tree::SetHomeUrl(const std::string& id, const GURL& url) {
   return true;
 }
 
-bool Tree::SetCollapsed(const std::string& id, bool collapsed) {
-  const BookmarkNode* node = Find(id);
+bool BookmarkTree::SetCollapsed(const std::string& id, bool collapsed) {
+  const BookmarkNode* node = FindNode(id);
   if (!node || !node->is_folder()) {
     return false;
   }
@@ -186,33 +210,34 @@ bool Tree::SetCollapsed(const std::string& id, bool collapsed) {
   return true;
 }
 
-bool Tree::SetEssential(const std::string& id, bool essential) {
-  const BookmarkNode* node = Find(id);
+bool BookmarkTree::SetEssential(const std::string& id, bool essential) {
+  const BookmarkNode* node = FindNode(id);
   if (!node || !node->is_url()) {
     return false;
   }
-  if (essential && !IsEssential(node) && EssentialCount() >= kMaxEssentials) {
+  if (essential && !HasFlag(node, kEssentialKey) &&
+      EssentialCount() >= kMaxEssentials) {
     return false;
   }
   SetFlag(node, kEssentialKey, essential);
   return true;
 }
 
-size_t Tree::EssentialCount() {
+size_t BookmarkTree::EssentialCount() {
   size_t count = 0;
   auto visit = [&count](const BookmarkNode* node, auto& self) -> void {
-    if (IsEssential(node)) {
+    if (HasFlag(node, kEssentialKey)) {
       ++count;
     }
     for (const auto& child : node->children()) {
       self(child.get(), self);
     }
   };
-  visit(Root(), visit);
+  visit(RootFolder(), visit);
   return count;
 }
 
-void Tree::SetFlag(const BookmarkNode* node, const char* key, bool value) {
+void BookmarkTree::SetFlag(const BookmarkNode* node, const char* key, bool value) {
   if (value) {
     model_->SetNodeMetaInfo(node, key, "1");
   } else {
@@ -220,26 +245,26 @@ void Tree::SetFlag(const BookmarkNode* node, const char* key, bool value) {
   }
 }
 
-base::CallbackListSubscription Tree::RegisterOnChanged(
+base::CallbackListSubscription BookmarkTree::RegisterOnChanged(
     base::RepeatingClosure callback) {
   return on_changed_.Add(std::move(callback));
 }
 
-void Tree::NotifyIfInside(const BookmarkNode* node) {
+void BookmarkTree::NotifyIfInside(const BookmarkNode* node) {
   if (Contains(node)) {
     on_changed_.Notify();
   }
 }
 
-void Tree::BookmarkModelLoaded(bool ids_reassigned) {
+void BookmarkTree::BookmarkModelLoaded(bool ids_reassigned) {
   on_changed_.Notify();
 }
 
-void Tree::BookmarkModelBeingDeleted() {
+void BookmarkTree::BookmarkModelBeingDeleted() {
   observation_.Reset();
 }
 
-void Tree::BookmarkNodeMoved(const BookmarkNode* old_parent,
+void BookmarkTree::BookmarkNodeMoved(const BookmarkNode* old_parent,
                              size_t old_index,
                              const BookmarkNode* new_parent,
                              size_t new_index) {
@@ -248,13 +273,13 @@ void Tree::BookmarkNodeMoved(const BookmarkNode* old_parent,
   }
 }
 
-void Tree::BookmarkNodeAdded(const BookmarkNode* parent,
+void BookmarkTree::BookmarkNodeAdded(const BookmarkNode* parent,
                              size_t index,
                              bool added_by_user) {
   NotifyIfInside(parent);
 }
 
-void Tree::BookmarkNodeRemoved(const BookmarkNode* parent,
+void BookmarkTree::BookmarkNodeRemoved(const BookmarkNode* parent,
                                size_t old_index,
                                const BookmarkNode* node,
                                const std::set<GURL>& no_longer_bookmarked,
@@ -265,21 +290,21 @@ void Tree::BookmarkNodeRemoved(const BookmarkNode* parent,
   }
 }
 
-void Tree::BookmarkNodeChanged(const BookmarkNode* node) {
+void BookmarkTree::BookmarkNodeChanged(const BookmarkNode* node) {
   NotifyIfInside(node);
 }
 
-void Tree::BookmarkMetaInfoChanged(const BookmarkNode* node) {
+void BookmarkTree::BookmarkMetaInfoChanged(const BookmarkNode* node) {
   NotifyIfInside(node);
 }
 
-void Tree::BookmarkNodeFaviconChanged(const BookmarkNode* node) {}
+void BookmarkTree::BookmarkNodeFaviconChanged(const BookmarkNode* node) {}
 
-void Tree::BookmarkNodeChildrenReordered(const BookmarkNode* node) {
+void BookmarkTree::BookmarkNodeChildrenReordered(const BookmarkNode* node) {
   NotifyIfInside(node);
 }
 
-void Tree::BookmarkAllUserNodesRemoved(const std::set<GURL>& removed_urls,
+void BookmarkTree::BookmarkAllUserNodesRemoved(const std::set<GURL>& removed_urls,
                                        const base::Location& location) {
   on_changed_.Notify();
 }

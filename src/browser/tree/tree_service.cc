@@ -8,27 +8,24 @@
 
 #include "base/auto_reset.h"
 #include "base/functional/bind.h"
-#include "components/bookmarks/browser/bookmark_model.h"
-#include "components/bookmarks/browser/bookmark_node.h"
 #include "cromarc/browser/ports/windows.h"
 #include "url/gurl.h"
 
 namespace cromarc {
 
-TreeService::TreeService(bookmarks::BookmarkModel* model,
+TreeService::TreeService(std::unique_ptr<Tree> tree,
                          Tabs& tabs,
                          Windows& windows)
-    : tree_(model),
+    : tree_(std::move(tree)),
       tabs_(tabs),
       windows_(windows),
-      tree_subscription_(tree_.RegisterOnChanged(base::BindRepeating(
-          &TreeService::NotifyChanged, base::Unretained(this)))),
-      model_(model) {}
+      tree_subscription_(tree_->RegisterOnChanged(base::BindRepeating(
+          &TreeService::NotifyChanged, base::Unretained(this)))) {}
 
 TreeService::~TreeService() = default;
 
 bool TreeService::loaded() const {
-  return model_->loaded();
+  return tree_->IsLoaded();
 }
 
 std::optional<TabId> TreeService::GetLiveTab(const std::string& item_id) {
@@ -80,8 +77,8 @@ GURL WithoutFragmentOrTrailingSlash(const GURL& url) {
 
 void TreeService::Open(BrowserWindowInterface* browser,
                        const std::string& item_id) {
-  const bookmarks::BookmarkNode* node = tree_.Find(item_id);
-  if (!node || !node->is_url()) {
+  const std::optional<Tree::Node> node = tree_->Find(item_id);
+  if (!node || node->is_folder) {
     return;
   }
   if (std::optional<TabId> tab = GetLiveTab(item_id)) {
@@ -95,7 +92,7 @@ void TreeService::Open(BrowserWindowInterface* browser,
   // Asleep: its home URL, as a new tab of `browser` pinned from the start.
   // A sidebar holds a pinned tab no item claims yet out of Today, so it wakes
   // in its place, as Zen's unloaded pinned tab loads where it is.
-  if (std::optional<TabId> tab = tabs_->OpenPinned(browser, node->url())) {
+  if (std::optional<TabId> tab = tabs_->OpenPinned(browser, node->home_url)) {
     Link(item_id, *tab);
   }
 }
@@ -103,20 +100,20 @@ void TreeService::Open(BrowserWindowInterface* browser,
 std::optional<std::string> TreeService::FindItemByHomeUrl(const GURL& url) {
   const GURL wanted = WithoutFragmentOrTrailingSlash(url);
   std::optional<std::string> found;
-  auto visit = [&](const bookmarks::BookmarkNode* node, auto& self) -> void {
-    for (const auto& child : node->children()) {
+  auto visit = [&](const Tree::Node& node, auto& self) -> void {
+    for (const Tree::Node& child : node.children) {
       if (found) {
         return;
       }
-      if (child->is_folder()) {
-        self(child.get(), self);
-      } else if (WithoutFragmentOrTrailingSlash(child->url()) == wanted) {
-        found = Tree::IdOf(child.get());
+      if (child.is_folder) {
+        self(child, self);
+      } else if (WithoutFragmentOrTrailingSlash(child.home_url) == wanted) {
+        found = child.id;
       }
     }
   };
   if (loaded()) {
-    visit(tree_.Root(), visit);
+    visit(tree_->Root(), visit);
   }
   return found;
 }

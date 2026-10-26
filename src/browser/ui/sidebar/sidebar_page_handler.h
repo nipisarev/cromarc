@@ -17,6 +17,7 @@
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/sidebar/library_backend.h"
 #include "cromarc/browser/ports/library.h"
+#include "cromarc/browser/ports/tree.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -25,10 +26,6 @@
 #include "url/gurl.h"
 
 class BrowserWindowInterface;
-
-namespace bookmarks {
-class BookmarkNode;
-}  // namespace bookmarks
 
 namespace cromarc {
 
@@ -166,9 +163,9 @@ class SidebarPageHandler : public mojom::PageHandler,
  private:
   std::vector<mojom::SpacePtr> BuildSpaces();
   // Returns pinned items' live tabs inside `node` (itself included) to Today.
-  void ReleaseLiveTabs(const bookmarks::BookmarkNode* node);
+  void ReleaseLiveTabs(const Tree::Node& node);
   // Archives the pinned items of a folder that is being removed.
-  void ArchiveFolder(const bookmarks::BookmarkNode* folder,
+  void ArchiveFolder(const Tree::Node& folder,
                      const std::string& path);
   std::vector<mojom::TabLifecyclePtr> BuildLifecycles();
   void OnTreeChanged();

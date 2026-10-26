@@ -45,6 +45,7 @@ test("cromarc_unittests") {
     "//components/test:run_all_unittests",
     "//cromarc/browser/arc_import:unit_tests",
     "//cromarc/browser/archive:unit_tests",
+    "//cromarc/browser/chromium:unit_tests",
     "//cromarc/browser/lifecycle:unit_tests",
     "//cromarc/browser/routing:unit_tests",
     "//cromarc/browser/spaces:unit_tests",

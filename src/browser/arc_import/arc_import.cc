@@ -4,13 +4,13 @@
 
 #include "cromarc/browser/arc_import/arc_import.h"
 
+#include <optional>
 #include <set>
 #include <string>
 
 #include "base/memory/raw_ref.h"
 #include "base/strings/utf_string_conversions.h"
-#include "components/bookmarks/browser/bookmark_node.h"
-#include "cromarc/browser/tree/tree.h"
+#include "cromarc/browser/ports/tree.h"
 
 namespace cromarc {
 
@@ -26,13 +26,12 @@ std::string UrlKey(const GURL& url) {
 
 namespace {
 
-void CollectUrls(const bookmarks::BookmarkNode* folder,
-                 std::set<std::string>& urls) {
-  for (const auto& child : folder->children()) {
-    if (child->is_folder()) {
-      CollectUrls(child.get(), urls);
+void CollectUrls(const Tree::Node& folder, std::set<std::string>& urls) {
+  for (const Tree::Node& child : folder.children) {
+    if (child.is_folder) {
+      CollectUrls(child, urls);
     } else {
-      urls.insert(UrlKey(child->url()));
+      urls.insert(UrlKey(child.home_url));
     }
   }
 }
@@ -45,11 +44,11 @@ class Importer {
 
   void AddEssentials(const std::vector<ArcNode>& essentials) {
     for (const ArcNode& node : essentials) {
-      const bookmarks::BookmarkNode* item = AddPinned(node, "");
+      const std::optional<std::string> item = AddPinned(node, "");
       if (!item) {
         continue;
       }
-      if (tree_->SetEssential(Tree::IdOf(item), true)) {
+      if (tree_->SetEssential(*item, true)) {
         ++counts_.essentials;
       } else {
         ++counts_.pinned;
@@ -76,39 +75,39 @@ class Importer {
   ImportCounts counts() const { return counts_; }
 
  private:
-  const bookmarks::BookmarkNode* Parent(const std::string& parent) {
+  std::optional<Tree::Node> Parent(const std::string& parent) {
     return parent.empty() ? tree_->Root() : tree_->Find(parent);
   }
 
   size_t End(const std::string& parent) {
-    const bookmarks::BookmarkNode* folder = Parent(parent);
-    return folder ? folder->children().size() : 0;
+    const std::optional<Tree::Node> folder = Parent(parent);
+    return folder ? folder->children.size() : 0;
   }
 
   // The folder `title` under `parent`: an existing one of that name, so that
   // importing again fills the same folders, or a new one.
   std::string Folder(const std::string& parent, const std::u16string& title) {
-    if (const bookmarks::BookmarkNode* folder = Parent(parent)) {
-      for (const auto& child : folder->children()) {
-        if (child->is_folder() && child->GetTitle() == title) {
-          return Tree::IdOf(child.get());
+    if (const std::optional<Tree::Node> folder = Parent(parent)) {
+      for (const Tree::Node& child : folder->children) {
+        if (child.is_folder && child.title == title) {
+          return child.id;
         }
       }
     }
-    const bookmarks::BookmarkNode* created =
+    const std::optional<std::string> created =
         tree_->CreateFolder(parent, End(parent), title);
     if (!created) {
       return parent;
     }
     ++counts_.folders;
-    return Tree::IdOf(created);
+    return *created;
   }
 
-  const bookmarks::BookmarkNode* AddPinned(const ArcNode& node,
-                                           const std::string& parent) {
+  std::optional<std::string> AddPinned(const ArcNode& node,
+                                       const std::string& parent) {
     if (!pinned_urls_.insert(UrlKey(node.url)).second) {
       ++counts_.skipped;
-      return nullptr;
+      return std::nullopt;
     }
     return tree_->AddPinned(parent, End(parent), node.title, node.url);
   }

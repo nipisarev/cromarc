@@ -13,22 +13,11 @@
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "chrome/browser/autocomplete/chrome_autocomplete_provider_client.h"
-#include "chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.h"
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "components/bookmarks/browser/bookmark_node.h"
-#include "components/omnibox/browser/autocomplete_classifier.h"
-#include "components/omnibox/browser/autocomplete_controller_config.h"
-#include "components/omnibox/browser/autocomplete_input.h"
-#include "components/omnibox/browser/autocomplete_match.h"
-#include "components/omnibox/browser/autocomplete_result.h"
 #include "content/public/browser/web_contents.h"
 #include "cromarc/browser/archive/archive_service.h"
-#include "cromarc/browser/tree/tree.h"
+#include "cromarc/browser/ports/tree.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/command_bar/command_bar.h"
-#include "third_party/metrics_proto/omnibox_event.pb.h"
 #include "ui/base/window_open_disposition.h"
 
 namespace cromarc {
@@ -90,19 +79,18 @@ CommandBarPageHandler::CommandBarPageHandler(
     BrowserWindowInterface* browser,
     TreeService* tree_service,
     ArchiveService* archive_service,
-    Tabs& tabs)
+    Tabs& tabs,
+    std::unique_ptr<Omnibox> omnibox)
     : receiver_(this, std::move(receiver)),
       page_(std::move(page)),
       browser_(browser),
       tree_service_(tree_service),
       archive_service_(archive_service),
-      tabs_(tabs) {
-  Profile* profile = browser_->GetProfile();
-  autocomplete_ = std::make_unique<AutocompleteController>(
-      std::make_unique<ChromeAutocompleteProviderClient>(profile),
-      AutocompleteControllerConfig{
-          .provider_types = AutocompleteClassifier::DefaultOmniboxProviders()});
-  autocomplete_->AddObserver(this);
+      tabs_(tabs),
+      omnibox_(std::move(omnibox)) {
+  // The suggestions come in as they are made.
+  omnibox_changed_ = omnibox_->OnChanged(base::BindRepeating(
+      &CommandBarPageHandler::Publish, base::Unretained(this)));
   if (CommandBar* bar = CommandBar::Get(browser_)) {
     bar->SetPageHandler(this);
     NotifyShown(bar->InitialText());
@@ -110,7 +98,6 @@ CommandBarPageHandler::CommandBarPageHandler(
 }
 
 CommandBarPageHandler::~CommandBarPageHandler() {
-  autocomplete_->RemoveObserver(this);
   if (CommandBar* bar = CommandBar::Get(browser_)) {
     bar->SetPageHandler(nullptr);
   }
@@ -146,17 +133,17 @@ void CommandBarPageHandler::Query(const std::string& text_utf8) {
   // Pinned items of the space.
   pinned_.clear();
   if (!words.empty() && tree_service_->loaded()) {
-    auto visit = [&](const bookmarks::BookmarkNode* node, auto& self) -> void {
-      for (const auto& child : node->children()) {
+    auto visit = [&](const Tree::Node& node, auto& self) -> void {
+      for (const Tree::Node& child : node.children) {
         if (pinned_.size() >= kMaxPinned) {
           return;
         }
-        if (child->is_folder()) {
-          self(child.get(), self);
-        } else if (Matches(words, child->GetTitle(), child->url())) {
+        if (child.is_folder) {
+          self(child, self);
+        } else if (Matches(words, child.title, child.home_url)) {
           pinned_.push_back(MakeResult(
-              ResultKind::kPinned, Tree::IdOf(child.get()), child->GetTitle(),
-              base::UTF8ToUTF16(child->url().spec()), child->url()));
+              ResultKind::kPinned, child.id, child.title,
+              base::UTF8ToUTF16(child.home_url.spec()), child.home_url));
         }
       }
     };
@@ -172,14 +159,11 @@ void CommandBarPageHandler::Query(const std::string& text_utf8) {
                        weak_factory_.GetWeakPtr(), text_));
   }
 
-  // The omnibox, asynchronously (results arrive in OnResultChanged).
+  // The omnibox, asynchronously (results arrive through OnChanged).
   if (words.empty()) {
-    autocomplete_->Stop(AutocompleteStopReason::kClobbered);
+    omnibox_->Stop();
   } else {
-    AutocompleteInput input(
-        text_, metrics::OmniboxEventProto::OTHER,
-        ChromeAutocompleteSchemeClassifier(browser_->GetProfile()));
-    autocomplete_->Start(input);
+    omnibox_->Query(text_);
   }
   Publish();
 }
@@ -191,11 +175,6 @@ void CommandBarPageHandler::OnArchiveResults(
     return;
   }
   archive_ = std::move(entries);
-  Publish();
-}
-
-void CommandBarPageHandler::OnResultChanged(AutocompleteController* controller,
-                                            bool default_match_changed) {
   Publish();
 }
 
@@ -215,15 +194,17 @@ void CommandBarPageHandler::Publish() {
   }
   if (!text_.empty()) {
     size_t count = 0;
-    const AutocompleteResult& matches = autocomplete_->result();
-    for (size_t i = 0; i < matches.size() && count < kMaxSuggestions; ++i) {
-      const AutocompleteMatch& match = matches.match_at(i);
-      if (!match.destination_url.is_valid()) {
+    const std::vector<Omnibox::Suggestion> suggestions =
+        omnibox_->Suggestions();
+    for (size_t i = 0; i < suggestions.size() && count < kMaxSuggestions;
+         ++i) {
+      const Omnibox::Suggestion& suggestion = suggestions[i];
+      if (!suggestion.url.is_valid()) {
         continue;
       }
       add(MakeResult(ResultKind::kSuggestion, base::NumberToString(i),
-                     match.contents, match.description,
-                     match.destination_url));
+                     suggestion.contents, suggestion.description,
+                     suggestion.url));
       ++count;
     }
   }
