@@ -8,9 +8,11 @@
 #include <string>
 
 #include "base/callback_list.h"
+#include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
-#include "components/sessions/core/session_id.h"
-#include "components/tabs/public/tab_interface.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/windows.h"
 #include "url/gurl.h"
 
 class BrowserWindowInterface;
@@ -22,6 +24,8 @@ class WebContents;
 
 namespace cromarc {
 
+class AppLifecycle;
+
 // Little Arc (design, component 5 and UI section 7): a link from another app
 // opens in a small popup window of the last active space, with "Open in
 // <space>" and close in its toolbar. Closing it archives the link; opening it
@@ -30,9 +34,13 @@ class LittleWindow {
  public:
   // Opens `url` in a new Little window of `profile`, centred on the screen
   // under the cursor.
-  static void Open(Profile* profile, const GURL& url);
+  static void Open(Tabs& tabs,
+                   Windows& windows,
+                   AppLifecycle& app_lifecycle,
+                   Profile* profile,
+                   const GURL& url);
   // The Little window `browser` is, if it is one.
-  static LittleWindow* From(BrowserWindowInterface* browser);
+  static LittleWindow* From(Windows& windows, BrowserWindowInterface* browser);
 
   LittleWindow(const LittleWindow&) = delete;
   LittleWindow& operator=(const LittleWindow&) = delete;
@@ -54,18 +62,26 @@ class LittleWindow {
   }
 
  private:
-  explicit LittleWindow(BrowserWindowInterface* browser);
+  LittleWindow(Tabs& tabs,
+               Windows& windows,
+               AppLifecycle& app_lifecycle,
+               BrowserWindowInterface* browser);
 
-  void OnTabWillDetach(tabs::TabInterface* tab,
-                       tabs::TabInterface::DetachReason reason);
-  // At SIGTERM or logout (chrome::SessionEnding) the process exits with its
-  // tabs open; the page goes to the archive then.
-  void OnClosingAllBrowsers(bool closing);
+  // The page's tab, while the window lives.
+  std::optional<TabId> PageTab() const;
+  void OnTabWillClose(TabId tab);
+  // At SIGTERM or logout the process exits with its tabs open; the page goes
+  // to the archive then.
+  void OnClosingAllWindows(bool closing);
   void OnSpaceShown(BrowserWindowInterface* space_window);
   void Archive(content::WebContents* contents, bool session_ending);
   void OnWindowClosed(BrowserWindowInterface* browser);
 
-  const SessionID id_;
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Windows> windows_;
+  const raw_ref<AppLifecycle> app_lifecycle_;
+  const WindowId id_;
+  const raw_ptr<Profile> profile_;
   const std::string default_space_;
   // Set when the page went to a space, so closing does not archive it.
   bool moved_ = false;

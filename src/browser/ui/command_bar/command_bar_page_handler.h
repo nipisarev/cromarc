@@ -11,10 +11,11 @@
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
 #include "components/omnibox/browser/autocomplete_controller.h"
-#include "components/tabs/public/tab_interface.h"
 #include "cromarc/browser/archive/archive.h"
+#include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ui/command_bar/command_bar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -38,7 +39,8 @@ class CommandBarPageHandler : public command_bar::mojom::PageHandler,
       mojo::PendingRemote<command_bar::mojom::Page> page,
       BrowserWindowInterface* browser,
       TreeService* tree_service,
-      ArchiveService* archive_service);
+      ArchiveService* archive_service,
+      Tabs& tabs);
   CommandBarPageHandler(const CommandBarPageHandler&) = delete;
   CommandBarPageHandler& operator=(const CommandBarPageHandler&) = delete;
   ~CommandBarPageHandler() override;
@@ -63,14 +65,15 @@ class CommandBarPageHandler : public command_bar::mojom::PageHandler,
   raw_ptr<BrowserWindowInterface> browser_;
   raw_ptr<TreeService> tree_service_;
   raw_ptr<ArchiveService> archive_service_;
+  const raw_ref<Tabs> tabs_;
   std::unique_ptr<AutocompleteController> autocomplete_;
 
   std::u16string text_;
   // Results of the current query, per source.
-  std::vector<command_bar::mojom::ResultPtr> tabs_;
+  std::vector<command_bar::mojom::ResultPtr> tab_results_;
   std::vector<command_bar::mojom::ResultPtr> pinned_;
   std::vector<ArchiveEntry> archive_;
-  std::map<std::string, tabs::TabHandle> tab_ids_;
+  std::map<std::string, TabId> tab_ids_;
 
   base::WeakPtrFactory<CommandBarPageHandler> weak_factory_{this};
 };

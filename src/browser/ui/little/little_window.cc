@@ -10,23 +10,11 @@
 
 #include "base/functional/bind.h"
 #include "base/no_destructor.h"
-#include "chrome/browser/lifetime/application_lifetime_desktop.h"
-#include "chrome/browser/lifetime/browser_shutdown.h"
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/browser_window/public/create_browser_window.h"
-#include "chrome/browser/ui/navigator/browser_navigator.h"
-#include "chrome/browser/ui/navigator/browser_navigator_params.h"
-#include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: as above
-#include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
-#include "chrome/browser/ui/views/toolbar/toolbar_view.h"  // nogncheck: as above
 #include "content/public/browser/web_contents.h"
 #include "cromarc/browser/archive/archive_service.h"
+#include "cromarc/browser/ports/app_lifecycle.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/little/little_bar.h"
-#include "ui/base/base_window.h"
-#include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
 #include "ui/display/screen.h"
 
@@ -37,8 +25,8 @@ namespace {
 // Arc's Little window: a quick look, not a workspace.
 constexpr gfx::Size kSize(900, 650);
 
-std::map<SessionID, std::unique_ptr<LittleWindow>>& Windows() {
-  static base::NoDestructor<std::map<SessionID, std::unique_ptr<LittleWindow>>>
+std::map<WindowId, std::unique_ptr<LittleWindow>>& LittleWindows() {
+  static base::NoDestructor<std::map<WindowId, std::unique_ptr<LittleWindow>>>
       windows;
   return *windows;
 }
@@ -57,64 +45,67 @@ gfx::Rect CentredOnCursorScreen() {
 }  // namespace
 
 // static
-void LittleWindow::Open(Profile* profile, const GURL& url) {
-  BrowserWindowCreateParams create(BrowserWindowInterface::TYPE_POPUP, *profile,
-                                   /*from_user_gesture=*/true);
-  create.initial_bounds = CentredOnCursorScreen();
-  create.initial_origin_specified =
-      BrowserWindowCreateParams::ValueSpecified::kSpecified;
+void LittleWindow::Open(Tabs& tabs,
+                        Windows& windows,
+                        AppLifecycle& app_lifecycle,
+                        Profile* profile,
+                        const GURL& url) {
   // As in Arc, Little windows do not come back after a restart.
-  create.omit_from_session_restore = true;
-  create.should_trigger_session_restore = false;
-  BrowserWindowInterface* browser = CreateBrowserWindow(std::move(create));
+  BrowserWindowInterface* browser =
+      windows.OpenPopup(profile, CentredOnCursorScreen(), url);
   if (!browser) {
     return;
   }
-  // An empty popup takes the tab.
-  NavigateParams params(browser, url, ui::PAGE_TRANSITION_AUTO_TOPLEVEL);
-  params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
-  params.window_action = NavigateParams::WindowAction::kShowWindow;
-  params.user_gesture = true;
-  Navigate(&params);
-  if (params.browser != browser) {
-    return;
-  }
-  auto window = base::WrapUnique(new LittleWindow(browser));
+  auto window = base::WrapUnique(
+      new LittleWindow(tabs, windows, app_lifecycle, browser));
   LittleWindow* const little = window.get();
-  Windows()[browser->GetSessionID()] = std::move(window);
+  LittleWindows()[windows.IdOf(browser)] = std::move(window);
   // The popup's toolbar is a FlexLayout row: the location bar stretches and
   // the bar takes its preferred width at the end.
-  if (BrowserView* view = BrowserView::GetBrowserViewForBrowser(browser)) {
-    view->toolbar()->AddChildView(std::make_unique<LittleBar>(little));
-  }
+  windows.AddToToolbar(browser, std::make_unique<LittleBar>(little));
 }
 
 // static
-LittleWindow* LittleWindow::From(BrowserWindowInterface* browser) {
-  auto it = Windows().find(browser->GetSessionID());
-  return it == Windows().end() ? nullptr : it->second.get();
+LittleWindow* LittleWindow::From(Windows& windows,
+                                 BrowserWindowInterface* browser) {
+  auto it = LittleWindows().find(windows.IdOf(browser));
+  return it == LittleWindows().end() ? nullptr : it->second.get();
 }
 
-LittleWindow::LittleWindow(BrowserWindowInterface* browser)
-    : id_(browser->GetSessionID()),
-      default_space_(SpaceController::IdOf(browser->GetProfile())) {
-  if (tabs::TabInterface* tab = browser->GetActiveTabInterface()) {
-    tab_subscription_ = tab->RegisterWillDetach(base::BindRepeating(
-        &LittleWindow::OnTabWillDetach, weak_factory_.GetWeakPtr()));
+LittleWindow::LittleWindow(Tabs& tabs,
+                           Windows& windows,
+                           AppLifecycle& app_lifecycle,
+                           BrowserWindowInterface* browser)
+    : tabs_(tabs),
+      windows_(windows),
+      app_lifecycle_(app_lifecycle),
+      id_(windows.IdOf(browser)),
+      profile_(windows.ProfileOf(browser)),
+      default_space_(SpaceController::IdOf(profile_)) {
+  if (std::optional<TabId> tab = tabs_->GetActive(browser)) {
+    tab_subscription_ = tabs_->OnWillClose(
+        *tab, base::BindRepeating(&LittleWindow::OnTabWillClose,
+                                  weak_factory_.GetWeakPtr(), *tab));
   }
-  close_subscription_ = browser->RegisterBrowserDidClose(base::BindRepeating(
-      &LittleWindow::OnWindowClosed, weak_factory_.GetWeakPtr()));
+  close_subscription_ = windows_->OnClosed(
+      browser, base::BindRepeating(&LittleWindow::OnWindowClosed,
+                                   weak_factory_.GetWeakPtr()));
   closing_all_subscription_ =
-      chrome::AddClosingAllBrowsersCallback(base::BindRepeating(
-          &LittleWindow::OnClosingAllBrowsers, weak_factory_.GetWeakPtr()));
+      app_lifecycle_->OnClosingAllWindows(base::BindRepeating(
+          &LittleWindow::OnClosingAllWindows, weak_factory_.GetWeakPtr()));
 }
 
 LittleWindow::~LittleWindow() = default;
 
+std::optional<TabId> LittleWindow::PageTab() const {
+  BrowserWindowInterface* little = windows_->FromId(id_);
+  return little ? tabs_->GetActive(little) : std::nullopt;
+}
+
 GURL LittleWindow::url() const {
-  BrowserWindowInterface* little = BrowserWindowInterface::FromSessionID(id_);
-  tabs::TabInterface* tab = little ? little->GetActiveTabInterface() : nullptr;
-  return tab ? tab->GetContents()->GetLastCommittedURL() : GURL();
+  const std::optional<TabId> tab = PageTab();
+  content::WebContents* contents = tab ? tabs_->GetContents(*tab) : nullptr;
+  return contents ? contents->GetLastCommittedURL() : GURL();
 }
 
 void LittleWindow::OpenInSpace(const std::string& space_id) {
@@ -124,61 +115,53 @@ void LittleWindow::OpenInSpace(const std::string& space_id) {
 }
 
 void LittleWindow::OnSpaceShown(BrowserWindowInterface* space_window) {
-  BrowserWindowInterface* little = BrowserWindowInterface::FromSessionID(id_);
-  tabs::TabInterface* tab = little ? little->GetActiveTabInterface() : nullptr;
+  BrowserWindowInterface* little = windows_->FromId(id_);
+  const std::optional<TabId> tab = PageTab();
   if (!space_window || !tab) {
     return;
   }
   moved_ = true;
-  if (space_window->GetProfile() == little->GetProfile()) {
+  if (windows_->ProfileOf(space_window) == windows_->ProfileOf(little)) {
     // The same profile: the page itself moves, state and all. The popup
     // closes with its last tab.
-    TabStripModel* from = little->GetTabStripModel();
-    std::unique_ptr<tabs::TabModel> detached =
-        from->DetachTabAtForInsertion(from->GetIndexOfTab(tab));
-    TabStripModel* to = space_window->GetTabStripModel();
-    to->InsertDetachedTabAt(to->count(), std::move(detached),
-                            AddTabTypes::ADD_ACTIVE);
+    tabs_->MoveToWindow(*tab, space_window);
     return;
   }
-  space_window->OpenGURL(tab->GetContents()->GetLastCommittedURL(),
-                         WindowOpenDisposition::NEW_FOREGROUND_TAB);
-  little->GetWindow()->Close();
+  tabs_->Open(space_window, tabs_->GetContents(*tab)->GetLastCommittedURL(),
+              WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  windows_->Close(little);
 }
 
 void LittleWindow::Close() {
-  if (BrowserWindowInterface* little =
-          BrowserWindowInterface::FromSessionID(id_)) {
-    little->GetWindow()->Close();
+  if (BrowserWindowInterface* little = windows_->FromId(id_)) {
+    windows_->Close(little);
   }
 }
 
-void LittleWindow::OnTabWillDetach(tabs::TabInterface* tab,
-                                   tabs::TabInterface::DetachReason reason) {
-  if (moved_ || reason != tabs::TabInterface::DetachReason::kDelete) {
+void LittleWindow::OnTabWillClose(TabId tab) {
+  if (moved_) {
     return;
   }
-  Archive(tab->GetContents(), /*session_ending=*/false);
+  Archive(tabs_->GetContents(tab), /*session_ending=*/false);
 }
 
-void LittleWindow::OnClosingAllBrowsers(bool closing) {
-  if (!closing || moved_ ||
-      browser_shutdown::GetShutdownType() !=
-          browser_shutdown::ShutdownType::kEndSession) {
+void LittleWindow::OnClosingAllWindows(bool closing) {
+  if (!closing || moved_ || !app_lifecycle_->IsSessionEnding()) {
     return;
   }
-  BrowserWindowInterface* little = BrowserWindowInterface::FromSessionID(id_);
-  tabs::TabInterface* tab = little ? little->GetActiveTabInterface() : nullptr;
+  const std::optional<TabId> tab = PageTab();
   if (tab) {
     moved_ = true;
-    Archive(tab->GetContents(), /*session_ending=*/true);
+    Archive(tabs_->GetContents(*tab), /*session_ending=*/true);
   }
 }
 
 void LittleWindow::Archive(content::WebContents* contents,
                            bool session_ending) {
-  ArchiveService* archive = ArchiveService::Get(
-      Profile::FromBrowserContext(contents->GetBrowserContext()));
+  ArchiveService* archive = ArchiveService::Get(profile_);
+  if (!contents) {
+    return;
+  }
   ArchiveEntry entry;
   entry.url = contents->GetLastCommittedURL();
   entry.title = contents->GetTitle();
@@ -196,7 +179,7 @@ void LittleWindow::Archive(content::WebContents* contents,
 
 void LittleWindow::OnWindowClosed(BrowserWindowInterface* browser) {
   // Deletes this.
-  Windows().erase(id_);
+  LittleWindows().erase(id_);
 }
 
 }  // namespace cromarc

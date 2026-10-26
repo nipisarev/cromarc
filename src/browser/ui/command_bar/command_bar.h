@@ -10,6 +10,7 @@
 
 #include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
 #include "ui/views/widget/widget.h"
@@ -25,6 +26,8 @@ class WidgetDelegate;
 namespace cromarc {
 
 class CommandBarPageHandler;
+class Tabs;
+class Windows;
 
 // The command bar of one browser window (design, component 6): a floating
 // panel over the window that hosts chrome://cromarc-command-bar.top-chrome.
@@ -32,10 +35,12 @@ class CommandBarPageHandler;
 // at once, destroyed with its window.
 class CommandBar : public views::WidgetObserver {
  public:
-  static CommandBar* GetOrCreate(BrowserWindowInterface* browser);
+  static CommandBar* GetOrCreate(Tabs& tabs,
+                                 Windows& windows,
+                                 BrowserWindowInterface* browser);
   static CommandBar* Get(BrowserWindowInterface* browser);
 
-  explicit CommandBar(BrowserWindowInterface* browser);
+  CommandBar(Tabs& tabs, Windows& windows, BrowserWindowInterface* browser);
   CommandBar(const CommandBar&) = delete;
   CommandBar& operator=(const CommandBar&) = delete;
   ~CommandBar() override;
@@ -58,6 +63,8 @@ class CommandBar : public views::WidgetObserver {
   void CreateWidget();
   gfx::Rect Bounds() const;
 
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Windows> windows_;
   raw_ptr<BrowserWindowInterface> browser_;
   bool edit_current_url_ = false;
   // Outlives `widget_`.

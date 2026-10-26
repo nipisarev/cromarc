@@ -6,6 +6,8 @@
 
 #include <algorithm>
 
+#include "content/public/browser/web_contents.h"
+
 namespace cromarc {
 
 FakeTabs::FakeTabs() = default;
@@ -24,7 +26,18 @@ TabId FakeTabs::Add(BrowserWindowInterface* window, bool pinned) {
 }
 
 void FakeTabs::Remove(TabId tab) {
+  BrowserWindowInterface* window = GetWindow(tab);
+  const bool was_active = window && GetActive(window) == tab;
+  if (auto it = will_close_.find(tab); it != will_close_.end()) {
+    it->second->Notify();
+  }
   std::erase_if(tabs_, [tab](const Tab& t) { return t.id == tab; });
+  if (was_active) {
+    active_.erase(window);
+    if (!List(window).empty()) {
+      Activate(List(window).back());
+    }
+  }
 }
 
 void FakeTabs::Detach(TabId tab) {
@@ -80,8 +93,13 @@ bool FakeTabs::IsPinned(TabId tab) {
 }
 
 void FakeTabs::Activate(TabId tab) {
-  if (Tab* t = Find(tab)) {
-    active_[t->window] = tab;
+  Tab* t = Find(tab);
+  if (!t || active_[t->window] == tab) {
+    return;
+  }
+  active_[t->window] = tab;
+  if (auto it = active_changed_.find(t->window); it != active_changed_.end()) {
+    it->second->Notify();
   }
 }
 
@@ -105,16 +123,17 @@ std::optional<TabId> FakeTabs::Duplicate(TabId tab) {
 
 void FakeTabs::Open(BrowserWindowInterface* window,
                     const GURL& url,
-                    bool background) {
+                    WindowOpenDisposition disposition) {
   opened.emplace_back(window, url);
   const TabId tab = Add(window);
-  if (!background) {
+  if (disposition != WindowOpenDisposition::NEW_BACKGROUND_TAB) {
     Activate(tab);
   }
 }
 
 void FakeTabs::OpenNewTabPage(BrowserWindowInterface* window) {
-  Open(window, GURL("chrome://newtab/"), /*background=*/false);
+  Open(window, GURL("chrome://newtab/"),
+       WindowOpenDisposition::NEW_FOREGROUND_TAB);
 }
 
 std::optional<TabId> FakeTabs::OpenPinned(BrowserWindowInterface* window,
@@ -125,10 +144,56 @@ std::optional<TabId> FakeTabs::OpenPinned(BrowserWindowInterface* window,
   return tab;
 }
 
+std::optional<TabId> FakeTabs::InsertAfterActive(
+    BrowserWindowInterface* window,
+    std::unique_ptr<content::WebContents> contents) {
+  const TabId tab = Add(window);
+  Activate(tab);
+  return tab;
+}
+
+content::WebContents* FakeTabs::AddNewContents(
+    BrowserWindowInterface* window,
+    content::WebContents* source,
+    std::unique_ptr<content::WebContents> new_contents,
+    const GURL& target_url,
+    WindowOpenDisposition disposition,
+    const blink::mojom::WindowFeatures& window_features) {
+  Open(window, target_url, disposition);
+  return nullptr;
+}
+
+void FakeTabs::MoveToWindow(TabId tab, BrowserWindowInterface* window) {
+  if (Tab* t = Find(tab)) {
+    t->window = window;
+    Activate(tab);
+  }
+}
+
 base::CallbackListSubscription FakeTabs::OnOpenedInBackground(
     BrowserWindowInterface* window,
     base::RepeatingClosure callback) {
   std::unique_ptr<base::RepeatingClosureList>& list = background_[window];
+  if (!list) {
+    list = std::make_unique<base::RepeatingClosureList>();
+  }
+  return list->Add(std::move(callback));
+}
+
+base::CallbackListSubscription FakeTabs::OnActiveChanged(
+    BrowserWindowInterface* window,
+    base::RepeatingClosure callback) {
+  std::unique_ptr<base::RepeatingClosureList>& list = active_changed_[window];
+  if (!list) {
+    list = std::make_unique<base::RepeatingClosureList>();
+  }
+  return list->Add(std::move(callback));
+}
+
+base::CallbackListSubscription FakeTabs::OnWillClose(
+    TabId tab,
+    base::RepeatingClosure callback) {
+  std::unique_ptr<base::RepeatingClosureList>& list = will_close_[tab];
   if (!list) {
     list = std::make_unique<base::RepeatingClosureList>();
   }

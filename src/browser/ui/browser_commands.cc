@@ -6,6 +6,8 @@
 
 #include "chrome/browser/profiles/profile.h"
 #include "base/functional/bind.h"
+#include "base/memory/raw_ref.h"
+#include "url/gurl.h"
 #include "cromarc/browser/routing/space_routing.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/glance/hovered_link.h"
@@ -15,45 +17,58 @@ namespace cromarc {
 
 namespace {
 
+// The browser's ports, which outlive every link.
+struct LittlePorts {
+  raw_ref<Tabs> tabs;
+  raw_ref<Windows> windows;
+  raw_ref<AppLifecycle> app_lifecycle;
+};
+
 // A Little window of `space`, or of `fallback` when a rule names a space that
 // is gone.
-void OpenLittleIn(const std::string& space,
+void OpenLittleIn(LittlePorts ports,
+                  const std::string& space,
                   const std::string& fallback,
                   const GURL& url) {
   SpaceController::Get()->LoadSpace(
       space, base::BindOnce(
-                 [](std::string fallback, GURL url, Profile* profile) {
+                 [](LittlePorts ports, std::string fallback, GURL url,
+                    Profile* profile) {
                    if (profile) {
-                     LittleWindow::Open(profile, url);
+                     LittleWindow::Open(*ports.tabs, *ports.windows,
+                                        *ports.app_lifecycle, profile, url);
                    } else if (!fallback.empty()) {
-                     OpenLittleIn(fallback, std::string(), url);
+                     OpenLittleIn(ports, fallback, std::string(), url);
                    }
                  },
-                 fallback, url));
+                 ports, fallback, url));
 }
 
-void RouteExternalLink(const std::string& fallback, const GURL& url) {
+void RouteExternalLink(LittlePorts ports,
+                       const std::string& fallback,
+                       const GURL& url) {
   const std::string space =
       SpaceForExternalLink(SpaceRouting::Get()->routes(), url);
-  OpenLittleIn(space.empty() ? fallback : space, fallback, url);
+  OpenLittleIn(ports, space.empty() ? fallback : space, fallback, url);
 }
 
 }  // namespace
 
-bool OpenExternalLinks(const StartupTabs& tabs, Profile* profile) {
+bool OpenExternalLinks(Tabs& tabs,
+                       Windows& windows,
+                       AppLifecycle& app_lifecycle,
+                       const std::vector<GURL>& urls,
+                       Profile* profile) {
   if (profile->IsOffTheRecord()) {
     return false;
   }
-  for (const StartupTab& tab : tabs) {
-    if (tab.is_untrusted_launch) {
-      return false;
-    }
-  }
   // The routing rules choose the space; `profile` (the one used last) takes
   // what they leave.
-  for (const StartupTab& tab : tabs) {
+  const LittlePorts ports{raw_ref<Tabs>(tabs), raw_ref<Windows>(windows),
+                          raw_ref<AppLifecycle>(app_lifecycle)};
+  for (const GURL& url : urls) {
     SpaceRouting::Get()->WhenLoaded(base::BindOnce(
-        &RouteExternalLink, SpaceController::IdOf(profile), tab.url));
+        &RouteExternalLink, ports, SpaceController::IdOf(profile), url));
   }
   return true;
 }
@@ -62,12 +77,15 @@ bool KeepWindowOnLastTabClose(BrowserWindowInterface* browser) {
   return SpaceController::Get()->KeepWindowOnLastTabClose(browser);
 }
 
-void OnTargetURL(content::WebContents* source, const GURL& url) {
-  HoveredLink::Set(source, url);
+void OnTargetURL(Tabs& tabs,
+                 Windows& windows,
+                 content::WebContents* source,
+                 const GURL& url) {
+  HoveredLink::Set(tabs, windows, source, url);
 }
 
-bool OpenLittleInSpace(BrowserWindowInterface* browser) {
-  LittleWindow* little = LittleWindow::From(browser);
+bool OpenLittleInSpace(Windows& windows, BrowserWindowInterface* browser) {
+  LittleWindow* little = LittleWindow::From(windows, browser);
   if (!little) {
     return false;
   }

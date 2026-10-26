@@ -34,21 +34,38 @@ class TabsAdapter : public Tabs {
   std::optional<TabId> Duplicate(TabId tab) override;
   void Open(BrowserWindowInterface* window,
             const GURL& url,
-            bool background) override;
+            WindowOpenDisposition disposition) override;
   void OpenNewTabPage(BrowserWindowInterface* window) override;
   std::optional<TabId> OpenPinned(BrowserWindowInterface* window,
                                   const GURL& url) override;
+  std::optional<TabId> InsertAfterActive(
+      BrowserWindowInterface* window,
+      std::unique_ptr<content::WebContents> contents) override;
+  content::WebContents* AddNewContents(
+      BrowserWindowInterface* window,
+      content::WebContents* source,
+      std::unique_ptr<content::WebContents> new_contents,
+      const GURL& target_url,
+      WindowOpenDisposition disposition,
+      const blink::mojom::WindowFeatures& window_features) override;
+  void MoveToWindow(TabId tab, BrowserWindowInterface* window) override;
   base::CallbackListSubscription OnOpenedInBackground(
       BrowserWindowInterface* window,
       base::RepeatingClosure callback) override;
+  base::CallbackListSubscription OnActiveChanged(
+      BrowserWindowInterface* window,
+      base::RepeatingClosure callback) override;
+  base::CallbackListSubscription OnWillClose(
+      TabId tab,
+      base::RepeatingClosure callback) override;
 
  private:
-  class BackgroundOpenings;
+  class WindowEvents;
 
+  WindowEvents& EventsOf(BrowserWindowInterface* window);
   void OnWindowClosed(BrowserWindowInterface* window);
 
-  std::map<BrowserWindowInterface*, std::unique_ptr<BackgroundOpenings>>
-      background_openings_;
+  std::map<BrowserWindowInterface*, std::unique_ptr<WindowEvents>> events_;
 };
 
 }  // namespace cromarc

@@ -13,6 +13,7 @@ source_set("little") {
   ]
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]
   deps = [
+    "//cromarc/browser/ports",
     "//base",
     "//chrome/browser/lifetime",
     "//chrome/browser/profiles:profile",

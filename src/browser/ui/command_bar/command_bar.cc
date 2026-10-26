@@ -11,13 +11,11 @@
 #include "base/functional/bind.h"
 #include "base/no_destructor.h"
 #include "base/strings/utf_string_conversions.h"
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/referrer.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/ui/command_bar/command_bar_page_handler.h"
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/command_bar/cromarc_command_bar.h"
@@ -46,21 +44,27 @@ std::map<BrowserWindowInterface*, std::unique_ptr<CommandBar>>& Bars() {
 
 }  // namespace
 
-bool ShowCommandBar(BrowserWindowInterface* browser, bool edit_current_url) {
-  if (browser->GetType() != BrowserWindowInterface::TYPE_NORMAL ||
-      browser->GetProfile()->IsOffTheRecord()) {
+bool ShowCommandBar(Tabs& tabs,
+                    Windows& windows,
+                    BrowserWindowInterface* browser,
+                    bool edit_current_url) {
+  if (!windows.IsNormal(browser) || windows.IsOffTheRecord(browser)) {
     return false;
   }
-  CommandBar::GetOrCreate(browser)->Show(edit_current_url);
+  CommandBar::GetOrCreate(tabs, windows, browser)->Show(edit_current_url);
   return true;
 }
 
 // static
-CommandBar* CommandBar::GetOrCreate(BrowserWindowInterface* browser) {
+CommandBar* CommandBar::GetOrCreate(Tabs& tabs,
+                                    Windows& windows,
+                                    BrowserWindowInterface* browser) {
   auto& bars = Bars();
   auto it = bars.find(browser);
   if (it == bars.end()) {
-    it = bars.emplace(browser, std::make_unique<CommandBar>(browser)).first;
+    it = bars.emplace(browser,
+                      std::make_unique<CommandBar>(tabs, windows, browser))
+             .first;
   }
   return it->second.get();
 }
@@ -71,9 +75,12 @@ CommandBar* CommandBar::Get(BrowserWindowInterface* browser) {
   return it == Bars().end() ? nullptr : it->second.get();
 }
 
-CommandBar::CommandBar(BrowserWindowInterface* browser) : browser_(browser) {
-  browser_did_close_ = browser->RegisterBrowserDidClose(
-      base::BindRepeating([](BrowserWindowInterface* closed) {
+CommandBar::CommandBar(Tabs& tabs,
+                       Windows& windows,
+                       BrowserWindowInterface* browser)
+    : tabs_(tabs), windows_(windows), browser_(browser) {
+  browser_did_close_ = windows_->OnClosed(
+      browser, base::BindRepeating([](BrowserWindowInterface* closed) {
         // Destroys this CommandBar.
         Bars().erase(closed);
       }));
@@ -92,10 +99,10 @@ std::u16string CommandBar::InitialText() const {
   if (!edit_current_url_) {
     return std::u16string();
   }
-  TabStripModel* model = browser_->GetTabStripModel();
-  tabs::TabInterface* tab = model->GetTabAtIndex(model->active_index());
-  return tab ? base::UTF8ToUTF16(tab->GetContents()->GetVisibleURL().spec())
-             : std::u16string();
+  const std::optional<TabId> tab = tabs_->GetActive(browser_);
+  content::WebContents* contents = tab ? tabs_->GetContents(*tab) : nullptr;
+  return contents ? base::UTF8ToUTF16(contents->GetVisibleURL().spec())
+                  : std::u16string();
 }
 
 void CommandBar::SetPageHandler(CommandBarPageHandler* handler) {
@@ -103,19 +110,21 @@ void CommandBar::SetPageHandler(CommandBarPageHandler* handler) {
 }
 
 gfx::Rect CommandBar::Bounds() const {
-  const gfx::Rect window = browser_->GetWindow()->GetBounds();
+  const gfx::Rect window = windows_->BoundsOf(browser_);
   const int width = std::min(kWidth, window.width() - 40);
   return gfx::Rect(window.x() + (window.width() - width) / 2,
                    window.y() + window.height() / 6, width, kHeight);
 }
 
 void CommandBar::CreateWidget() {
-  auto web_view = std::make_unique<views::WebView>(browser_->GetProfile());
+  content::BrowserContext* browser_context =
+      windows_->BrowserContextOf(browser_);
+  auto web_view = std::make_unique<views::WebView>(browser_context);
   std::unique_ptr<content::WebContents> contents =
       content::WebContents::Create(
-          content::WebContents::CreateParams(browser_->GetProfile()));
+          content::WebContents::CreateParams(browser_context));
   // Before the load: CommandBarUI looks the window up when the page binds.
-  webui::SetBrowserWindowInterface(contents.get(), browser_);
+  windows_->AttachWebUI(browser_, contents.get());
   contents->SetPageBaseBackgroundColor(SK_ColorTRANSPARENT);
   web_view->SetOwnedWebContents(std::move(contents));
   web_view->set_allow_accelerators(true);
@@ -130,9 +139,9 @@ void CommandBar::CreateWidget() {
       views::Widget::InitParams::CLIENT_OWNS_WIDGET,
       views::Widget::InitParams::TYPE_WINDOW_FRAMELESS);
   params.delegate = delegate_.get();
-  params.parent = views::Widget::GetWidgetForNativeWindow(
-                      browser_->GetWindow()->GetNativeWindow())
-                      ->GetNativeView();
+  params.parent =
+      views::Widget::GetWidgetForNativeWindow(windows_->NativeWindowOf(browser_))
+          ->GetNativeView();
   params.opacity = views::Widget::InitParams::WindowOpacity::kTranslucent;
   params.shadow_type = views::Widget::InitParams::ShadowType::kNone;
   params.activatable = views::Widget::InitParams::Activatable::kYes;

@@ -45,12 +45,29 @@ class FakeTabs : public Tabs {
   std::optional<TabId> Duplicate(TabId tab) override;
   void Open(BrowserWindowInterface* window,
             const GURL& url,
-            bool background) override;
+            WindowOpenDisposition disposition) override;
   void OpenNewTabPage(BrowserWindowInterface* window) override;
   std::optional<TabId> OpenPinned(BrowserWindowInterface* window,
                                   const GURL& url) override;
+  std::optional<TabId> InsertAfterActive(
+      BrowserWindowInterface* window,
+      std::unique_ptr<content::WebContents> contents) override;
+  content::WebContents* AddNewContents(
+      BrowserWindowInterface* window,
+      content::WebContents* source,
+      std::unique_ptr<content::WebContents> new_contents,
+      const GURL& target_url,
+      WindowOpenDisposition disposition,
+      const blink::mojom::WindowFeatures& window_features) override;
+  void MoveToWindow(TabId tab, BrowserWindowInterface* window) override;
   base::CallbackListSubscription OnOpenedInBackground(
       BrowserWindowInterface* window,
+      base::RepeatingClosure callback) override;
+  base::CallbackListSubscription OnActiveChanged(
+      BrowserWindowInterface* window,
+      base::RepeatingClosure callback) override;
+  base::CallbackListSubscription OnWillClose(
+      TabId tab,
       base::RepeatingClosure callback) override;
 
   // What was opened, by window.
@@ -70,6 +87,9 @@ class FakeTabs : public Tabs {
   int32_t next_id_ = 1;
   std::map<BrowserWindowInterface*, std::unique_ptr<base::RepeatingClosureList>>
       background_;
+  std::map<BrowserWindowInterface*, std::unique_ptr<base::RepeatingClosureList>>
+      active_changed_;
+  std::map<TabId, std::unique_ptr<base::RepeatingClosureList>> will_close_;
 };
 
 }  // namespace cromarc

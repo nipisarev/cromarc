@@ -4,7 +4,11 @@
 
 #include "cromarc/browser/chromium/app_lifecycle_adapter.h"
 
+#include <utility>
+
 #include "base/memory/weak_ptr.h"
+#include "chrome/browser/lifetime/application_lifetime_desktop.h"
+#include "chrome/browser/lifetime/browser_shutdown.h"
 #include "chrome/browser/sessions/session_restore.h"
 #include "components/performance_manager/public/graph/page_node.h"
 #include "components/performance_manager/public/performance_manager.h"
@@ -26,6 +30,16 @@ bool AppLifecycleAdapter::MayHaveUserEdits(content::WebContents* contents) {
       performance_manager::PerformanceManager::GetPrimaryPageNodeForWebContents(
           contents);
   return !page || page->HadUserEdits();
+}
+
+bool AppLifecycleAdapter::IsSessionEnding() {
+  return browser_shutdown::GetShutdownType() ==
+         browser_shutdown::ShutdownType::kEndSession;
+}
+
+base::CallbackListSubscription AppLifecycleAdapter::OnClosingAllWindows(
+    base::RepeatingCallback<void(bool closing)> callback) {
+  return chrome::AddClosingAllBrowsersCallback(std::move(callback));
 }
 
 }  // namespace cromarc

@@ -18,6 +18,7 @@
 #include "content/public/browser/web_ui_data_source.h"
 #include "content/public/common/url_constants.h"
 #include "cromarc/browser/archive/archive_service.h"
+#include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/command_bar/command_bar_page_handler.h"
 #include "cromarc/browser/ui/command_bar/cromarc_command_bar.h"
@@ -62,7 +63,7 @@ void CommandBarUI::CreatePageHandler(
   page_handler_.reset();
   page_handler_ = std::make_unique<CommandBarPageHandler>(
       std::move(handler), std::move(page), browser, tree_service,
-      archive_service);
+      archive_service, ChromiumTabs());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(CommandBarUI)

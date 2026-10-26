@@ -12,18 +12,14 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/timer/timer.h"
 #include "chrome/app/vector_icons/vector_icons.h"
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: as above
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: as above
 #include "components/input/native_web_keyboard_event.h"
-#include "components/tabs/public/tab_interface.h"
 #include "components/vector_icons/vector_icons.h"
 #include "content/public/browser/keyboard_event_processing_result.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/referrer.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/ui/glance/hovered_link.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/base_window.h"
@@ -242,11 +238,14 @@ BEGIN_METADATA(GlanceView)
 END_METADATA
 
 // static
-void Glance::Open(BrowserWindowInterface* browser,
+void Glance::Open(Tabs& tabs,
+                  Windows& windows,
+                  BrowserWindowInterface* browser,
                   const GURL& url,
                   const gfx::Point& screen_point) {
   Glances().erase(browser);
-  Glances()[browser] = base::WrapUnique(new Glance(browser, url, screen_point));
+  Glances()[browser] = base::WrapUnique(
+      new Glance(tabs, windows, browser, url, screen_point));
 }
 
 // static
@@ -255,24 +254,28 @@ Glance* Glance::Get(BrowserWindowInterface* browser) {
   return it == Glances().end() ? nullptr : it->second.get();
 }
 
-Glance::Glance(BrowserWindowInterface* browser,
+Glance::Glance(Tabs& tabs,
+               Windows& windows,
+               BrowserWindowInterface* browser,
                const GURL& url,
                const gfx::Point& screen_point)
-    : browser_(browser) {
+    : tabs_(tabs), windows_(windows), browser_(browser) {
   contents_ = content::WebContents::Create(
-      content::WebContents::CreateParams(browser->GetProfile()));
+      content::WebContents::CreateParams(windows_->BrowserContextOf(browser)));
   contents_->SetDelegate(this);
   content::NavigationController::LoadURLParams load(url);
   load.transition_type = ui::PAGE_TRANSITION_LINK;
-  if (tabs::TabInterface* opener = browser->GetActiveTabInterface()) {
+  const std::optional<TabId> opener = tabs_->GetActive(browser);
+  if (content::WebContents* opener_contents =
+          opener ? tabs_->GetContents(*opener) : nullptr) {
     load.referrer =
-        content::Referrer(opener->GetContents()->GetLastCommittedURL(),
+        content::Referrer(opener_contents->GetLastCommittedURL(),
                           network::mojom::ReferrerPolicy::kDefault);
   }
   contents_->GetController().LoadURLWithParams(load);
 
   views::Widget* browser_widget = views::Widget::GetWidgetForNativeWindow(
-      browser->GetWindow()->GetNativeWindow());
+      windows_->NativeWindowOf(browser));
   delegate_ = std::make_unique<views::WidgetDelegate>();
   view_ = delegate_->SetContentsView(
       std::make_unique<GlanceView>(this, contents_.get()));
@@ -293,9 +296,10 @@ Glance::Glance(BrowserWindowInterface* browser,
   view_->AnimateIn(screen_point);
 
   browser_widget_observation_.Observe(browser_widget);
-  browser->GetTabStripModel()->AddObserver(this);
-  browser_did_close_ = browser->RegisterBrowserDidClose(
-      base::BindRepeating([](BrowserWindowInterface* closed) {
+  active_tab_changed_ = tabs_->OnActiveChanged(
+      browser, base::BindRepeating(&Glance::Close, base::Unretained(this)));
+  browser_did_close_ = windows_->OnClosed(
+      browser, base::BindRepeating([](BrowserWindowInterface* closed) {
         // Destroys this Glance.
         Glances().erase(closed);
       }));
@@ -308,9 +312,10 @@ Glance::~Glance() {
 }
 
 gfx::Rect Glance::PageBounds() const {
-  tabs::TabInterface* tab = browser_->GetActiveTabInterface();
-  return tab ? tab->GetContents()->GetContainerBounds()
-             : browser_->GetWindow()->GetBounds();
+  const std::optional<TabId> tab = tabs_->GetActive(browser_);
+  content::WebContents* contents = tab ? tabs_->GetContents(*tab) : nullptr;
+  return contents ? contents->GetContainerBounds()
+                  : windows_->BoundsOf(browser_);
 }
 
 void Glance::Close() {
@@ -329,10 +334,7 @@ void Glance::OpenAsTab() {
   closing_ = true;
   view_->ReleaseContents();
   contents_->SetDelegate(nullptr);
-  TabStripModel* model = browser_->GetTabStripModel();
-  model->InsertWebContentsAt(
-      model->active_index() + 1, std::move(contents_),
-      AddTabTypes::ADD_ACTIVE | AddTabTypes::ADD_INHERIT_OPENER);
+  tabs_->InsertAfterActive(browser_, std::move(contents_));
   Destroy();
 }
 
@@ -360,7 +362,7 @@ content::WebContents* Glance::OpenURLFromTab(
     return source;
   }
   // Links that ask for a new tab or window leave the preview.
-  browser_->OpenGURL(params.url, params.disposition);
+  tabs_->Open(browser_, params.url, params.disposition);
   return nullptr;
 }
 
@@ -372,8 +374,8 @@ content::WebContents* Glance::AddNewContents(
     const blink::mojom::WindowFeatures& window_features,
     bool user_gesture,
     bool* was_blocked) {
-  return chrome::AddWebContents(browser_, source, std::move(new_contents),
-                                target_url, disposition, window_features);
+  return tabs_->AddNewContents(browser_, source, std::move(new_contents),
+                               target_url, disposition, window_features);
 }
 
 void Glance::CloseContents(content::WebContents* source) {
@@ -394,14 +396,6 @@ content::KeyboardEventProcessingResult Glance::PreHandleKeyboardEvent(
 void Glance::OnWidgetBoundsChanged(views::Widget* widget,
                                    const gfx::Rect& new_bounds) {
   widget_->SetBounds(PageBounds());
-}
-
-void Glance::OnTabStripModelChanged(TabStripModel* tab_strip_model,
-                                    const TabStripModelChange& change,
-                                    const TabStripSelectionChange& selection) {
-  if (selection.active_tab_changed()) {
-    Close();
-  }
 }
 
 }  // namespace cromarc

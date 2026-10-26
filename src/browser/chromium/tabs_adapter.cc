@@ -8,6 +8,7 @@
 
 #include "base/functional/bind.h"
 #include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/navigator/browser_navigator.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"  // nogncheck: as above
@@ -16,6 +17,7 @@
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"  // nogncheck: as above
 #include "chrome/common/webui_url_constants.h"
 #include "components/tabs/public/tab_interface.h"
+#include "content/public/browser/web_contents.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
@@ -34,35 +36,39 @@ TabId IdOf(const tabs::TabInterface* tab) {
 
 }  // namespace
 
-// Tells a window's subscribers of tabs inserted in the background, from the
-// first subscription until the window closes.
-class TabsAdapter::BackgroundOpenings : public TabStripModelObserver {
+// A window's tab strip events, from the first subscription until the window
+// closes.
+class TabsAdapter::WindowEvents : public TabStripModelObserver {
  public:
-  BackgroundOpenings(TabsAdapter& adapter, BrowserWindowInterface* window)
+  WindowEvents(TabsAdapter& adapter, BrowserWindowInterface* window)
       : window_did_close_(window->RegisterBrowserDidClose(base::BindRepeating(
             &TabsAdapter::OnWindowClosed, base::Unretained(&adapter)))) {
     window->GetTabStripModel()->AddObserver(this);
   }
-  ~BackgroundOpenings() override = default;
+  ~WindowEvents() override = default;
 
-  base::CallbackListSubscription Add(base::RepeatingClosure callback) {
-    return callbacks_.Add(std::move(callback));
+  base::RepeatingClosureList& opened_in_background() {
+    return opened_in_background_;
   }
+  base::RepeatingClosureList& active_changed() { return active_changed_; }
 
   // TabStripModelObserver:
   void OnTabStripModelChanged(
       TabStripModel* tab_strip_model,
       const TabStripModelChange& change,
       const TabStripSelectionChange& selection) override {
-    if (change.type() != TabStripModelChange::kInserted ||
-        selection.active_tab_changed()) {
-      return;
+    if (change.type() == TabStripModelChange::kInserted &&
+        !selection.active_tab_changed()) {
+      opened_in_background_.Notify();
     }
-    callbacks_.Notify();
+    if (selection.active_tab_changed()) {
+      active_changed_.Notify();
+    }
   }
 
  private:
-  base::RepeatingClosureList callbacks_;
+  base::RepeatingClosureList opened_in_background_;
+  base::RepeatingClosureList active_changed_;
   base::CallbackListSubscription window_did_close_;
 };
 
@@ -162,13 +168,13 @@ std::optional<TabId> TabsAdapter::Duplicate(TabId tab) {
 
 void TabsAdapter::Open(BrowserWindowInterface* window,
                        const GURL& url,
-                       bool background) {
-  window->OpenGURL(url, background ? WindowOpenDisposition::NEW_BACKGROUND_TAB
-                                   : WindowOpenDisposition::NEW_FOREGROUND_TAB);
+                       WindowOpenDisposition disposition) {
+  window->OpenGURL(url, disposition);
 }
 
 void TabsAdapter::OpenNewTabPage(BrowserWindowInterface* window) {
-  Open(window, GURL(chrome::kChromeUINewTabURL), /*background=*/false);
+  Open(window, GURL(chrome::kChromeUINewTabURL),
+       WindowOpenDisposition::NEW_FOREGROUND_TAB);
 }
 
 std::optional<TabId> TabsAdapter::OpenPinned(BrowserWindowInterface* window,
@@ -180,19 +186,85 @@ std::optional<TabId> TabsAdapter::OpenPinned(BrowserWindowInterface* window,
   return FromContents(params.navigated_or_inserted_contents);
 }
 
+std::optional<TabId> TabsAdapter::InsertAfterActive(
+    BrowserWindowInterface* window,
+    std::unique_ptr<content::WebContents> contents) {
+  TabStripModel* model = window->GetTabStripModel();
+  const int index = model->InsertWebContentsAt(
+      model->active_index() + 1, std::move(contents),
+      AddTabTypes::ADD_ACTIVE | AddTabTypes::ADD_INHERIT_OPENER);
+  tabs::TabInterface* tab = model->GetTabAtIndex(index);
+  if (!tab) {
+    return std::nullopt;
+  }
+  return IdOf(tab);
+}
+
+content::WebContents* TabsAdapter::AddNewContents(
+    BrowserWindowInterface* window,
+    content::WebContents* source,
+    std::unique_ptr<content::WebContents> new_contents,
+    const GURL& target_url,
+    WindowOpenDisposition disposition,
+    const blink::mojom::WindowFeatures& window_features) {
+  return chrome::AddWebContents(window, source, std::move(new_contents),
+                                target_url, disposition, window_features);
+}
+
+void TabsAdapter::MoveToWindow(TabId tab, BrowserWindowInterface* window) {
+  tabs::TabInterface* interface = TabOf(tab);
+  if (!interface) {
+    return;
+  }
+  TabStripModel* from =
+      interface->GetBrowserWindowInterface()->GetTabStripModel();
+  std::unique_ptr<tabs::TabModel> detached =
+      from->DetachTabAtForInsertion(from->GetIndexOfTab(interface));
+  TabStripModel* to = window->GetTabStripModel();
+  to->InsertDetachedTabAt(to->count(), std::move(detached),
+                          AddTabTypes::ADD_ACTIVE);
+}
+
+TabsAdapter::WindowEvents& TabsAdapter::EventsOf(
+    BrowserWindowInterface* window) {
+  std::unique_ptr<WindowEvents>& events = events_[window];
+  if (!events) {
+    events = std::make_unique<WindowEvents>(*this, window);
+  }
+  return *events;
+}
+
 base::CallbackListSubscription TabsAdapter::OnOpenedInBackground(
     BrowserWindowInterface* window,
     base::RepeatingClosure callback) {
-  std::unique_ptr<BackgroundOpenings>& openings =
-      background_openings_[window];
-  if (!openings) {
-    openings = std::make_unique<BackgroundOpenings>(*this, window);
+  return EventsOf(window).opened_in_background().Add(std::move(callback));
+}
+
+base::CallbackListSubscription TabsAdapter::OnActiveChanged(
+    BrowserWindowInterface* window,
+    base::RepeatingClosure callback) {
+  return EventsOf(window).active_changed().Add(std::move(callback));
+}
+
+base::CallbackListSubscription TabsAdapter::OnWillClose(
+    TabId tab,
+    base::RepeatingClosure callback) {
+  tabs::TabInterface* interface = TabOf(tab);
+  if (!interface) {
+    return {};
   }
-  return openings->Add(std::move(callback));
+  return interface->RegisterWillDetach(base::BindRepeating(
+      [](const base::RepeatingClosure& callback, tabs::TabInterface*,
+         tabs::TabInterface::DetachReason reason) {
+        if (reason == tabs::TabInterface::DetachReason::kDelete) {
+          callback.Run();
+        }
+      },
+      std::move(callback)));
 }
 
 void TabsAdapter::OnWindowClosed(BrowserWindowInterface* window) {
-  background_openings_.erase(window);
+  events_.erase(window);
 }
 
 }  // namespace cromarc

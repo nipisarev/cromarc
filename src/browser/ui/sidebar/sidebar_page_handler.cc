@@ -435,7 +435,8 @@ void SidebarPageHandler::ToggleCompactMode() {
 
 void SidebarPageHandler::NewTab() {
   // Same as Cmd+T (design, UI section 4).
-  if (!ShowCommandBar(browser_, /*edit_current_url=*/false)) {
+  if (!ShowCommandBar(*tabs_, *windows_, browser_,
+                      /*edit_current_url=*/false)) {
     tabs_->OpenNewTabPage(browser_);
   }
 }
@@ -474,7 +475,7 @@ void SidebarPageHandler::ClearToday(ClearTodayCallback callback) {
 
 void SidebarPageHandler::ReopenTabs(const std::vector<GURL>& urls) {
   for (const GURL& url : urls) {
-    tabs_->Open(browser_, url, /*background=*/true);
+    tabs_->Open(browser_, url, WindowOpenDisposition::NEW_BACKGROUND_TAB);
     // Open again, so not archived: as restoring from the Library.
     archive_service_->RemoveUrl(url);
   }

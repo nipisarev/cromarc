@@ -17,7 +17,6 @@
 #include "chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "components/bookmarks/browser/bookmark_node.h"
 #include "components/omnibox/browser/autocomplete_classifier.h"
 #include "components/omnibox/browser/autocomplete_controller_config.h"
@@ -90,12 +89,14 @@ CommandBarPageHandler::CommandBarPageHandler(
     mojo::PendingRemote<command_bar::mojom::Page> page,
     BrowserWindowInterface* browser,
     TreeService* tree_service,
-    ArchiveService* archive_service)
+    ArchiveService* archive_service,
+    Tabs& tabs)
     : receiver_(this, std::move(receiver)),
       page_(std::move(page)),
       browser_(browser),
       tree_service_(tree_service),
-      archive_service_(archive_service) {
+      archive_service_(archive_service),
+      tabs_(tabs) {
   Profile* profile = browser_->GetProfile();
   autocomplete_ = std::make_unique<AutocompleteController>(
       std::make_unique<ChromeAutocompleteProviderClient>(profile),
@@ -125,21 +126,21 @@ void CommandBarPageHandler::Query(const std::string& text_utf8) {
   const std::vector<std::u16string> words = Words(text_);
 
   // Tabs of this window; with no text, the most recent ones.
-  tabs_.clear();
+  tab_results_.clear();
   tab_ids_.clear();
-  TabStripModel* model = browser_->GetTabStripModel();
-  for (int i = model->count() - 1; i >= 0 && tabs_.size() < kMaxTabs; --i) {
-    tabs::TabInterface* tab = model->GetTabAtIndex(i);
-    content::WebContents* contents = tab->GetContents();
+  const std::vector<TabId> tabs = tabs_->List(browser_);
+  for (auto it = tabs.rbegin();
+       it != tabs.rend() && tab_results_.size() < kMaxTabs; ++it) {
+    content::WebContents* contents = tabs_->GetContents(*it);
     const GURL url = contents->GetLastCommittedURL();
     if (!Matches(words, contents->GetTitle(), url)) {
       continue;
     }
-    const std::string id =
-        base::NumberToString(tab->GetHandle().raw_value());
-    tab_ids_.emplace(id, tab->GetHandle());
-    tabs_.push_back(MakeResult(ResultKind::kTab, id, contents->GetTitle(),
-                               base::UTF8ToUTF16(url.spec()), url));
+    const std::string id = base::NumberToString(it->value());
+    tab_ids_.emplace(id, *it);
+    tab_results_.push_back(MakeResult(ResultKind::kTab, id,
+                                      contents->GetTitle(),
+                                      base::UTF8ToUTF16(url.spec()), url));
   }
 
   // Pinned items of the space.
@@ -206,7 +207,7 @@ void CommandBarPageHandler::Publish() {
       results.push_back(std::move(result));
     }
   };
-  for (const ResultPtr& r : tabs_) {
+  for (const ResultPtr& r : tab_results_) {
     add(r.Clone());
   }
   for (const ResultPtr& r : pinned_) {
@@ -244,11 +245,10 @@ void CommandBarPageHandler::Open(ResultPtr result) {
 
   switch (result->kind) {
     case ResultKind::kTab: {
-      auto it = tab_ids_.find(result->id);
-      tabs::TabInterface* tab = it == tab_ids_.end() ? nullptr : it->second.Get();
-      if (tab) {
-        TabStripModel* model = browser_->GetTabStripModel();
-        model->ActivateTabAt(model->GetIndexOfTab(tab));
+      // Only while it is still in this window.
+      if (auto it = tab_ids_.find(result->id);
+          it != tab_ids_.end() && tabs_->GetWindow(it->second) == browser_) {
+        tabs_->Activate(it->second);
       }
       return;
     }
@@ -264,10 +264,9 @@ void CommandBarPageHandler::Open(ResultPtr result) {
         tree_service_->Open(browser_, *item);
         return;
       }
-      browser_->OpenGURL(result->url,
-                         edit_current_url
-                             ? WindowOpenDisposition::CURRENT_TAB
-                             : WindowOpenDisposition::NEW_FOREGROUND_TAB);
+      tabs_->Open(browser_, result->url,
+                  edit_current_url ? WindowOpenDisposition::CURRENT_TAB
+                                   : WindowOpenDisposition::NEW_FOREGROUND_TAB);
       return;
   }
 }

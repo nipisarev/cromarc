@@ -15,6 +15,7 @@
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/startup/startup_tab.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
+#include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/chromium/browser_frame_adapter.h"
 #include "cromarc/browser/chromium/sidebar_installer.h"
 #include "cromarc/browser/keyed_services.h"
@@ -45,11 +46,20 @@ void PopulateWebUIInterfaceBrokers(
 }
 
 bool OpenExternalLinks(const std::vector<StartupTab>& tabs, Profile* profile) {
-  return cromarc::OpenExternalLinks(tabs, profile);
+  std::vector<GURL> urls;
+  for (const StartupTab& tab : tabs) {
+    if (tab.is_untrusted_launch) {
+      return false;
+    }
+    urls.push_back(tab.url);
+  }
+  return cromarc::OpenExternalLinks(ChromiumTabs(), ChromiumWindows(),
+                                    ChromiumAppLifecycle(), urls, profile);
 }
 
 bool ShowCommandBar(BrowserWindowInterface* browser, bool edit_current_url) {
-  return cromarc::ShowCommandBar(browser, edit_current_url);
+  return cromarc::ShowCommandBar(ChromiumTabs(), ChromiumWindows(), browser,
+                                 edit_current_url);
 }
 
 bool KeepWindowOnLastTabClose(BrowserWindowInterface* browser) {
@@ -57,7 +67,7 @@ bool KeepWindowOnLastTabClose(BrowserWindowInterface* browser) {
 }
 
 bool OpenLittleInSpace(BrowserWindowInterface* browser) {
-  return cromarc::OpenLittleInSpace(browser);
+  return cromarc::OpenLittleInSpace(ChromiumWindows(), browser);
 }
 
 void EnsureKeyedServiceFactoriesBuilt() {
@@ -65,7 +75,7 @@ void EnsureKeyedServiceFactoriesBuilt() {
 }
 
 void OnTargetURL(content::WebContents* source, const GURL& url) {
-  cromarc::OnTargetURL(source, url);
+  cromarc::OnTargetURL(ChromiumTabs(), ChromiumWindows(), source, url);
 }
 
 bool PageShowsBackground(BrowserView* browser_view,

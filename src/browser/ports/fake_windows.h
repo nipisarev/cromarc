@@ -7,8 +7,12 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <set>
 #include <vector>
+
+#include "base/callback_list.h"
+#include "url/gurl.h"
 
 #include "cromarc/browser/ports/windows.h"
 
@@ -28,15 +32,51 @@ class FakeWindows : public Windows {
 
   // Windows:
   Profile* ProfileOf(BrowserWindowInterface* window) override;
+  content::BrowserContext* BrowserContextOf(
+      BrowserWindowInterface* window) override;
+  bool IsOffTheRecord(BrowserWindowInterface* window) override;
+  bool IsNormal(BrowserWindowInterface* window) override;
+  WindowId IdOf(BrowserWindowInterface* window) override;
+  BrowserWindowInterface* FromId(WindowId id) override;
   std::vector<BrowserWindowInterface*> NormalWindowsOf(
       Profile* profile) override;
   bool IsOnScreen(BrowserWindowInterface* window) override;
+  gfx::Rect BoundsOf(BrowserWindowInterface* window) override;
+  gfx::NativeWindow NativeWindowOf(BrowserWindowInterface* window) override;
   void Activate(BrowserWindowInterface* window) override;
+  void Close(BrowserWindowInterface* window) override;
+  base::CallbackListSubscription OnClosed(
+      BrowserWindowInterface* window,
+      base::RepeatingCallback<void(BrowserWindowInterface*)> callback) override;
+  BrowserWindowInterface* OpenPopup(Profile* profile,
+                                    const gfx::Rect& bounds,
+                                    const GURL& url) override;
+  void AttachWebUI(BrowserWindowInterface* window,
+                   content::WebContents* contents) override;
+  void AddToToolbar(BrowserWindowInterface* window,
+                    std::unique_ptr<views::View> view) override;
+
+  // The window is gone: FromId() no longer finds it, OnClosed() is called.
+  void UserCloses(BrowserWindowInterface* window);
 
   std::map<BrowserWindowInterface*, Profile*> profiles;
   std::map<Profile*, std::vector<BrowserWindowInterface*>> normal_windows;
   std::set<BrowserWindowInterface*> off_screen;
+  std::set<BrowserWindowInterface*> not_normal;
+  std::set<BrowserWindowInterface*> off_the_record;
+  std::map<BrowserWindowInterface*, gfx::Rect> bounds;
   std::vector<BrowserWindowInterface*> activated;
+  std::vector<BrowserWindowInterface*> closed;
+  // OpenPopup() gives these, in turn, and records what it opened.
+  std::vector<BrowserWindowInterface*> popups;
+  std::vector<GURL> popup_urls;
+  std::map<BrowserWindowInterface*, int> toolbar_views;
+
+ private:
+  std::map<BrowserWindowInterface*,
+           std::unique_ptr<base::RepeatingCallbackList<void(
+               BrowserWindowInterface*)>>>
+      on_closed_;
 };
 
 }  // namespace cromarc

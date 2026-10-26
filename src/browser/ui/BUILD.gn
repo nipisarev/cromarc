@@ -7,13 +7,14 @@ assert(!is_android)
 # Hook H6's entry points.
 source_set("browser_commands") {
   sources = [ "browser_commands.h" ]
-  public_deps = [ "//chrome/browser/ui/startup:startup_tab" ]
+  public_deps = [ "//url" ]
 }
 
 source_set("browser_commands_impl") {
   sources = [ "browser_commands.cc" ]
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]
   deps = [
+    "//cromarc/browser/ports",
     ":browser_commands",
     "//chrome/browser/profiles:profile",
     "//cromarc/browser/routing",

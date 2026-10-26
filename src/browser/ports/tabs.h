@@ -6,15 +6,21 @@
 #define CROMARC_BROWSER_PORTS_TABS_H_
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <vector>
 
 #include "base/callback_list.h"
 #include "base/functional/callback_forward.h"
 #include "base/types/strong_alias.h"
+#include "ui/base/window_open_disposition.h"
 
 class BrowserWindowInterface;
 class GURL;
+
+namespace blink::mojom {
+class WindowFeatures;
+}  // namespace blink::mojom
 
 namespace content {
 class WebContents;
@@ -54,21 +60,46 @@ class Tabs {
   // made.
   virtual std::optional<TabId> Duplicate(TabId tab) = 0;
 
-  // Opens `url` in `window` as a new tab, active unless `background`.
+  // Opens `url` from `window` where `disposition` says, as Chrome opens a
+  // URL in a window.
   virtual void Open(BrowserWindowInterface* window,
                     const GURL& url,
-                    bool background) = 0;
+                    WindowOpenDisposition disposition) = 0;
   // Opens the new tab page in `window`, active.
   virtual void OpenNewTabPage(BrowserWindowInterface* window) = 0;
   // Opens `url` in `window` as a new active tab, pinned from the start, as a
   // link is followed. Nullopt when nothing opened.
   virtual std::optional<TabId> OpenPinned(BrowserWindowInterface* window,
                                           const GURL& url) = 0;
+  // `contents` as a new active tab right after `window`'s active one, opened
+  // from it.
+  virtual std::optional<TabId> InsertAfterActive(
+      BrowserWindowInterface* window,
+      std::unique_ptr<content::WebContents> contents) = 0;
+  // A page `source` opened (a popup, a new window), placed as Chrome places
+  // the pages a tab of `window` opens. Returns it if it went into a tab.
+  virtual content::WebContents* AddNewContents(
+      BrowserWindowInterface* window,
+      content::WebContents* source,
+      std::unique_ptr<content::WebContents> new_contents,
+      const GURL& target_url,
+      WindowOpenDisposition disposition,
+      const blink::mojom::WindowFeatures& window_features) = 0;
+  // Moves the tab, page and all, to the end of `window`, active there.
+  virtual void MoveToWindow(TabId tab, BrowserWindowInterface* window) = 0;
 
   // Called once per insertion of tabs into `window` that leaves its active tab
   // as it was.
   virtual base::CallbackListSubscription OnOpenedInBackground(
       BrowserWindowInterface* window,
+      base::RepeatingClosure callback) = 0;
+  // Called when `window`'s active tab changes.
+  virtual base::CallbackListSubscription OnActiveChanged(
+      BrowserWindowInterface* window,
+      base::RepeatingClosure callback) = 0;
+  // Called as the tab is about to close for good (not to move).
+  virtual base::CallbackListSubscription OnWillClose(
+      TabId tab,
       base::RepeatingClosure callback) = 0;
 };
 

@@ -5,10 +5,10 @@
 #include "cromarc/browser/ui/glance/hovered_link.h"
 
 #include "base/functional/bind.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/ui/glance/glance.h"
 #include "third_party/blink/public/common/input/web_input_event.h"
 #include "third_party/blink/public/common/input/web_mouse_event.h"
@@ -25,15 +25,22 @@ constexpr int kModifiers =
 }  // namespace
 
 // static
-void HoveredLink::Set(content::WebContents* contents, const GURL& url) {
-  CreateForWebContents(contents);
+void HoveredLink::Set(Tabs& tabs,
+                      Windows& windows,
+                      content::WebContents* contents,
+                      const GURL& url) {
+  CreateForWebContents(contents, tabs, windows);
   HoveredLink* link = FromWebContents(contents);
   link->url_ = url;
   link->Watch(contents->GetPrimaryMainFrame()->GetRenderWidgetHost());
 }
 
-HoveredLink::HoveredLink(content::WebContents* contents)
+HoveredLink::HoveredLink(content::WebContents* contents,
+                         Tabs& tabs,
+                         Windows& windows)
     : WebContentsUserData(*contents),
+      tabs_(tabs),
+      windows_(windows),
       callback_(base::BindRepeating(&HoveredLink::OnMouseEvent,
                                     base::Unretained(this))) {}
 
@@ -72,15 +79,13 @@ bool HoveredLink::OnMouseEvent(const blink::WebMouseEvent& event) {
       event.click_count != 1 || !url_.SchemeIsHTTPOrHTTPS()) {
     return false;
   }
-  tabs::TabInterface* tab = tabs::TabInterface::MaybeGetFromContents(
-      &GetWebContents());
-  BrowserWindowInterface* browser =
-      tab ? tab->GetBrowserWindowInterface() : nullptr;
-  if (!browser || browser->GetType() != BrowserWindowInterface::TYPE_NORMAL) {
+  const std::optional<TabId> tab = tabs_->FromContents(&GetWebContents());
+  BrowserWindowInterface* browser = tab ? tabs_->GetWindow(*tab) : nullptr;
+  if (!browser || !windows_->IsNormal(browser)) {
     return false;
   }
   gfx::Point point = gfx::ToRoundedPoint(event.PositionInScreen());
-  Glance::Open(browser, url_, point);
+  Glance::Open(*tabs_, *windows_, browser, url_, point);
   swallow_mouse_up_ = true;
   return true;
 }

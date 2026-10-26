@@ -35,6 +35,7 @@ source_set("impl") {
   ]
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]
   deps = [
+    "//cromarc/browser/chromium:adapters",
     ":command_bar",
     "//base:i18n",
     "//chrome/browser/autocomplete",
