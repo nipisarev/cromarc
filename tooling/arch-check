@@ -49,7 +49,7 @@ ADAPTER = re.compile(
     r'^src/(?:hooks|browser/chromium)/'
     r'|^src/browser/ui/[^/]+/[^/]+_ui\.(?:h|cc)$'
     r'|^src/browser/ui/webui_registration\.(?:h|cc)$'
-    r'|^src/browser/[^/]+/[^/]+_service_factory\.(?:h|cc)$')
+    r'|^src/browser/[^/]+/[^/]+_factory\.(?:h|cc)$')
 
 # What feature code may include: stable APIs and our own code.
 STABLE_INCLUDES = (

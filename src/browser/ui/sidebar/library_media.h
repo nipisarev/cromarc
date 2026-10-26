@@ -19,6 +19,8 @@ class Profile;
 
 namespace cromarc {
 
+class Shell;
+
 // The Library's Media (zen:library/sections/ZenLibraryMediaSection.mjs, its
 // scanner nsZenLibraryFiles): pictures and videos found in a few folders,
 // newest first. The page knows a file by a number only: its thumbnail and
@@ -34,7 +36,10 @@ class LibraryMedia {
   // "music", "videos") and absolute paths; ones not found are passed over.
   static void Scan(const std::vector<std::string>& folders,
                    ScanCallback callback);
-  static void Do(Profile* profile, uint32_t id, mojom::MediaCommand command);
+  static void Do(Shell& shell,
+                 Profile* profile,
+                 uint32_t id,
+                 mojom::MediaCommand command);
   // What the system opens the file with, "" when it cannot tell.
   static std::string OpenerName(uint32_t id);
 

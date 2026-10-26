@@ -24,7 +24,7 @@
 #include "base/strings/string_util.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
-#include "chrome/browser/platform_util.h"  // nogncheck: //chrome/browser links //cromarc
+#include "cromarc/browser/ports/shell.h"
 #include "ui/base/clipboard/file_info.h"
 #include "ui/base/clipboard/scoped_clipboard_writer.h"
 
@@ -256,7 +256,8 @@ void LibraryMedia::Scan(const std::vector<std::string>& folders,
 }
 
 // static
-void LibraryMedia::Do(Profile* profile,
+void LibraryMedia::Do(Shell& shell,
+                      Profile* profile,
                       uint32_t id,
                       mojom::MediaCommand command) {
   std::optional<base::FilePath> path = PathFor(id);
@@ -265,11 +266,10 @@ void LibraryMedia::Do(Profile* profile,
   }
   switch (command) {
     case mojom::MediaCommand::kOpen:
-      platform_util::OpenItem(profile, *path, platform_util::OPEN_FILE,
-                              base::DoNothing());
+      shell.OpenFile(profile, *path);
       break;
     case mojom::MediaCommand::kShow:
-      platform_util::ShowItemInFolder(profile, *path);
+      shell.ShowInFolder(profile, *path);
       break;
     case mojom::MediaCommand::kCopy:
       ui::ScopedClipboardWriter(ui::ClipboardBuffer::kCopyPaste)

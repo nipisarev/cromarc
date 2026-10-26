@@ -10,18 +10,18 @@
 
 #include "base/files/file_path.h"
 #include "base/functional/callback.h"
+#include <memory>
+
 #include "base/memory/raw_ptr.h"
-#include "base/no_destructor.h"
-#include "chrome/browser/profiles/profile_keyed_service_factory.h"
+#include "base/memory/raw_ref.h"
 #include "components/keyed_service/core/keyed_service.h"
 
 class Profile;
 
-namespace syncer {
-class SyncService;
-}  // namespace syncer
-
 namespace cromarc {
+
+class LocalSync;
+class Profiles;
 
 inline constexpr char kSpaceUuidPref[] = "cromarc.space.uuid";
 
@@ -40,6 +40,7 @@ class ICloudSync : public KeyedService {
   };
 
   // Null for profiles without one (incognito, guest).
+  // (icloud_sync_factory.cc)
   static ICloudSync* Get(Profile* profile);
   // iCloud Drive/Cromarc; --cromarc-icloud-dir in tests.
   static base::FilePath Root();
@@ -47,7 +48,9 @@ class ICloudSync : public KeyedService {
   static void FindSpaces(
       base::OnceCallback<void(std::vector<RemoteSpace>)> callback);
 
-  ICloudSync(Profile* profile, syncer::SyncService* sync_service);
+  ICloudSync(Profile* profile,
+             Profiles& profiles,
+             std::unique_ptr<LocalSync> local_sync);
   ICloudSync(const ICloudSync&) = delete;
   ICloudSync& operator=(const ICloudSync&) = delete;
   ~ICloudSync() override;
@@ -67,34 +70,10 @@ class ICloudSync : public KeyedService {
 
  private:
   std::string Name() const;
-  // The first start with the local backend: Chromium's sync wants a finished
-  // first-run setup and the data types to carry.
-  void ConfigureSync();
 
   raw_ptr<Profile> profile_;
-  raw_ptr<syncer::SyncService> sync_service_;
-};
-
-class ICloudSyncFactory : public ProfileKeyedServiceFactory {
- public:
-  static ICloudSyncFactory* GetInstance();
-  static ICloudSync* GetForProfile(Profile* profile);
-
-  ICloudSyncFactory(const ICloudSyncFactory&) = delete;
-  ICloudSyncFactory& operator=(const ICloudSyncFactory&) = delete;
-
- private:
-  friend base::NoDestructor<ICloudSyncFactory>;
-
-  ICloudSyncFactory();
-  ~ICloudSyncFactory() override;
-
-  // BrowserContextKeyedServiceFactory:
-  void RegisterProfilePrefs(
-      user_prefs::PrefRegistrySyncable* registry) override;
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
-      content::BrowserContext* context) const override;
-  bool ServiceIsCreatedWithBrowserContext() const override;
+  const raw_ref<Profiles> profiles_;
+  const std::unique_ptr<LocalSync> local_sync_;
 };
 
 }  // namespace cromarc

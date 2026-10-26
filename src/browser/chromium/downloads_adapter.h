@@ -2,8 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef CROMARC_BROWSER_UI_SIDEBAR_LIBRARY_DOWNLOADS_H_
-#define CROMARC_BROWSER_UI_SIDEBAR_LIBRARY_DOWNLOADS_H_
+#ifndef CROMARC_BROWSER_CHROMIUM_DOWNLOADS_ADAPTER_H_
+#define CROMARC_BROWSER_CHROMIUM_DOWNLOADS_ADAPTER_H_
 
 #include <cstdint>
 #include <memory>
@@ -15,6 +15,7 @@
 #include "base/timer/timer.h"
 #include "components/download/content/public/all_download_item_notifier.h"
 #include "content/public/browser/web_ui_data_source.h"
+#include "cromarc/browser/ports/library.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 
 class BrowserWindowInterface;
@@ -22,24 +23,25 @@ class Profile;
 
 namespace cromarc {
 
-// The profile's downloads for one window's Library and download stack
+// Downloads on what chrome://downloads uses: the profile's downloads for one
+// window's Library and download stack
 // (zen:library/sections/ZenLibraryDownloadsSection.mjs,
-// zen:library/ZenLibraryWidget.sys.mjs), on what chrome://downloads uses.
-class LibraryDownloads : public download::AllDownloadItemNotifier::Observer {
+// zen:library/ZenLibraryWidget.sys.mjs).
+class DownloadsAdapter : public Downloads,
+                         public download::AllDownloadItemNotifier::Observer {
  public:
   // `on_changed` runs, at most four times a second, after a download came,
   // changed or went.
-  LibraryDownloads(BrowserWindowInterface* browser,
+  DownloadsAdapter(BrowserWindowInterface* browser,
                    base::RepeatingClosure on_changed);
-  LibraryDownloads(const LibraryDownloads&) = delete;
-  LibraryDownloads& operator=(const LibraryDownloads&) = delete;
-  ~LibraryDownloads() override;
+  DownloadsAdapter(const DownloadsAdapter&) = delete;
+  DownloadsAdapter& operator=(const DownloadsAdapter&) = delete;
+  ~DownloadsAdapter() override;
 
-  // Oldest first, the ones chrome://downloads shows.
-  std::vector<mojom::DownloadPtr> List() const;
-  void Do(uint32_t id, mojom::DownloadCommand command);
-  // The finished ones out of the list.
-  void Clear();
+  // Downloads:
+  std::vector<mojom::DownloadPtr> List() const override;
+  void Do(uint32_t id, mojom::DownloadCommand command) override;
+  void Clear() override;
 
   // The preview of a finished picture, `download-preview/<id>.png` under
   // the sidebar's page: only a finished download's own file, and only a
@@ -72,4 +74,4 @@ class LibraryDownloads : public download::AllDownloadItemNotifier::Observer {
 
 }  // namespace cromarc
 
-#endif  // CROMARC_BROWSER_UI_SIDEBAR_LIBRARY_DOWNLOADS_H_
+#endif  // CROMARC_BROWSER_CHROMIUM_DOWNLOADS_ADAPTER_H_

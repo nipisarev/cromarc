@@ -27,7 +27,7 @@
 #include "cromarc/browser/ports/theme.h"
 #include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/spaces/space_controller.h"
-#include "cromarc/browser/spaces/space_prefs.h"
+#include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "ui/shell_dialogs/select_file_policy.h"
 #include "ui/shell_dialogs/selected_file_info.h"

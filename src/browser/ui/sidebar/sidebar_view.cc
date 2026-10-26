@@ -22,7 +22,7 @@
 #include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ports/vertical_strip.h"
 #include "cromarc/browser/spaces/space_controller.h"
-#include "cromarc/browser/spaces/space_prefs.h"
+#include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/space_input.h"

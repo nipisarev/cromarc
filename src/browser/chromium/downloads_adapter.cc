@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "cromarc/browser/ui/sidebar/library_downloads.h"
+#include "cromarc/browser/chromium/downloads_adapter.h"
 
 #include <algorithm>
 #include <optional>
@@ -103,24 +103,24 @@ scoped_refptr<base::RefCountedMemory> ReadPreview(const base::FilePath& path) {
 
 }  // namespace
 
-LibraryDownloads::LibraryDownloads(BrowserWindowInterface* browser,
+DownloadsAdapter::DownloadsAdapter(BrowserWindowInterface* browser,
                                    base::RepeatingClosure on_changed)
     : browser_(browser), on_changed_(std::move(on_changed)) {
   notifier_ =
       std::make_unique<download::AllDownloadItemNotifier>(Manager(), this);
 }
 
-LibraryDownloads::~LibraryDownloads() = default;
+DownloadsAdapter::~DownloadsAdapter() = default;
 
-content::DownloadManager* LibraryDownloads::Manager() const {
+content::DownloadManager* DownloadsAdapter::Manager() const {
   return browser_->GetProfile()->GetDownloadManager();
 }
 
-download::DownloadItem* LibraryDownloads::Find(uint32_t id) const {
+download::DownloadItem* DownloadsAdapter::Find(uint32_t id) const {
   return Manager()->GetDownload(id);
 }
 
-std::vector<mojom::DownloadPtr> LibraryDownloads::List() const {
+std::vector<mojom::DownloadPtr> DownloadsAdapter::List() const {
   content::DownloadManager::DownloadVector items;
   Manager()->GetAllDownloads(&items);
   std::ranges::stable_sort(items, {}, [](const auto& item) {
@@ -165,7 +165,7 @@ std::vector<mojom::DownloadPtr> LibraryDownloads::List() const {
   return downloads;
 }
 
-void LibraryDownloads::Do(uint32_t id, mojom::DownloadCommand command) {
+void DownloadsAdapter::Do(uint32_t id, mojom::DownloadCommand command) {
   download::DownloadItem* item = Find(id);
   if (!item) {
     return;
@@ -236,7 +236,7 @@ void LibraryDownloads::Do(uint32_t id, mojom::DownloadCommand command) {
   }
 }
 
-void LibraryDownloads::Clear() {
+void DownloadsAdapter::Clear() {
   content::DownloadManager::DownloadVector items;
   Manager()->GetAllDownloads(&items);
   for (download::DownloadItem* item : items) {
@@ -249,7 +249,7 @@ void LibraryDownloads::Clear() {
 
 // chrome://downloads' Retry: a download that can pick up where it stopped
 // does; any other starts again, as the request that began it.
-void LibraryDownloads::Retry(download::DownloadItem* item) {
+void DownloadsAdapter::Retry(download::DownloadItem* item) {
   if (item->CanResume()) {
     item->Resume(/*user_resume=*/true);
     return;
@@ -285,7 +285,7 @@ void LibraryDownloads::Retry(download::DownloadItem* item) {
 }
 
 // chrome://downloads' Drag: the file as the system drags it, with its icon.
-void LibraryDownloads::Drag(download::DownloadItem* item) {
+void DownloadsAdapter::Drag(download::DownloadItem* item) {
   SidebarView* sidebar = SidebarView::ForBrowser(browser_);
   content::WebContents* contents = sidebar ? sidebar->GetWebContents() : nullptr;
   if (!contents || item->GetState() != download::DownloadItem::COMPLETE ||
@@ -303,12 +303,12 @@ void LibraryDownloads::Drag(download::DownloadItem* item) {
 }
 
 // static
-bool LibraryDownloads::IsPreviewPath(const std::string& path) {
+bool DownloadsAdapter::IsPreviewPath(const std::string& path) {
   return path.starts_with(kPreviewPrefix);
 }
 
 // static
-void LibraryDownloads::ServePreview(
+void DownloadsAdapter::ServePreview(
     Profile* profile,
     const std::string& path,
     content::WebUIDataSource::GotDataCallback callback) {
@@ -331,22 +331,22 @@ void LibraryDownloads::ServePreview(
       std::move(callback));
 }
 
-void LibraryDownloads::OnDownloadCreated(content::DownloadManager* manager,
+void DownloadsAdapter::OnDownloadCreated(content::DownloadManager* manager,
                                          download::DownloadItem* item) {
   Changed();
 }
 
-void LibraryDownloads::OnDownloadUpdated(content::DownloadManager* manager,
+void DownloadsAdapter::OnDownloadUpdated(content::DownloadManager* manager,
                                          download::DownloadItem* item) {
   Changed();
 }
 
-void LibraryDownloads::OnDownloadRemoved(content::DownloadManager* manager,
+void DownloadsAdapter::OnDownloadRemoved(content::DownloadManager* manager,
                                          download::DownloadItem* item) {
   Changed();
 }
 
-void LibraryDownloads::Changed() {
+void DownloadsAdapter::Changed() {
   if (!changed_timer_.IsRunning()) {
     changed_timer_.Start(FROM_HERE, kChangedDelay, on_changed_);
   }

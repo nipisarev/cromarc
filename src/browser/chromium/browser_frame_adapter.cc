@@ -20,7 +20,7 @@
 #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "components/prefs/pref_service.h"
-#include "cromarc/browser/spaces/space_prefs.h"
+#include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "cromarc/browser/ui/sidebar/space_theme_painter.h"

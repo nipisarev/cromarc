@@ -16,7 +16,7 @@
 #include "base/task/cancelable_task_tracker.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/sidebar/library_backend.h"
-#include "cromarc/browser/ui/sidebar/library_downloads.h"
+#include "cromarc/browser/ports/library.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -37,6 +37,7 @@ class ArchiveService;
 class Favicons;
 class LifecycleService;
 class Profiles;
+class Shell;
 class TabStripApi;
 class Tabs;
 class TreeService;
@@ -57,7 +58,9 @@ class SidebarPageHandler : public mojom::PageHandler,
                      TabStripApi& tab_strip_api,
                      Profiles& profiles,
                      Favicons& favicons,
-                     AppLifecycle& app_lifecycle);
+                     AppLifecycle& app_lifecycle,
+                     LibraryPorts& library_ports,
+                     Shell& shell);
   SidebarPageHandler(const SidebarPageHandler&) = delete;
   SidebarPageHandler& operator=(const SidebarPageHandler&) = delete;
   ~SidebarPageHandler() override;
@@ -186,11 +189,12 @@ class SidebarPageHandler : public mojom::PageHandler,
   const raw_ref<Profiles> profiles_;
   const raw_ref<Favicons> favicons_;
   const raw_ref<AppLifecycle> app_lifecycle_;
+  const raw_ref<Shell> shell_;
   base::CallbackListSubscription tree_subscription_;
   base::CallbackListSubscription lifecycle_subscription_;
   std::unique_ptr<ContextMenu> context_menu_;
   std::unique_ptr<LibraryBackend> library_;
-  std::unique_ptr<LibraryDownloads> downloads_;
+  std::unique_ptr<Downloads> downloads_;
   base::CancelableTaskTracker favicon_tracker_;
   base::WeakPtrFactory<SidebarPageHandler> weak_factory_{this};
 };

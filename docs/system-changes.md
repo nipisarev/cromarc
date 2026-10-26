@@ -25,7 +25,8 @@ monitors, swizzling, window alpha and mouse pass-through), `user-defaults`,
 |---|---|---|
 | `src/browser/chromium/strip_defaults_adapter.cc` | chrome-prefs | Seeds `kVerticalTabsCollapsedState` and `kVerticalTabsUncollapsedWidth` in a space's profile before its window opens (SpaceController, through StripDefaults): one sidebar state for every space's window, as Zen's one window. |
 | `src/browser/lifecycle/lifecycle_service_factory.cc` | chrome-prefs | `kRestoreOnStartup` defaults to the last session: tabs come back after a restart (design, lifecycle). |
-| `src/browser/sync/icloud_sync.cc` | chrome-prefs outside-profile | Chromium's local sync backend in iCloud Drive (decision D12): `syncer::prefs::kEnableLocalSyncBackend`, `kLocalSyncBackendDir` = `~/Library/Mobile Documents/com~apple~CloudDocs/Cromarc`. Opt-in per space. |
+| `src/browser/sync/icloud_sync.cc` | outside-profile | Chromium's local sync backend in iCloud Drive (decision D12): the backend's file in `~/Library/Mobile Documents/com~apple~CloudDocs/Cromarc/<space uuid>`, with the space's `space.json`. Opt-in per space. |
+| `src/browser/chromium/local_sync_adapter.cc` | chrome-prefs | The local sync backend's prefs for ICloudSync (through LocalSync): `syncer::prefs::kEnableLocalSyncBackend`, `kLocalSyncBackendDir`, and the data types it carries. |
 | `src/browser/spaces/space_window_mac.mm` | appkit-global | A space window prepared under the visible one at 1% opacity, mouse passing through, so the swap at the end of a switch shows it painted. |
 | `src/browser/ui/sidebar/space_input_mac.mm` | appkit-global | NSEvent local monitors (keys, scroll, mouse moves) for switching spaces; a global mouse monitor only while the compact sidebar is out (Zen's mouse tracker). |
 | `src/browser/chromium/default_browser_adapter.cc` | default-browser | The welcome page's button that asks macOS to make Cromarc the default browser (WelcomePageHandler, through DefaultBrowser). |

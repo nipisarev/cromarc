@@ -6,21 +6,21 @@ source_set("sync") {
   sources = [
     "icloud_sync.cc",
     "icloud_sync.h",
+    "icloud_sync_factory.cc",
+    "icloud_sync_factory.h",
   ]
   public_deps = [
     "//chrome/browser:browser_public_dependencies",
-    "//chrome/browser/profiles:profile",
     "//components/keyed_service/core",
+    "//cromarc/browser/ports",
   ]
   deps = [
     "//base",
-    "//chrome/browser:browser_process",
-    "//chrome/browser/profiles:profile_manager",
+    "//chrome/browser/profiles:profile",
     "//chrome/browser/sync",
     "//components/pref_registry",
     "//components/prefs",
-    "//components/sync/base",
-    "//components/sync/service",
-    "//cromarc/browser/spaces",
+    "//cromarc/browser/chromium:adapters",
+    "//cromarc/browser/spaces:controller",
   ]
 }

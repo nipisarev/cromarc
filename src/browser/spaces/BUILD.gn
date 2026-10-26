@@ -49,8 +49,8 @@ source_set("controller") {
 # The space prefs' registration, a keyed service factory.
 source_set("spaces") {
   sources = [
-    "space_prefs.cc",
-    "space_prefs.h",
+    "space_prefs_factory.cc",
+    "space_prefs_factory.h",
   ]
   public_deps = [
     ":controller",

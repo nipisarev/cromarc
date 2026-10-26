@@ -27,7 +27,8 @@
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
-#include "cromarc/browser/ui/sidebar/library_downloads.h"
+#include "cromarc/browser/chromium/downloads_adapter.h"
+#include "cromarc/browser/chromium/library_ports_adapter.h"
 #include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
 #include "ui/webui/webui_util.h"
@@ -55,7 +56,7 @@ SidebarUI::SidebarUI(content::WebUI* web_ui)
   // ...and Media's thumbnails and files (library_media.h).
   source->SetRequestFilter(
       base::BindRepeating([](const std::string& path) {
-        return LibraryDownloads::IsPreviewPath(path) ||
+        return DownloadsAdapter::IsPreviewPath(path) ||
                LibraryMedia::IsMediaPath(path);
       }),
       base::BindRepeating(
@@ -64,7 +65,7 @@ SidebarUI::SidebarUI(content::WebUI* web_ui)
             if (LibraryMedia::IsMediaPath(path)) {
               LibraryMedia::Serve(path, std::move(callback));
             } else {
-              LibraryDownloads::ServePreview(profile, path,
+              DownloadsAdapter::ServePreview(profile, path,
                                              std::move(callback));
             }
           },
@@ -109,7 +110,7 @@ void SidebarUI::CreatePageHandler(
       std::move(handler), std::move(page), browser, tree_service,
       lifecycle_service, archive_service, ChromiumTabs(), ChromiumWindows(),
       ChromiumTabStripApi(), ChromiumProfiles(), ChromiumFavicons(),
-      ChromiumAppLifecycle());
+      ChromiumAppLifecycle(), ChromiumLibraryPorts(), ChromiumShell());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(SidebarUI)

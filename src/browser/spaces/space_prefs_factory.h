@@ -2,8 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef CROMARC_BROWSER_SPACES_SPACE_PREFS_H_
-#define CROMARC_BROWSER_SPACES_SPACE_PREFS_H_
+#ifndef CROMARC_BROWSER_SPACES_SPACE_PREFS_FACTORY_H_
+#define CROMARC_BROWSER_SPACES_SPACE_PREFS_FACTORY_H_
 
 #include <memory>
 
@@ -37,4 +37,4 @@ class SpacePrefsFactory : public ProfileKeyedServiceFactory {
 
 }  // namespace cromarc
 
-#endif  // CROMARC_BROWSER_SPACES_SPACE_PREFS_H_
+#endif  // CROMARC_BROWSER_SPACES_SPACE_PREFS_FACTORY_H_

@@ -10,8 +10,11 @@ source_set("ports") {
     "browser_frame.h",
     "default_browser.h",
     "favicons.h",
+    "library.h",
+    "local_sync.h",
     "profiles.h",
     "select_file_policies.h",
+    "shell.h",
     "strip_defaults.h",
     "tab_strip_api.h",
     "tabs.h",
@@ -21,6 +24,7 @@ source_set("ports") {
   ]
   public_deps = [
     "//base",
+    "//cromarc/browser/ui/sidebar:mojo_bindings",
     "//mojo/public/cpp/bindings",
     "//ui/base",
     "//ui/gfx",

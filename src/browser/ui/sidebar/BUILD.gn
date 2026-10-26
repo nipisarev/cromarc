@@ -44,8 +44,6 @@ source_set("impl") {
     "cromarc_sidebar.cc",
     "library_backend.cc",
     "library_backend.h",
-    "library_downloads.cc",
-    "library_downloads.h",
     "library_media.cc",
     "library_media.h",
     "sidebar_page_handler.cc",

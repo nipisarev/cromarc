@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "cromarc/browser/spaces/space_prefs.h"
+#include "cromarc/browser/spaces/space_prefs_factory.h"
 
 #include "base/time/time.h"
 #include "components/pref_registry/pref_registry_syncable.h"

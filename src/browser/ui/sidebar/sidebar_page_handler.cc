@@ -194,7 +194,9 @@ SidebarPageHandler::SidebarPageHandler(
     TabStripApi& tab_strip_api,
     Profiles& profiles,
     Favicons& favicons,
-    AppLifecycle& app_lifecycle)
+    AppLifecycle& app_lifecycle,
+    LibraryPorts& library_ports,
+    Shell& shell)
     : receiver_(this, std::move(receiver)),
       page_(std::move(page)),
       browser_(browser),
@@ -207,6 +209,7 @@ SidebarPageHandler::SidebarPageHandler(
       profiles_(profiles),
       favicons_(favicons),
       app_lifecycle_(app_lifecycle),
+      shell_(shell),
       tree_subscription_(tree_service_->RegisterOnChanged(
           base::BindRepeating(&SidebarPageHandler::OnTreeChanged,
                               base::Unretained(this)))),
@@ -216,10 +219,12 @@ SidebarPageHandler::SidebarPageHandler(
       library_(std::make_unique<LibraryBackend>(
           browser_,
           archive_service_,
+          tabs,
+          library_ports.HistoryOf(browser_),
           base::BindRepeating(
               [](SidebarPageHandler* self) { self->page_->OnHistoryChanged(); },
               base::Unretained(this)))),
-      downloads_(std::make_unique<LibraryDownloads>(
+      downloads_(library_ports.DownloadsOf(
           browser_,
           base::BindRepeating(
               [](SidebarPageHandler* self) {
@@ -736,7 +741,7 @@ void SidebarPageHandler::ScanMedia(const std::vector<std::string>& folders,
 }
 
 void SidebarPageHandler::DoMedia(uint32_t id, mojom::MediaCommand command) {
-  LibraryMedia::Do(windows_->ProfileOf(browser_), id, command);
+  LibraryMedia::Do(*shell_, windows_->ProfileOf(browser_), id, command);
 }
 
 void SidebarPageHandler::GetMediaOpener(uint32_t id,
