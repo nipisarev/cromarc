@@ -22,6 +22,7 @@
 #include "cromarc/browser/ui/sidebar/theme_picker_page_handler.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/page_transition_types.h"
+#include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/views/controls/webview/webview.h"
 #include "ui/views/widget/widget_delegate.h"
 #include "url/gurl.h"
@@ -179,6 +180,9 @@ void ThemePicker::CreateWidget() {
           ->GetNativeView();
   params.opacity = views::Widget::InitParams::WindowOpacity::kTranslucent;
   params.shadow_type = views::Widget::InitParams::ShadowType::kDrop;
+#if BUILDFLAG(IS_MAC)
+  params.rounded_corners = gfx::RoundedCornersF(PanelCornerRadius());
+#endif
   params.activatable = views::Widget::InitParams::Activatable::kYes;
   params.bounds = Bounds();
   params.name = "CromarcThemePicker";

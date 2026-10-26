@@ -48,10 +48,10 @@ namespace {
 // NSGlassEffectView with corner radius 20, of the private variant 20, which is
 // lighter and softer than plain glass. Without the variant the glass is the
 // plain one.
-constexpr CGFloat kPopoverGlassCornerRadius = 20;
+constexpr int kPopoverGlassCornerRadius = 20;
 constexpr int kPopoverGlassVariant = 20;
 // Before macOS 26, NSPopover's material.
-constexpr CGFloat kPopoverMaterialCornerRadius = 12;
+constexpr int kPopoverMaterialCornerRadius = 12;
 
 bool HasMaterial(NSView* content) {
   for (NSView* view in content.subviews) {
@@ -118,6 +118,13 @@ void InstallWindowMaterial(gfx::NativeWindow window) {
   CromarcWindowMaterialView* material = AddMaterial(content);
   material.material = NSVisualEffectMaterialHUDWindow;
   material.state = NSVisualEffectStateFollowsWindowActiveState;
+}
+
+int PanelCornerRadius() {
+  if (@available(macOS 26.0, *)) {
+    return kPopoverGlassCornerRadius;
+  }
+  return kPopoverMaterialCornerRadius;
 }
 
 void InstallPanelMaterial(gfx::NativeWindow window) {
