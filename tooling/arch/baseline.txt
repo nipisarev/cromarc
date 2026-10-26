@@ -4,10 +4,6 @@ R1 src/browser/arc_import/arc_import.cc components/bookmarks/browser/bookmark_no
 R1 src/browser/arc_import/arc_import_unittest.cc components/bookmarks/browser/bookmark_model.h
 R1 src/browser/arc_import/arc_import_unittest.cc components/bookmarks/browser/bookmark_node.h
 R1 src/browser/arc_import/arc_import_unittest.cc components/bookmarks/test/test_bookmark_client.h
-R1 src/browser/archive/archive.cc sql/statement.h
-R1 src/browser/archive/archive.cc sql/transaction.h
-R1 src/browser/archive/archive.h sql/database.h
-R1 src/browser/routing/routes.cc third_party/re2/src/re2/re2.h
 R1 src/browser/routing/space_routing.cc chrome/browser/browser_process.h
 R1 src/browser/routing/space_routing.cc chrome/browser/profiles/profile_manager.h
 R1 src/browser/spaces/space_prefs.h chrome/browser/profiles/profile_keyed_service_factory.h
@@ -57,10 +53,6 @@ R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/omnibox/bro
 R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/omnibox/browser/autocomplete_result.h
 R1 src/browser/ui/command_bar/command_bar_page_handler.cc third_party/metrics_proto/omnibox_event.pb.h
 R1 src/browser/ui/command_bar/command_bar_page_handler.h components/omnibox/browser/autocomplete_controller.h
-R1 src/browser/ui/glance/glance.cc chrome/app/vector_icons/vector_icons.h
-R1 src/browser/ui/glance/glance.cc components/input/native_web_keyboard_event.h
-R1 src/browser/ui/glance/glance.cc components/vector_icons/vector_icons.h
-R1 src/browser/ui/little/little_bar.cc components/vector_icons/vector_icons.h
 R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/browsing_data/chrome_browsing_data_remover_constants.h
 R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/history/history_service_factory.h
 R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/profiles/profile.h
@@ -75,10 +67,8 @@ R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/icon_manager.h
 R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/profiles/profile.h
 R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
 R1 src/browser/ui/sidebar/library_downloads.cc components/download/public/common/download_item.h
-R1 src/browser/ui/sidebar/library_downloads.cc net/traffic_annotation/network_traffic_annotation.h
 R1 src/browser/ui/sidebar/library_downloads.h components/download/content/public/all_download_item_notifier.h
 R1 src/browser/ui/sidebar/library_media.cc chrome/browser/platform_util.h
-R1 src/browser/ui/sidebar/library_media_mac.mm skia/ext/skia_utils_mac.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/favicon/favicon_service_factory.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/lifetime/application_lifetime.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/profiles/profile.h
