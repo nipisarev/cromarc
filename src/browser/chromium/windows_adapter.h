@@ -25,13 +25,27 @@ class WindowsAdapter : public Windows {
   bool IsNormal(BrowserWindowInterface* window) override;
   WindowId IdOf(BrowserWindowInterface* window) override;
   BrowserWindowInterface* FromId(WindowId id) override;
+  std::vector<BrowserWindowInterface*> All() override;
+  std::vector<BrowserWindowInterface*> AllByActivation() override;
   std::vector<BrowserWindowInterface*> NormalWindowsOf(
       Profile* profile) override;
   bool IsOnScreen(BrowserWindowInterface* window) override;
+  bool IsVisible(BrowserWindowInterface* window) override;
+  bool IsFullscreen(BrowserWindowInterface* window) override;
   gfx::Rect BoundsOf(BrowserWindowInterface* window) override;
+  gfx::Rect RestoredBoundsOf(BrowserWindowInterface* window) override;
+  void SetBounds(BrowserWindowInterface* window,
+                 const gfx::Rect& bounds) override;
   gfx::NativeWindow NativeWindowOf(BrowserWindowInterface* window) override;
+  void Show(BrowserWindowInterface* window) override;
+  void ShowInactive(BrowserWindowInterface* window) override;
+  void Hide(BrowserWindowInterface* window) override;
   void Activate(BrowserWindowInterface* window) override;
+  void ToggleFullscreen(BrowserWindowInterface* window) override;
   void Close(BrowserWindowInterface* window) override;
+  BrowserWindowInterface* Create(Profile* profile,
+                                 const gfx::Rect& bounds,
+                                 bool from_user_gesture) override;
   base::CallbackListSubscription OnClosed(
       BrowserWindowInterface* window,
       base::RepeatingCallback<void(BrowserWindowInterface*)> callback) override;

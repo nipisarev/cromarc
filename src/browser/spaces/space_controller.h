@@ -15,14 +15,12 @@
 #include "base/functional/callback_helpers.h"
 #include "base/files/file_path.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
 #include "base/no_destructor.h"
-#include "base/scoped_observation.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
-#include "chrome/browser/profiles/profile_attributes_storage_observer.h"
-#include "chrome/browser/profiles/profile_manager_observer.h"
-#include "components/sessions/core/session_id.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/spaces/shared_sidebar_state.h"
 #include "cromarc/browser/spaces/swipe_tracker.h"
 #include "third_party/skia/include/core/SkColor.h"
@@ -30,19 +28,20 @@
 
 class BrowserWindowInterface;
 class Profile;
-class ProfileAttributesStorage;
-class ProfileManager;
 
 namespace cromarc {
 
+class Profiles;
+class StripDefaults;
+class Tabs;
+class Theme;
 class VerticalStrip;
 
 // Spaces are profiles (design, premise 1): one browser process sees all of
 // them, and each space has one main window. Switching keeps one window on
 // screen: at the end of the sidebar's animation the target space's window
 // takes the frame of the current one, which is ordered out (component 4).
-class SpaceController : public ProfileAttributesStorageObserver,
-                        public ProfileManagerObserver {
+class SpaceController {
  public:
   struct Space {
     // Profile directory base name ("Default", "Profile 1").
@@ -153,26 +152,27 @@ class SpaceController : public ProfileAttributesStorageObserver,
   // bring back the windows of every space: all but the last active one hide.
   void OnWindowCreated(BrowserWindowInterface* browser);
 
-  // ProfileAttributesStorageObserver:
-  void OnProfileAdded(const base::FilePath& profile_path) override;
-  void OnProfileWasRemoved(const base::FilePath& profile_path,
-                           const std::u16string& profile_name) override;
-  void OnProfileNameChanged(const base::FilePath& profile_path,
-                            const std::u16string& old_profile_name) override;
-
-  // ProfileManagerObserver: a space's icon, theme and place in the order are
-  // in its profile's prefs, known once it has loaded.
-  void OnProfileAdded(Profile* profile) override;
-  // The storage goes with the profile manager; this singleton outlives both.
-  void OnProfileManagerDestroying() override;
-
  private:
   friend base::NoDestructor<SpaceController>;
 
-  SpaceController();
-  ~SpaceController() override;
+  // Get() builds it with the Chromium ports (chromium/space_controller_get.cc).
+  SpaceController(Profiles& profiles,
+                  Windows& windows,
+                  Tabs& tabs,
+                  Theme& theme,
+                  StripDefaults& strip_defaults);
+  ~SpaceController();
 
   void NotifySpacesChanged();
+  // Shown and not minimized.
+  bool IsOnScreen(BrowserWindowInterface* browser);
+  // Null-safe.
+  bool IsFullscreen(BrowserWindowInterface* browser);
+  // The frame a space window takes: a fullscreen window's is the one it
+  // leaves fullscreen to.
+  gfx::Rect FrameOf(BrowserWindowInterface* browser);
+  // The parts of a space theme Chrome's own theme takes.
+  void ApplyTheme(Profile* profile, const std::string& json);
   // A new window of `profile` starts as the shared sidebar state.
   void SeedSidebarState(Profile* profile);
   void HideInactiveSpaceWindows();
@@ -182,10 +182,10 @@ class SpaceController : public ProfileAttributesStorageObserver,
   // Closing the visible space window closes the hidden ones of the other
   // spaces too: they are one window to the user.
   void OnSpaceWindowClosed(BrowserWindowInterface* browser);
-  void SwitchToLoaded(SessionID from_id, Profile* target);
+  void SwitchToLoaded(WindowId from_id, Profile* target);
   void ShowLoadedSpace(base::OnceCallback<void(BrowserWindowInterface*)> then,
                        Profile* target);
-  void OnSpaceCreated(SessionID from_id,
+  void OnSpaceCreated(WindowId from_id,
                       std::string icon,
                       base::OnceCallback<void(Profile*)> configure,
                       bool switch_to_it,
@@ -195,11 +195,16 @@ class SpaceController : public ProfileAttributesStorageObserver,
   // `profile`'s space window, created with `bounds` when it has none.
   BrowserWindowInterface* EnsureWindow(Profile* profile,
                                        const gfx::Rect& bounds);
-  void PrepareLoaded(SessionID from_id, Profile* target);
+  void PrepareLoaded(WindowId from_id, Profile* target);
   // Back to normal, ordered out when `hide`.
   void ClearPrepared(bool hide);
   bool IsPrepared(BrowserWindowInterface* browser) const;
 
+  const raw_ref<Profiles> profiles_;
+  const raw_ref<Windows> windows_;
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Theme> theme_;
+  const raw_ref<StripDefaults> strip_defaults_;
   std::map<BrowserWindowInterface*, raw_ptr<Sidebar>> sidebars_;
   std::map<BrowserWindowInterface*, base::CallbackListSubscription>
       close_subscriptions_;
@@ -207,15 +212,11 @@ class SpaceController : public ProfileAttributesStorageObserver,
   bool warm_windows_scheduled_ = false;
   // The window PrepareSwitch() brought over the visible one, and the space it
   // was asked for while its profile loads.
-  std::optional<SessionID> prepared_;
+  std::optional<WindowId> prepared_;
   std::string preparing_;
   base::OneShotTimer prepared_timeout_;
   const base::TimeTicks started_ = base::TimeTicks::Now();
-  base::ScopedObservation<ProfileAttributesStorage,
-                          ProfileAttributesStorageObserver>
-      storage_observation_{this};
-  base::ScopedObservation<ProfileManager, ProfileManagerObserver>
-      profile_manager_observation_{this};
+  base::CallbackListSubscription profiles_changed_;
   base::WeakPtrFactory<SpaceController> weak_factory_{this};
 };
 

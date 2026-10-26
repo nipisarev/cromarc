@@ -156,6 +156,21 @@ void TabsAdapter::Close(TabId tab) {
   }
 }
 
+void TabsAdapter::CloseByUser(TabId tab) {
+  tabs::TabInterface* interface = TabOf(tab);
+  if (!interface) {
+    return;
+  }
+  TabStripModel* model =
+      interface->GetBrowserWindowInterface()->GetTabStripModel();
+  const int index = model->GetIndexOfTab(interface);
+  if (index != TabStripModel::kNoTab) {
+    model->CloseWebContentsAt(index,
+                              TabCloseTypes::CLOSE_USER_GESTURE |
+                                  TabCloseTypes::CLOSE_CREATE_HISTORICAL_TAB);
+  }
+}
+
 std::optional<TabId> TabsAdapter::Duplicate(TabId tab) {
   tabs::TabInterface* interface = TabOf(tab);
   if (!interface) {
@@ -175,6 +190,17 @@ void TabsAdapter::Open(BrowserWindowInterface* window,
 void TabsAdapter::OpenNewTabPage(BrowserWindowInterface* window) {
   Open(window, GURL(chrome::kChromeUINewTabURL),
        WindowOpenDisposition::NEW_FOREGROUND_TAB);
+}
+
+void TabsAdapter::AddNewTabPage(BrowserWindowInterface* window,
+                                bool keep_window_hidden) {
+  chrome::AddTabAt(window, GURL(chrome::kChromeUINewTabURL), -1,
+                   /*foreground=*/true, /*group=*/std::nullopt,
+                   /*pinned=*/false,
+                   keep_window_hidden
+                       ? std::make_optional(
+                             NavigateParams::WindowAction::kNoAction)
+                       : std::nullopt);
 }
 
 std::optional<TabId> TabsAdapter::OpenPinned(BrowserWindowInterface* window,

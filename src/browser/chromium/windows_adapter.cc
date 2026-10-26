@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
@@ -53,6 +54,20 @@ BrowserWindowInterface* WindowsAdapter::FromId(WindowId id) {
       SessionID::FromSerializedValue(id.value()));
 }
 
+std::vector<BrowserWindowInterface*> WindowsAdapter::All() {
+  return GetAllBrowserWindowInterfaces();
+}
+
+std::vector<BrowserWindowInterface*> WindowsAdapter::AllByActivation() {
+  std::vector<BrowserWindowInterface*> windows;
+  ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
+      [&windows](BrowserWindowInterface* window) {
+        windows.push_back(window);
+        return true;
+      });
+  return windows;
+}
+
 std::vector<BrowserWindowInterface*> WindowsAdapter::NormalWindowsOf(
     Profile* profile) {
   std::vector<BrowserWindowInterface*> windows;
@@ -71,8 +86,25 @@ bool WindowsAdapter::IsOnScreen(BrowserWindowInterface* window) {
          !base_window->IsMinimized();
 }
 
+bool WindowsAdapter::IsVisible(BrowserWindowInterface* window) {
+  return window->GetWindow()->IsVisible();
+}
+
+bool WindowsAdapter::IsFullscreen(BrowserWindowInterface* window) {
+  return window->GetWindow()->IsFullscreen();
+}
+
 gfx::Rect WindowsAdapter::BoundsOf(BrowserWindowInterface* window) {
   return window->GetWindow()->GetBounds();
+}
+
+gfx::Rect WindowsAdapter::RestoredBoundsOf(BrowserWindowInterface* window) {
+  return window->GetWindow()->GetRestoredBounds();
+}
+
+void WindowsAdapter::SetBounds(BrowserWindowInterface* window,
+                               const gfx::Rect& bounds) {
+  window->GetWindow()->SetBounds(bounds);
 }
 
 gfx::NativeWindow WindowsAdapter::NativeWindowOf(
@@ -80,8 +112,24 @@ gfx::NativeWindow WindowsAdapter::NativeWindowOf(
   return window->GetWindow()->GetNativeWindow();
 }
 
+void WindowsAdapter::Show(BrowserWindowInterface* window) {
+  window->GetWindow()->Show();
+}
+
+void WindowsAdapter::ShowInactive(BrowserWindowInterface* window) {
+  window->GetWindow()->ShowInactive();
+}
+
+void WindowsAdapter::Hide(BrowserWindowInterface* window) {
+  window->GetWindow()->Hide();
+}
+
 void WindowsAdapter::Activate(BrowserWindowInterface* window) {
   window->GetWindow()->Activate();
+}
+
+void WindowsAdapter::ToggleFullscreen(BrowserWindowInterface* window) {
+  chrome::ToggleFullscreenMode(window);
 }
 
 void WindowsAdapter::Close(BrowserWindowInterface* window) {
@@ -92,6 +140,14 @@ base::CallbackListSubscription WindowsAdapter::OnClosed(
     BrowserWindowInterface* window,
     base::RepeatingCallback<void(BrowserWindowInterface*)> callback) {
   return window->RegisterBrowserDidClose(std::move(callback));
+}
+
+BrowserWindowInterface* WindowsAdapter::Create(Profile* profile,
+                                               const gfx::Rect& bounds,
+                                               bool from_user_gesture) {
+  BrowserWindowCreateParams params(*profile, from_user_gesture);
+  params.initial_bounds = bounds;
+  return CreateBrowserWindow(std::move(params));
 }
 
 BrowserWindowInterface* WindowsAdapter::OpenPopup(Profile* profile,

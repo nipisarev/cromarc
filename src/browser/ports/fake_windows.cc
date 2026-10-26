@@ -42,6 +42,14 @@ BrowserWindowInterface* FakeWindows::FromId(WindowId id) {
   return std::ranges::contains(closed, window) ? nullptr : window;
 }
 
+std::vector<BrowserWindowInterface*> FakeWindows::All() {
+  return windows;
+}
+
+std::vector<BrowserWindowInterface*> FakeWindows::AllByActivation() {
+  return windows;
+}
+
 std::vector<BrowserWindowInterface*> FakeWindows::NormalWindowsOf(
     Profile* profile) {
   auto it = normal_windows.find(profile);
@@ -53,17 +61,58 @@ bool FakeWindows::IsOnScreen(BrowserWindowInterface* window) {
   return !off_screen.contains(window);
 }
 
+bool FakeWindows::IsVisible(BrowserWindowInterface* window) {
+  return !off_screen.contains(window);
+}
+
+bool FakeWindows::IsFullscreen(BrowserWindowInterface* window) {
+  return fullscreen.contains(window);
+}
+
 gfx::Rect FakeWindows::BoundsOf(BrowserWindowInterface* window) {
   auto it = bounds.find(window);
   return it == bounds.end() ? gfx::Rect(0, 0, 1100, 800) : it->second;
+}
+
+gfx::Rect FakeWindows::RestoredBoundsOf(BrowserWindowInterface* window) {
+  return BoundsOf(window);
+}
+
+void FakeWindows::SetBounds(BrowserWindowInterface* window,
+                            const gfx::Rect& new_bounds) {
+  bounds[window] = new_bounds;
 }
 
 gfx::NativeWindow FakeWindows::NativeWindowOf(BrowserWindowInterface* window) {
   return gfx::NativeWindow();
 }
 
+void FakeWindows::Show(BrowserWindowInterface* window) {
+  off_screen.erase(window);
+}
+
+void FakeWindows::ShowInactive(BrowserWindowInterface* window) {
+  off_screen.erase(window);
+}
+
+void FakeWindows::Hide(BrowserWindowInterface* window) {
+  off_screen.insert(window);
+}
+
 void FakeWindows::Activate(BrowserWindowInterface* window) {
   activated.push_back(window);
+}
+
+void FakeWindows::ToggleFullscreen(BrowserWindowInterface* window) {
+  if (!fullscreen.erase(window)) {
+    fullscreen.insert(window);
+  }
+}
+
+BrowserWindowInterface* FakeWindows::Create(Profile* profile,
+                                            const gfx::Rect& new_bounds,
+                                            bool from_user_gesture) {
+  return OpenPopup(profile, new_bounds, GURL());
 }
 
 void FakeWindows::Close(BrowserWindowInterface* window) {

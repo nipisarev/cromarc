@@ -11,36 +11,17 @@
 #include "base/command_line.h"
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
+#include "base/logging.h"
 #include "base/values.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
-#include "chrome/browser/browser_process.h"
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/profiles/profile_attributes_entry.h"
-#include "chrome/browser/profiles/profile_attributes_storage.h"
-#include "chrome/browser/profiles/delete_profile_helper.h"
-#include "chrome/browser/profiles/profile_avatar_icon_util.h"
-#include "chrome/browser/profiles/profile_manager.h"
-#include "chrome/browser/profiles/profile_metrics.h"
-#include "chrome/browser/themes/theme_service.h"
-#include "chrome/browser/themes/theme_service_factory.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
-#include "chrome/browser/ui/navigator/browser_navigator_params.h"
-#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: as above
-#include "chrome/browser/ui/browser_window/public/create_browser_window.h"
-#include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: as above
-#include "chrome/browser/ui/profiles/profile_colors_util.h"
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/common/pref_names.h"
-#include "chrome/common/webui_url_constants.h"
 #include "components/prefs/pref_service.h"
+#include "cromarc/browser/ports/profiles.h"
+#include "cromarc/browser/ports/strip_defaults.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/theme.h"
 #include "cromarc/browser/spaces/space_prefs.h"
 #include "cromarc/browser/spaces/space_window.h"
-#include "ui/base/base_window.h"
-#include "ui/base/window_open_disposition.h"
-#include "url/gurl.h"
 
 namespace cromarc {
 
@@ -64,83 +45,70 @@ constexpr base::TimeDelta kHideDelay = base::Milliseconds(1500);
 // After startup settles, in idle time.
 constexpr base::TimeDelta kWarmWindowsDelay = base::Seconds(30);
 
-ProfileAttributesStorage& Storage() {
-  return g_browser_process->profile_manager()->GetProfileAttributesStorage();
+}  // namespace
+
+SpaceController::SpaceController(Profiles& profiles,
+                                 Windows& windows,
+                                 Tabs& tabs,
+                                 Theme& theme,
+                                 StripDefaults& strip_defaults)
+    : profiles_(profiles),
+      windows_(windows),
+      tabs_(tabs),
+      theme_(theme),
+      strip_defaults_(strip_defaults),
+      sidebar_state_(base::BindRepeating(
+          [](SpaceController* self) {
+            for (Profile* profile : self->profiles_->Loaded()) {
+              self->SeedSidebarState(profile);
+            }
+          },
+          base::Unretained(this))) {
+  // A profile added, removed or renamed; or loaded, when its space's icon,
+  // theme and place in the order become known (they are in its prefs).
+  profiles_changed_ = profiles_->OnChanged(base::BindRepeating(
+      &SpaceController::NotifySpacesChanged, base::Unretained(this)));
 }
 
-bool IsVisible(BrowserWindowInterface* browser) {
-  const ui::BaseWindow* window = browser->GetWindow();
-  return window && window->IsVisible() && !window->IsMinimized();
+SpaceController::~SpaceController() = default;
+
+bool SpaceController::IsOnScreen(BrowserWindowInterface* browser) {
+  return windows_->IsOnScreen(browser);
 }
 
-bool IsFullscreen(BrowserWindowInterface* browser) {
-  return browser && browser->GetWindow()->IsFullscreen();
+bool SpaceController::IsFullscreen(BrowserWindowInterface* browser) {
+  return browser && windows_->IsFullscreen(browser);
 }
 
-// The frame a space window takes: a fullscreen window's is the one it leaves
-// fullscreen to.
-gfx::Rect FrameOf(BrowserWindowInterface* browser) {
-  return IsFullscreen(browser) ? browser->GetWindow()->GetRestoredBounds()
-                               : browser->GetWindow()->GetBounds();
+gfx::Rect SpaceController::FrameOf(BrowserWindowInterface* browser) {
+  return IsFullscreen(browser) ? windows_->RestoredBoundsOf(browser)
+                               : windows_->BoundsOf(browser);
 }
 
-// The parts of a space theme Chrome's own theme takes.
-void ApplyTheme(Profile* profile, const std::string& json) {
+void SpaceController::ApplyTheme(Profile* profile, const std::string& json) {
   std::optional<base::Value> value = base::JSONReader::Read(json, 0);
   const base::DictValue* theme = value ? value->GetIfDict() : nullptr;
   if (!theme) {
     return;
   }
-  ThemeService* service = ThemeServiceFactory::GetForProfile(profile);
   const base::ListValue* colors = theme->FindList("colors");
   if (colors && !colors->empty() && (*colors)[0].is_list() &&
       (*colors)[0].GetList().size() == 3) {
     const base::ListValue& rgb = (*colors)[0].GetList();
-    service->SetUserColorAndBrowserColorVariant(
-        SkColorSetRGB(rgb[0].GetIfInt().value_or(0),
-                      rgb[1].GetIfInt().value_or(0),
-                      rgb[2].GetIfInt().value_or(0)),
-        ui::mojom::BrowserColorVariant::kTonalSpot);
+    theme_->SetColor(profile, SkColorSetRGB(rgb[0].GetIfInt().value_or(0),
+                                            rgb[1].GetIfInt().value_or(0),
+                                            rgb[2].GetIfInt().value_or(0)));
   }
   const std::string* scheme = theme->FindString("scheme");
-  service->SetBrowserColorScheme(
-      !scheme                ? ThemeService::BrowserColorScheme::kSystem
-      : *scheme == "light"   ? ThemeService::BrowserColorScheme::kLight
-      : *scheme == "dark"    ? ThemeService::BrowserColorScheme::kDark
-                             : ThemeService::BrowserColorScheme::kSystem);
-}
-
-}  // namespace
-
-// static
-SpaceController* SpaceController::Get() {
-  static base::NoDestructor<SpaceController> instance;
-  return instance.get();
-}
-
-SpaceController::SpaceController()
-    : sidebar_state_(base::BindRepeating(
-          [](SpaceController* self) {
-            for (Profile* profile :
-                 g_browser_process->profile_manager()->GetLoadedProfiles()) {
-              self->SeedSidebarState(profile);
-            }
-          },
-          base::Unretained(this))) {
-  storage_observation_.Observe(&Storage());
-  profile_manager_observation_.Observe(g_browser_process->profile_manager());
-}
-
-SpaceController::~SpaceController() = default;
-
-void SpaceController::OnProfileManagerDestroying() {
-  storage_observation_.Reset();
-  profile_manager_observation_.Reset();
+  theme_->SetScheme(profile, !scheme              ? Theme::Scheme::kSystem
+                             : *scheme == "light" ? Theme::Scheme::kLight
+                             : *scheme == "dark"  ? Theme::Scheme::kDark
+                                                  : Theme::Scheme::kSystem);
 }
 
 // static
 std::string SpaceController::IdOf(Profile* profile) {
-  return profile->GetOriginalProfile()->GetBaseName().AsUTF8Unsafe();
+  return Get()->profiles_->IdOf(profile);
 }
 
 std::vector<SpaceController::Space> SpaceController::GetSpaces() {
@@ -149,21 +117,18 @@ std::vector<SpaceController::Space> SpaceController::GetSpaces() {
     int order;
   };
   std::vector<Ordered> spaces;
-  ProfileManager* manager = g_browser_process->profile_manager();
-  for (ProfileAttributesEntry* entry : Storage().GetAllProfilesAttributes()) {
-    if (entry->IsOmitted() || entry->IsEphemeral()) {
-      continue;
-    }
+  for (Profiles::Entry& entry : profiles_->List()) {
     Space space;
-    space.path = entry->GetPath();
-    space.id = space.path.BaseName().AsUTF8Unsafe();
-    space.name = entry->GetLocalProfileName();
-    space.color = entry->GetProfileThemeColors().profile_highlight_color;
+    space.path = std::move(entry.path);
+    space.id = std::move(entry.id);
+    space.name = std::move(entry.name);
+    space.color = entry.color;
     int order = -1;
-    if (Profile* profile = manager->GetProfileByPath(space.path)) {
-      space.icon = profile->GetPrefs()->GetString(kSpaceIconPref);
-      space.theme = profile->GetPrefs()->GetString(kSpaceThemePref);
-      order = profile->GetPrefs()->GetInteger(kSpaceOrderPref);
+    if (Profile* profile = profiles_->GetLoaded(space.id)) {
+      PrefService* prefs = profiles_->PrefsOf(profile);
+      space.icon = prefs->GetString(kSpaceIconPref);
+      space.theme = prefs->GetString(kSpaceThemePref);
+      order = prefs->GetInteger(kSpaceOrderPref);
     }
     spaces.push_back({std::move(space), order});
   }
@@ -185,32 +150,26 @@ std::vector<SpaceController::Space> SpaceController::GetSpaces() {
 }
 
 Profile* SpaceController::GetLoadedProfile(const std::string& space_id) {
-  return g_browser_process->profile_manager()->GetProfileByPath(
-      g_browser_process->profile_manager()->user_data_dir().AppendASCII(
-          space_id));
+  return profiles_->GetLoaded(space_id);
 }
 
 // static
 BrowserWindowInterface* SpaceController::GetWindowFor(Profile* profile) {
-  BrowserWindowInterface* found = nullptr;
-  ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
-      [&](BrowserWindowInterface* browser) {
-        if (browser->GetProfile() == profile &&
-            browser->GetType() == BrowserWindowInterface::TYPE_NORMAL) {
-          found = browser;
-          return false;
-        }
-        return true;
-      });
-  return found;
+  Windows& windows = *Get()->windows_;
+  for (BrowserWindowInterface* browser : windows.AllByActivation()) {
+    if (windows.ProfileOf(browser) == profile && windows.IsNormal(browser)) {
+      return browser;
+    }
+  }
+  return nullptr;
 }
 
 void SpaceController::AddSidebar(BrowserWindowInterface* browser,
                                  Sidebar* sidebar) {
   sidebars_[browser] = sidebar;
-  close_subscriptions_[browser] = browser->RegisterBrowserDidClose(
-      base::BindRepeating(&SpaceController::OnSpaceWindowClosed,
-                          base::Unretained(this)));
+  close_subscriptions_[browser] = windows_->OnClosed(
+      browser, base::BindRepeating(&SpaceController::OnSpaceWindowClosed,
+                                   base::Unretained(this)));
 }
 
 void SpaceController::RemoveSidebar(BrowserWindowInterface* browser) {
@@ -225,57 +184,47 @@ base::ScopedClosureRunner SpaceController::ShareSidebarState(
 void SpaceController::SeedSidebarState(Profile* profile) {
   const std::optional<SharedSidebarState::State>& state =
       sidebar_state_.state();
-  if (!state || profile->IsOffTheRecord()) {
+  if (!state || profiles_->IsOffTheRecord(profile)) {
     return;
   }
-  // What Chrome gives a window that session restore does not bring back.
-  PrefService* prefs = profile->GetPrefs();
-  prefs->SetBoolean(prefs::kVerticalTabsCollapsedState, state->collapsed);
-  prefs->SetInteger(prefs::kVerticalTabsUncollapsedWidth, state->width);
+  strip_defaults_->Set(profile, state->collapsed, state->width);
 }
 
 void SpaceController::OnSpaceWindowClosed(BrowserWindowInterface* browser) {
   close_subscriptions_.erase(browser);
-  if (!IsVisible(browser)) {
+  if (!IsOnScreen(browser)) {
     return;
   }
-  for (BrowserWindowInterface* other : GetAllBrowserWindowInterfaces()) {
-    if (other != browser &&
-        other->GetType() == BrowserWindowInterface::TYPE_NORMAL &&
-        !other->GetProfile()->IsOffTheRecord() && !IsVisible(other)) {
-      other->GetWindow()->Close();
+  for (BrowserWindowInterface* other : windows_->All()) {
+    if (other != browser && windows_->IsNormal(other) &&
+        !windows_->IsOffTheRecord(other) && !IsOnScreen(other)) {
+      windows_->Close(other);
     }
   }
 }
 
 bool SpaceController::KeepWindowOnLastTabClose(
     BrowserWindowInterface* browser) {
-  if (browser->GetType() != BrowserWindowInterface::TYPE_NORMAL ||
-      browser->GetProfile()->IsOffTheRecord()) {
+  if (!windows_->IsNormal(browser) || windows_->IsOffTheRecord(browser)) {
     return false;
   }
-  TabStripModel* model = browser->GetTabStripModel();
-  if (model->count() != 1) {
+  const std::vector<TabId> tabs = tabs_->List(browser);
+  if (tabs.size() != 1) {
     return false;
   }
-  tabs::TabInterface* last = model->GetTabAtIndex(0);
-  chrome::AddTabAt(browser, GURL(chrome::kChromeUINewTabURL), -1,
-                   /*foreground=*/true);
-  model->CloseWebContentsAt(model->GetIndexOfTab(last),
-                            TabCloseTypes::CLOSE_USER_GESTURE |
-                                TabCloseTypes::CLOSE_CREATE_HISTORICAL_TAB);
+  tabs_->AddNewTabPage(browser, /*keep_window_hidden=*/false);
+  tabs_->CloseByUser(tabs[0]);
   return true;
 }
 
 void SpaceController::PrepareWarmWindows() {
-  ProfileManager* manager = g_browser_process->profile_manager();
   for (const Space& space : GetSpaces()) {
-    if (Profile* profile = manager->GetProfileByPath(space.path)) {
+    if (Profile* profile = profiles_->GetLoaded(space.id)) {
       EnsureHiddenWindow(profile);
       continue;
     }
-    manager->LoadProfileByPath(
-        space.path, /*incognito=*/false,
+    profiles_->Load(
+        space.id,
         base::BindOnce(
             [](base::WeakPtr<SpaceController> self, Profile* profile) {
               if (self && profile) {
@@ -292,23 +241,19 @@ BrowserWindowInterface* SpaceController::EnsureHiddenWindow(Profile* profile) {
   }
   // Same frame as the visible space window, so the swap shows no jump.
   gfx::Rect bounds;
-  for (BrowserWindowInterface* browser : GetAllBrowserWindowInterfaces()) {
-    if (browser->GetType() == BrowserWindowInterface::TYPE_NORMAL &&
-        IsVisible(browser)) {
+  for (BrowserWindowInterface* browser : windows_->All()) {
+    if (windows_->IsNormal(browser) && IsOnScreen(browser)) {
       bounds = FrameOf(browser);
       break;
     }
   }
   SeedSidebarState(profile);
-  BrowserWindowCreateParams params(*profile, /*from_user_gesture=*/false);
-  params.initial_bounds = bounds;
-  BrowserWindowInterface* browser = CreateBrowserWindow(std::move(params));
+  BrowserWindowInterface* browser =
+      windows_->Create(profile, bounds, /*from_user_gesture=*/false);
   if (!browser) {
     return nullptr;
   }
-  chrome::AddTabAt(browser, GURL(chrome::kChromeUINewTabURL), -1,
-                   /*foreground=*/true, /*group=*/std::nullopt,
-                   /*pinned=*/false, NavigateParams::WindowAction::kNoAction);
+  tabs_->AddNewTabPage(browser, /*keep_window_hidden=*/true);
   return browser;
 }
 
@@ -340,7 +285,7 @@ void SpaceController::RequestSwitchBy(BrowserWindowInterface* from, int step) {
   if (spaces.size() < 2) {
     return;
   }
-  const std::string current = IdOf(from->GetProfile());
+  const std::string current = IdOf(windows_->ProfileOf(from));
   auto it = std::ranges::find(spaces, current, &Space::id);
   const int count = static_cast<int>(spaces.size());
   const int index = it == spaces.end() ? 0 : it - spaces.begin();
@@ -349,20 +294,19 @@ void SpaceController::RequestSwitchBy(BrowserWindowInterface* from, int step) {
 
 void SpaceController::SwitchTo(BrowserWindowInterface* from,
                                const std::string& id) {
-  if (IdOf(from->GetProfile()) == id) {
+  if (IdOf(windows_->ProfileOf(from)) == id) {
     return;
   }
   if (Profile* target = GetLoadedProfile(id)) {
-    SwitchToLoaded(from->GetSessionID(), target);
+    SwitchToLoaded(windows_->IdOf(from), target);
     return;
   }
   // Cold: the space's profile loads first.
-  const SessionID from_id = from->GetSessionID();
-  g_browser_process->profile_manager()->LoadProfileByPath(
-      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id),
-      /*incognito=*/false,
+  const WindowId from_id = windows_->IdOf(from);
+  profiles_->Load(
+      id,
       base::BindOnce(
-          [](base::WeakPtr<SpaceController> self, SessionID from_id,
+          [](base::WeakPtr<SpaceController> self, WindowId from_id,
              Profile* profile) {
             if (self && profile) {
               self->SwitchToLoaded(from_id, profile);
@@ -374,31 +318,31 @@ void SpaceController::SwitchTo(BrowserWindowInterface* from,
 void SpaceController::PrepareSwitch(BrowserWindowInterface* from,
                                     const std::string& id) {
   preparing_.clear();
-  if (id.empty() || IdOf(from->GetProfile()) == id || IsFullscreen(from)) {
+  if (id.empty() || IdOf(windows_->ProfileOf(from)) == id ||
+      IsFullscreen(from)) {
     ClearPrepared(/*hide=*/true);
     return;
   }
   if (Profile* target = GetLoadedProfile(id)) {
-    PrepareLoaded(from->GetSessionID(), target);
+    PrepareLoaded(windows_->IdOf(from), target);
     return;
   }
   preparing_ = id;
-  g_browser_process->profile_manager()->LoadProfileByPath(
-      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id),
-      /*incognito=*/false,
+  profiles_->Load(
+      id,
       base::BindOnce(
-          [](base::WeakPtr<SpaceController> self, SessionID from_id,
+          [](base::WeakPtr<SpaceController> self, WindowId from_id,
              std::string id, Profile* profile) {
             if (self && profile && self->preparing_ == id) {
               self->preparing_.clear();
               self->PrepareLoaded(from_id, profile);
             }
           },
-          weak_factory_.GetWeakPtr(), from->GetSessionID(), id));
+          weak_factory_.GetWeakPtr(), windows_->IdOf(from), id));
 }
 
-void SpaceController::PrepareLoaded(SessionID from_id, Profile* target) {
-  BrowserWindowInterface* from = BrowserWindowInterface::FromSessionID(from_id);
+void SpaceController::PrepareLoaded(WindowId from_id, Profile* target) {
+  BrowserWindowInterface* from = windows_->FromId(from_id);
   if (!from) {
     return;
   }
@@ -408,13 +352,13 @@ void SpaceController::PrepareLoaded(SessionID from_id, Profile* target) {
   }
   ClearPrepared(/*hide=*/true);
   // Already on screen (another display, fullscreen): nothing to warm.
-  if (IsVisible(to) || IsFullscreen(to)) {
+  if (IsOnScreen(to) || IsFullscreen(to)) {
     return;
   }
-  to->GetWindow()->SetBounds(FrameOf(from));
-  SetWindowFaint(to, true);
-  to->GetWindow()->ShowInactive();
-  prepared_ = to->GetSessionID();
+  windows_->SetBounds(to, FrameOf(from));
+  SetWindowFaint(windows_->NativeWindowOf(to), true);
+  windows_->ShowInactive(to);
+  prepared_ = windows_->IdOf(to);
   // Should the sidebar never come back (a renderer gone), it goes.
   prepared_timeout_.Start(
       FROM_HERE, base::Seconds(5),
@@ -427,24 +371,23 @@ void SpaceController::ClearPrepared(bool hide) {
   if (!prepared_) {
     return;
   }
-  BrowserWindowInterface* window =
-      BrowserWindowInterface::FromSessionID(*prepared_);
+  BrowserWindowInterface* window = windows_->FromId(*prepared_);
   prepared_.reset();
   if (!window) {
     return;
   }
   if (hide) {
-    window->GetWindow()->Hide();
+    windows_->Hide(window);
   }
-  SetWindowFaint(window, false);
+  SetWindowFaint(windows_->NativeWindowOf(window), false);
 }
 
 bool SpaceController::IsPrepared(BrowserWindowInterface* browser) const {
-  return prepared_ && *prepared_ == browser->GetSessionID();
+  return prepared_ && *prepared_ == windows_->IdOf(browser);
 }
 
-void SpaceController::SwitchToLoaded(SessionID from_id, Profile* target) {
-  BrowserWindowInterface* from = BrowserWindowInterface::FromSessionID(from_id);
+void SpaceController::SwitchToLoaded(WindowId from_id, Profile* target) {
+  BrowserWindowInterface* from = windows_->FromId(from_id);
   if (!from) {
     return;
   }
@@ -459,30 +402,30 @@ void SpaceController::SwitchToLoaded(SessionID from_id, Profile* target) {
   } else {
     ClearPrepared(/*hide=*/true);
   }
-  target->GetPrefs()->SetTime(kSpaceLastActivePref, base::Time::Now());
+  profiles_->PrefsOf(target)->SetTime(kSpaceLastActivePref, base::Time::Now());
   // Native fullscreen (design, "Fullscreen и дисплеи"): every fullscreen
   // space window keeps a macOS Space of its own, and nothing is hidden in
   // one, so each transition runs on the window in front.
   if (IsFullscreen(to)) {
-    to->GetWindow()->Activate();
+    windows_->Activate(to);
     if (!IsFullscreen(from)) {
-      from->GetWindow()->Hide();
+      windows_->Hide(from);
     }
     return;
   }
-  to->GetWindow()->SetBounds(bounds);
-  to->GetWindow()->Show();
-  to->GetWindow()->Activate();
+  windows_->SetBounds(to, bounds);
+  windows_->Show(to);
+  windows_->Activate(to);
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(kLogSpacesSwitch)) {
-    LOG(ERROR) << "cromarc space switch: " << IdOf(from->GetProfile()) << " -> "
-               << IdOf(target);
+    LOG(ERROR) << "cromarc space switch: " << IdOf(windows_->ProfileOf(from))
+               << " -> " << IdOf(target);
   }
   if (IsFullscreen(from)) {
     // Out of the fullscreen Space to the desktop, then into one of its own.
-    chrome::ToggleFullscreenMode(to);
+    windows_->ToggleFullscreen(to);
     return;
   }
-  from->GetWindow()->Hide();
+  windows_->Hide(from);
 }
 
 BrowserWindowInterface* SpaceController::EnsureWindow(Profile* profile,
@@ -491,12 +434,10 @@ BrowserWindowInterface* SpaceController::EnsureWindow(Profile* profile,
     return window;
   }
   SeedSidebarState(profile);
-  BrowserWindowCreateParams params(*profile, /*from_user_gesture=*/true);
-  params.initial_bounds = bounds;
-  BrowserWindowInterface* window = CreateBrowserWindow(std::move(params));
+  BrowserWindowInterface* window =
+      windows_->Create(profile, bounds, /*from_user_gesture=*/true);
   if (window) {
-    window->OpenGURL(GURL(chrome::kChromeUINewTabURL),
-                     WindowOpenDisposition::NEW_FOREGROUND_TAB);
+    tabs_->OpenNewTabPage(window);
   }
   return window;
 }
@@ -510,9 +451,7 @@ void SpaceController::ShowSpace(
     std::move(show).Run(target);
     return;
   }
-  g_browser_process->profile_manager()->LoadProfileByPath(
-      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id),
-      /*incognito=*/false, std::move(show));
+  profiles_->Load(id, std::move(show));
 }
 
 void SpaceController::ShowLoadedSpace(
@@ -523,29 +462,26 @@ void SpaceController::ShowLoadedSpace(
     return;
   }
   BrowserWindowInterface* visible = GetVisibleSpaceWindow();
-  if (visible && visible->GetProfile() != target) {
-    SwitchToLoaded(visible->GetSessionID(), target);
+  if (visible && windows_->ProfileOf(visible) != target) {
+    SwitchToLoaded(windows_->IdOf(visible), target);
   } else if (BrowserWindowInterface* window =
                  visible ? visible : EnsureWindow(target, gfx::Rect())) {
-    window->GetWindow()->Show();
-    window->GetWindow()->Activate();
-    target->GetPrefs()->SetTime(kSpaceLastActivePref, base::Time::Now());
+    windows_->Show(window);
+    windows_->Activate(window);
+    profiles_->PrefsOf(target)->SetTime(kSpaceLastActivePref,
+                                        base::Time::Now());
   }
   std::move(then).Run(GetWindowFor(target));
 }
 
 BrowserWindowInterface* SpaceController::GetVisibleSpaceWindow() {
-  BrowserWindowInterface* found = nullptr;
-  ForEachCurrentBrowserWindowInterfaceOrderedByActivation(
-      [&](BrowserWindowInterface* browser) {
-        if (sidebars_.contains(browser) && browser->GetWindow()->IsVisible() &&
-            !IsPrepared(browser)) {
-          found = browser;
-          return false;
-        }
-        return true;
-      });
-  return found;
+  for (BrowserWindowInterface* browser : windows_->AllByActivation()) {
+    if (sidebars_.contains(browser) && windows_->IsVisible(browser) &&
+        !IsPrepared(browser)) {
+      return browser;
+    }
+  }
+  return nullptr;
 }
 
 void SpaceController::LoadSpace(const std::string& id,
@@ -558,9 +494,7 @@ void SpaceController::LoadSpace(const std::string& id,
     std::move(callback).Run(profile);
     return;
   }
-  g_browser_process->profile_manager()->LoadProfileByPath(
-      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id),
-      /*incognito=*/false, std::move(callback));
+  profiles_->Load(id, std::move(callback));
 }
 
 void SpaceController::CreateSpace(
@@ -569,15 +503,14 @@ void SpaceController::CreateSpace(
     const std::string& icon,
     base::OnceCallback<void(Profile*)> configure,
     bool switch_to_it) {
-  ProfileManager::CreateMultiProfileAsync(
-      name, profiles::GetPlaceholderAvatarIndex(), /*is_hidden=*/false,
-      base::BindOnce(&SpaceController::OnSpaceCreated,
-                     weak_factory_.GetWeakPtr(), from->GetSessionID(), icon,
-                     std::move(configure), switch_to_it));
+  profiles_->Create(
+      name, base::BindOnce(&SpaceController::OnSpaceCreated,
+                           weak_factory_.GetWeakPtr(), windows_->IdOf(from),
+                           icon, std::move(configure), switch_to_it));
 }
 
 void SpaceController::OnSpaceCreated(
-    SessionID from_id,
+    WindowId from_id,
     std::string icon,
     base::OnceCallback<void(Profile*)> configure,
     bool switch_to_it,
@@ -588,13 +521,12 @@ void SpaceController::OnSpaceCreated(
   if (configure) {
     std::move(configure).Run(profile);
   }
-  profile->GetPrefs()->SetString(kSpaceIconPref, icon);
-  profile->GetPrefs()->SetInteger(kSpaceOrderPref,
-                                  static_cast<int>(GetSpaces().size()));
-  ThemeServiceFactory::GetForProfile(profile)
-      ->SetUserColorAndBrowserColorVariant(
-          kNewSpaceColors[(GetSpaces().size() - 1) % kNewSpaceColors.size()],
-          ui::mojom::BrowserColorVariant::kTonalSpot);
+  PrefService* prefs = profiles_->PrefsOf(profile);
+  prefs->SetString(kSpaceIconPref, icon);
+  prefs->SetInteger(kSpaceOrderPref, static_cast<int>(GetSpaces().size()));
+  theme_->SetColor(
+      profile,
+      kNewSpaceColors[(GetSpaces().size() - 1) % kNewSpaceColors.size()]);
   NotifySpacesChanged();
   if (switch_to_it) {
     SwitchToLoaded(from_id, profile);
@@ -603,11 +535,9 @@ void SpaceController::OnSpaceCreated(
 
 void SpaceController::RenameSpace(const std::string& id,
                                   const std::u16string& name) {
-  ProfileAttributesEntry* entry = Storage().GetProfileAttributesWithPath(
-      g_browser_process->profile_manager()->user_data_dir().AppendASCII(id));
-  if (entry && !name.empty()) {
-    // Notifies through OnProfileNameChanged.
-    entry->SetLocalProfileName(name, /*is_default_name=*/false);
+  if (!name.empty()) {
+    // Notifies through Profiles::OnChanged.
+    profiles_->Rename(id, name);
   }
 }
 
@@ -617,7 +547,8 @@ void SpaceController::SetSpaceIcon(const std::string& id,
                       [](base::WeakPtr<SpaceController> self, std::string icon,
                          Profile* profile) {
                         if (self && profile) {
-                          profile->GetPrefs()->SetString(kSpaceIconPref, icon);
+                          self->profiles_->PrefsOf(profile)->SetString(
+                              kSpaceIconPref, icon);
                           self->NotifySpacesChanged();
                         }
                       },
@@ -632,8 +563,9 @@ void SpaceController::SetSpaceTheme(const std::string& id,
                       if (!self || !profile) {
                         return;
                       }
-                      profile->GetPrefs()->SetString(kSpaceThemePref, theme);
-                      ApplyTheme(profile, theme);
+                      self->profiles_->PrefsOf(profile)->SetString(
+                          kSpaceThemePref, theme);
+                      self->ApplyTheme(profile, theme);
                       self->NotifySpacesChanged();
                     },
                     weak_factory_.GetWeakPtr(), theme));
@@ -648,7 +580,8 @@ void SpaceController::ReorderSpaces(const std::vector<std::string>& ids) {
                       if (!self || !profile) {
                         return;
                       }
-                      profile->GetPrefs()->SetInteger(kSpaceOrderPref, order);
+                      self->profiles_->PrefsOf(profile)->SetInteger(
+                          kSpaceOrderPref, order);
                       if (last) {
                         self->NotifySpacesChanged();
                       }
@@ -665,17 +598,13 @@ bool SpaceController::DeleteSpace(BrowserWindowInterface* from,
   if (spaces.size() < 2 || it == spaces.end()) {
     return false;
   }
-  const base::FilePath path = it->path;
+  // The ports outlive the switch: they are the browser's.
   auto schedule = base::BindOnce(
-      [](base::FilePath path, BrowserWindowInterface*) {
-        g_browser_process->profile_manager()
-            ->GetDeleteProfileHelper()
-            .MaybeScheduleProfileForDeletion(
-                path, base::DoNothing(),
-                ProfileMetrics::DELETE_PROFILE_SETTINGS);
+      [](Profiles* profiles, std::string id, BrowserWindowInterface*) {
+        profiles->Delete(id);
       },
-      path);
-  if (IdOf(from->GetProfile()) != id) {
+      base::Unretained(&profiles_.get()), id);
+  if (IdOf(windows_->ProfileOf(from)) != id) {
     std::move(schedule).Run(nullptr);
     return true;
   }
@@ -695,7 +624,7 @@ void SpaceController::OnSwipe(BrowserWindowInterface* browser,
 }
 
 void SpaceController::OnWindowCreated(BrowserWindowInterface* browser) {
-  if (!warm_windows_scheduled_ && !browser->GetProfile()->IsOffTheRecord()) {
+  if (!warm_windows_scheduled_ && !windows_->IsOffTheRecord(browser)) {
     warm_windows_scheduled_ = true;
     base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
         FROM_HERE,
@@ -704,8 +633,8 @@ void SpaceController::OnWindowCreated(BrowserWindowInterface* browser) {
         kWarmWindowsDelay);
   }
   if (base::TimeTicks::Now() - started_ > kStartupWindow) {
-    browser->GetProfile()->GetPrefs()->SetTime(kSpaceLastActivePref,
-                                               base::Time::Now());
+    profiles_->PrefsOf(windows_->ProfileOf(browser))
+        ->SetTime(kSpaceLastActivePref, base::Time::Now());
     return;
   }
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
@@ -718,10 +647,9 @@ void SpaceController::OnWindowCreated(BrowserWindowInterface* browser) {
 void SpaceController::HideInactiveSpaceWindows() {
   // The visible space windows; the one whose space was active last stays.
   std::vector<BrowserWindowInterface*> visible;
-  for (BrowserWindowInterface* browser : GetAllBrowserWindowInterfaces()) {
-    if (browser->GetType() == BrowserWindowInterface::TYPE_NORMAL &&
-        !browser->GetProfile()->IsOffTheRecord() && IsVisible(browser) &&
-        !IsPrepared(browser)) {
+  for (BrowserWindowInterface* browser : windows_->All()) {
+    if (windows_->IsNormal(browser) && !windows_->IsOffTheRecord(browser) &&
+        IsOnScreen(browser) && !IsPrepared(browser)) {
       visible.push_back(browser);
     }
   }
@@ -729,15 +657,15 @@ void SpaceController::HideInactiveSpaceWindows() {
     return;
   }
   BrowserWindowInterface* keep = *std::ranges::max_element(
-      visible, {}, [](BrowserWindowInterface* browser) {
-        return browser->GetProfile()->GetPrefs()->GetTime(
-            kSpaceLastActivePref);
+      visible, {}, [this](BrowserWindowInterface* browser) {
+        return profiles_->PrefsOf(windows_->ProfileOf(browser))
+            ->GetTime(kSpaceLastActivePref);
       });
-  const gfx::Rect bounds = keep->GetWindow()->GetBounds();
+  const gfx::Rect bounds = windows_->BoundsOf(keep);
   for (BrowserWindowInterface* browser : visible) {
-    if (browser->GetProfile() != keep->GetProfile()) {
-      browser->GetWindow()->SetBounds(bounds);
-      browser->GetWindow()->Hide();
+    if (windows_->ProfileOf(browser) != windows_->ProfileOf(keep)) {
+      windows_->SetBounds(browser, bounds);
+      windows_->Hide(browser);
     }
   }
 }
@@ -746,25 +674,6 @@ void SpaceController::NotifySpacesChanged() {
   for (auto& [browser, sidebar] : sidebars_) {
     sidebar->OnSpacesChanged();
   }
-}
-
-void SpaceController::OnProfileAdded(const base::FilePath& profile_path) {
-  NotifySpacesChanged();
-}
-
-void SpaceController::OnProfileAdded(Profile* profile) {
-  NotifySpacesChanged();
-}
-
-void SpaceController::OnProfileWasRemoved(const base::FilePath& profile_path,
-                                          const std::u16string& profile_name) {
-  NotifySpacesChanged();
-}
-
-void SpaceController::OnProfileNameChanged(
-    const base::FilePath& profile_path,
-    const std::u16string& old_profile_name) {
-  NotifySpacesChanged();
 }
 
 }  // namespace cromarc

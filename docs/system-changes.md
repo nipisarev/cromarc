@@ -23,7 +23,7 @@ monitors, swizzling, window alpha and mouse pass-through), `user-defaults`,
 
 | File | Categories | Why |
 |---|---|---|
-| `src/browser/spaces/space_controller.cc` | chrome-prefs | Seeds `kVerticalTabsCollapsedState` and `kVerticalTabsUncollapsedWidth` in a space's profile before its window opens: one sidebar state for every space's window, as Zen's one window. |
+| `src/browser/chromium/strip_defaults_adapter.cc` | chrome-prefs | Seeds `kVerticalTabsCollapsedState` and `kVerticalTabsUncollapsedWidth` in a space's profile before its window opens (SpaceController, through StripDefaults): one sidebar state for every space's window, as Zen's one window. |
 | `src/browser/lifecycle/lifecycle_service_factory.cc` | chrome-prefs | `kRestoreOnStartup` defaults to the last session: tabs come back after a restart (design, lifecycle). |
 | `src/browser/sync/icloud_sync.cc` | chrome-prefs outside-profile | Chromium's local sync backend in iCloud Drive (decision D12): `syncer::prefs::kEnableLocalSyncBackend`, `kLocalSyncBackendDir` = `~/Library/Mobile Documents/com~apple~CloudDocs/Cromarc`. Opt-in per space. |
 | `src/browser/spaces/space_window_mac.mm` | appkit-global | A space window prepared under the visible one at 1% opacity, mouse passing through, so the swap at the end of a switch shows it painted. |

@@ -8,8 +8,11 @@ source_set("ports") {
   sources = [
     "app_lifecycle.h",
     "browser_frame.h",
+    "profiles.h",
+    "strip_defaults.h",
     "tab_strip_api.h",
     "tabs.h",
+    "theme.h",
     "vertical_strip.h",
     "windows.h",
   ]
@@ -18,6 +21,7 @@ source_set("ports") {
     "//ui/base",
     "//ui/gfx",
     "//ui/gfx/geometry",
+    "//skia",
   ]
 }
 

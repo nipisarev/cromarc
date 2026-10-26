@@ -8,8 +8,11 @@
 namespace cromarc {
 
 class AppLifecycle;
+class Profiles;
+class StripDefaults;
 class TabStripApi;
 class Tabs;
+class Theme;
 class Windows;
 
 // The process-wide ports on Chromium, for the composition roots: keyed
@@ -18,6 +21,9 @@ Tabs& ChromiumTabs();
 Windows& ChromiumWindows();
 AppLifecycle& ChromiumAppLifecycle();
 TabStripApi& ChromiumTabStripApi();
+Profiles& ChromiumProfiles();
+Theme& ChromiumTheme();
+StripDefaults& ChromiumStripDefaults();
 
 }  // namespace cromarc
 

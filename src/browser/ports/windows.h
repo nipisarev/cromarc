@@ -49,19 +49,40 @@ class Windows {
   virtual WindowId IdOf(BrowserWindowInterface* window) = 0;
   // Null once that window is gone.
   virtual BrowserWindowInterface* FromId(WindowId id) = 0;
+  // Every window, and every window with the last activated first.
+  virtual std::vector<BrowserWindowInterface*> All() = 0;
+  virtual std::vector<BrowserWindowInterface*> AllByActivation() = 0;
   // `profile`'s normal windows, the ones with a sidebar.
   virtual std::vector<BrowserWindowInterface*> NormalWindowsOf(
       Profile* profile) = 0;
   // Shown and not minimized.
   virtual bool IsOnScreen(BrowserWindowInterface* window) = 0;
+  // Shown, minimized or not.
+  virtual bool IsVisible(BrowserWindowInterface* window) = 0;
+  // In native fullscreen.
+  virtual bool IsFullscreen(BrowserWindowInterface* window) = 0;
   virtual gfx::Rect BoundsOf(BrowserWindowInterface* window) = 0;
+  // What it goes back to out of fullscreen or maximized.
+  virtual gfx::Rect RestoredBoundsOf(BrowserWindowInterface* window) = 0;
+  virtual void SetBounds(BrowserWindowInterface* window,
+                         const gfx::Rect& bounds) = 0;
   virtual gfx::NativeWindow NativeWindowOf(BrowserWindowInterface* window) = 0;
+  virtual void Show(BrowserWindowInterface* window) = 0;
+  // Shown without taking focus.
+  virtual void ShowInactive(BrowserWindowInterface* window) = 0;
+  virtual void Hide(BrowserWindowInterface* window) = 0;
   virtual void Activate(BrowserWindowInterface* window) = 0;
+  virtual void ToggleFullscreen(BrowserWindowInterface* window) = 0;
   virtual void Close(BrowserWindowInterface* window) = 0;
   virtual base::CallbackListSubscription OnClosed(
       BrowserWindowInterface* window,
       base::RepeatingCallback<void(BrowserWindowInterface*)> callback) = 0;
 
+  // A new normal window of `profile` at `bounds`, not yet shown, with no
+  // tabs. Null when Chrome can't create it.
+  virtual BrowserWindowInterface* Create(Profile* profile,
+                                         const gfx::Rect& bounds,
+                                         bool from_user_gesture) = 0;
   // Opens `url` in a new popup window of `profile` at `bounds`, shown, and
   // left out of session restore. Null when no window took it.
   virtual BrowserWindowInterface* OpenPopup(Profile* profile,

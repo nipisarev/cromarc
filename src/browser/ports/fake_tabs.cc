@@ -113,6 +113,10 @@ void FakeTabs::Close(TabId tab) {
   Remove(tab);
 }
 
+void FakeTabs::CloseByUser(TabId tab) {
+  Remove(tab);
+}
+
 std::optional<TabId> FakeTabs::Duplicate(TabId tab) {
   Tab* t = Find(tab);
   if (!t) {
@@ -134,6 +138,11 @@ void FakeTabs::Open(BrowserWindowInterface* window,
 void FakeTabs::OpenNewTabPage(BrowserWindowInterface* window) {
   Open(window, GURL("chrome://newtab/"),
        WindowOpenDisposition::NEW_FOREGROUND_TAB);
+}
+
+void FakeTabs::AddNewTabPage(BrowserWindowInterface* window,
+                             bool keep_window_hidden) {
+  OpenNewTabPage(window);
 }
 
 std::optional<TabId> FakeTabs::OpenPinned(BrowserWindowInterface* window,

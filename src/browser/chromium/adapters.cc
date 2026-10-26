@@ -6,8 +6,11 @@
 
 #include "base/no_destructor.h"
 #include "cromarc/browser/chromium/app_lifecycle_adapter.h"
+#include "cromarc/browser/chromium/profiles_adapter.h"
+#include "cromarc/browser/chromium/strip_defaults_adapter.h"
 #include "cromarc/browser/chromium/tab_strip_api_adapter.h"
 #include "cromarc/browser/chromium/tabs_adapter.h"
+#include "cromarc/browser/chromium/theme_adapter.h"
 #include "cromarc/browser/chromium/windows_adapter.h"
 
 namespace cromarc {
@@ -30,6 +33,21 @@ AppLifecycle& ChromiumAppLifecycle() {
 TabStripApi& ChromiumTabStripApi() {
   static base::NoDestructor<TabStripApiAdapter> tab_strip_api;
   return *tab_strip_api;
+}
+
+Profiles& ChromiumProfiles() {
+  static base::NoDestructor<ProfilesAdapter> profiles;
+  return *profiles;
+}
+
+Theme& ChromiumTheme() {
+  static base::NoDestructor<ThemeAdapter> theme;
+  return *theme;
+}
+
+StripDefaults& ChromiumStripDefaults() {
+  static base::NoDestructor<StripDefaultsAdapter> strip_defaults;
+  return *strip_defaults;
 }
 
 }  // namespace cromarc

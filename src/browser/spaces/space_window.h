@@ -5,7 +5,7 @@
 #ifndef CROMARC_BROWSER_SPACES_SPACE_WINDOW_H_
 #define CROMARC_BROWSER_SPACES_SPACE_WINDOW_H_
 
-class BrowserWindowInterface;
+#include "ui/gfx/native_ui_types.h"
 
 namespace cromarc {
 
@@ -14,7 +14,7 @@ namespace cromarc {
 // as not hiding the window beneath (alpha below 1, mouse let through:
 // WebContentsOcclusionCheckerMac windowCanOccludeOtherWindows). False puts it
 // back to normal.
-void SetWindowFaint(BrowserWindowInterface* browser, bool faint);
+void SetWindowFaint(gfx::NativeWindow window, bool faint);
 
 }  // namespace cromarc
 

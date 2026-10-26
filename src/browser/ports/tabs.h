@@ -54,8 +54,10 @@ class Tabs {
   // Activates the tab in its window.
   virtual void Activate(TabId tab) = 0;
   virtual void SetPinned(TabId tab, bool pinned) = 0;
-  // Closes it, as the user would: it goes to the recently closed tabs.
+  // Closes it: it goes to the recently closed tabs.
   virtual void Close(TabId tab) = 0;
+  // Closes it as the user's own gesture does.
+  virtual void CloseByUser(TabId tab) = 0;
   // A copy with the page and its history, next to it. Nullopt when none was
   // made.
   virtual std::optional<TabId> Duplicate(TabId tab) = 0;
@@ -67,6 +69,10 @@ class Tabs {
                     WindowOpenDisposition disposition) = 0;
   // Opens the new tab page in `window`, active.
   virtual void OpenNewTabPage(BrowserWindowInterface* window) = 0;
+  // Adds the new tab page to the end of `window`, active; a hidden window
+  // stays hidden when `keep_window_hidden`.
+  virtual void AddNewTabPage(BrowserWindowInterface* window,
+                             bool keep_window_hidden) = 0;
   // Opens `url` in `window` as a new active tab, pinned from the start, as a
   // link is followed. Nullopt when nothing opened.
   virtual std::optional<TabId> OpenPinned(BrowserWindowInterface* window,

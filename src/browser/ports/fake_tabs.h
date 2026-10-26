@@ -42,11 +42,14 @@ class FakeTabs : public Tabs {
   void Activate(TabId tab) override;
   void SetPinned(TabId tab, bool pinned) override;
   void Close(TabId tab) override;
+  void CloseByUser(TabId tab) override;
   std::optional<TabId> Duplicate(TabId tab) override;
   void Open(BrowserWindowInterface* window,
             const GURL& url,
             WindowOpenDisposition disposition) override;
   void OpenNewTabPage(BrowserWindowInterface* window) override;
+  void AddNewTabPage(BrowserWindowInterface* window,
+                     bool keep_window_hidden) override;
   std::optional<TabId> OpenPinned(BrowserWindowInterface* window,
                                   const GURL& url) override;
   std::optional<TabId> InsertAfterActive(

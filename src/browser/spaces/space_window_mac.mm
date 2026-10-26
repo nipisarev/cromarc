@@ -6,15 +6,10 @@
 
 #import <AppKit/AppKit.h>
 
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "ui/base/base_window.h"
-#include "ui/gfx/native_ui_types.h"
-
 namespace cromarc {
 
-void SetWindowFaint(BrowserWindowInterface* browser, bool faint) {
-  NSWindow* window =
-      browser->GetWindow()->GetNativeWindow().GetNativeNSWindow();
+void SetWindowFaint(gfx::NativeWindow native_window, bool faint) {
+  NSWindow* window = native_window.GetNativeNSWindow();
   if (!window) {
     return;
   }
