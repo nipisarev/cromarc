@@ -96,27 +96,27 @@ if (visible[0] !== order[2]) {
   await evaluate(await sidebarOf(visible[0]), `${APP}.switchTo_(${JSON.stringify(
       await evaluate(last, `${APP}.spaces_.find(s => s.current).id`))}), true`);
 }
-check(`on the last space (${order[2]})`,
+check('on the last space',
     !!(await until(async () => JSON.stringify(await shown()) === JSON.stringify([order[2]]), 5000)),
     JSON.stringify(await shown()));
 
 await swipePrevious(last);
-check(`a swipe right goes to ${order[1]}`,
+check('a swipe right goes to the middle space',
     !!(await until(async () => JSON.stringify(await shown()) === JSON.stringify([order[1]]), 5000)),
     JSON.stringify(await shown()));
 check('…and opens no Library', (await libraryOpen()).length === 0, JSON.stringify(await libraryOpen()));
 await sleep(500);
 
 await swipePrevious(await sidebarOf(order[1]));
-check(`another swipe right goes to ${order[0]}`,
+check('another swipe right goes to the first space',
     !!(await until(async () => JSON.stringify(await shown()) === JSON.stringify([order[0]]), 5000)),
     JSON.stringify(await shown()));
-check('…and opens no Library', (await libraryOpen()).length === 0, JSON.stringify(await libraryOpen()));
+check('…and still opens no Library', (await libraryOpen()).length === 0, JSON.stringify(await libraryOpen()));
 await sleep(500);
 
 // Past the first space: Zen's edge action.
 await swipePrevious(await sidebarOf(order[0]));
-check(`a swipe right past ${order[0]} opens its Library`,
+check('a swipe right past the first space opens its Library',
     !!(await until(async () => JSON.stringify(await libraryOpen()) === JSON.stringify([order[0]]), 3000)),
     JSON.stringify(await libraryOpen()));
 
@@ -127,7 +127,7 @@ await swipeNext(await sidebarOf(order[0]));
 check('a swipe left closes the Library',
     !!(await until(async () => (await libraryOpen()).length === 0, 3000)), JSON.stringify(await libraryOpen()));
 await sleep(500);
-check(`…and stays on ${order[0]}`, JSON.stringify(await shown()) === JSON.stringify([order[0]]),
+check('…and stays on the first space', JSON.stringify(await shown()) === JSON.stringify([order[0]]),
     JSON.stringify(await shown()));
 await swipePrevious(await sidebarOf(order[0]));
 await until(async () => (await libraryOpen()).length === 1, 3000);
@@ -143,7 +143,7 @@ await swipePrevious(last);
 await until(async () => JSON.stringify(await shown()) === JSON.stringify([order[1]]), 5000);
 await sleep(500);
 await swipePrevious(await sidebarOf(order[1]));
-check(`back on ${order[0]} by swipes`,
+check('back on the first space by swipes',
     !!(await until(async () => JSON.stringify(await shown()) === JSON.stringify([order[0]]), 5000)),
     JSON.stringify(await shown()));
 check('…it shows its tabs, not the Library left open there',

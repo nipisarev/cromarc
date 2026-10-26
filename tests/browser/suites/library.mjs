@@ -84,7 +84,7 @@ await chip(H, 'source', 'closed');
 const archived = await until(async () => { const t = await titles(H); return t.includes('Little test') && t; });
 check('the closed-tabs source lists the archive, blank tabs left out', !!archived &&
     !archived.includes('about:blank'), JSON.stringify(await titles(H)));
-check('…and the tab reads Архив', await evaluate(sb, `${IN('.tab[active] .tab-label')}.textContent`) === 'Архив');
+check('…and the tab reads Archive', await evaluate(sb, `${IN('.tab[active] .tab-label')}.textContent`) === 'Архив');
 check('the most visited sort is off for closed tabs', await evaluate(sb,
     `${IN(`${H} .filter-chip[data-option="mostvisited"]`)}.disabled`) === true);
 await evaluate(sb, `${IN(`${H} .filter-done`)}.click(), true`);

@@ -48,7 +48,7 @@ const heightPinned = await evaluate(await sidebar(), 'window.innerHeight');
 const pageBefore = await pageWidth();
 console.log('sidebar', before, 'page', pageBefore);
 check('the sidebar has width', before > 100);
-check('menu has "Скрыть сайдбар"', await clickMenu('Скрыть сайдбар'));
+check('the menu has the hide-sidebar item', await clickMenu('Скрыть сайдбар'));
 check('collapsed: the sidebar is gone', (await until(async () => (await width()) <= 2)) === true, String(await width()));
 const pageCompact = await until(async () => { const w = await pageWidth(); return w > pageBefore && w; });
 console.log('page in compact', pageCompact);

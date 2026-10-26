@@ -26,4 +26,6 @@ for (let i = 0; i < 40 && !opened; i++) {
   await sleep(250);
   opened = (await targets()).find(t => t.url.startsWith('chrome://cromarc-import'));
 }
-console.log(`${label && opened ? 'PASS' : 'FAIL'}: sidebar menu "${label}" opens ${opened?.url}`);
+const ok = !!(label && opened);
+console.log(`${ok ? 'PASS' : 'FAIL'}: sidebar menu "Arc" opens chrome://cromarc-import/` +
+    (ok ? '' : `  menu choice ${label}, page ${opened?.url}`));
