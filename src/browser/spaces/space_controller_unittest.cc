@@ -240,6 +240,15 @@ TEST_F(SpaceControllerTest, AThemeSetsChromesColourAndScheme) {
             profiles_.prefs(work_).GetString(kSpaceThemePref));
 }
 
+TEST_F(SpaceControllerTest, ASchemeActsAtOnceAndSavesNothing) {
+  controller_->SetSpaceScheme("Profile 1", "dark");
+  EXPECT_EQ(Theme::Scheme::kDark, theme_.schemes[work_]);
+  controller_->SetSpaceScheme("Profile 1", "auto");
+  EXPECT_EQ(Theme::Scheme::kSystem, theme_.schemes[work_]);
+  EXPECT_EQ("", profiles_.prefs(work_).GetString(kSpaceThemePref));
+  EXPECT_FALSE(theme_.colors.contains(work_));
+}
+
 TEST_F(SpaceControllerTest, ARenameOrNewProfileTellsTheSidebars) {
   FakeSidebar sidebar;
   controller_->AddSidebar(personal_window_, &sidebar);

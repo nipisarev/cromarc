@@ -13,6 +13,9 @@ interface PageHandler {
   // The theme being edited, as the theme editor's JSON: shown under the
   // window, and saved with the space when the panel closes.
   Preview(string theme);
+  // A scheme button ("auto", "light", "dark"): the space takes the scheme at
+  // once, as in Zen; the theme saved on close carries it too.
+  SetScheme(string scheme);
   PlayHapticFeedback();
   // Escape: closes the panel, as a click elsewhere does.
   Close();

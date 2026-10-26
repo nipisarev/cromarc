@@ -45,6 +45,13 @@ constexpr base::TimeDelta kHideDelay = base::Milliseconds(1500);
 // After startup settles, in idle time.
 constexpr base::TimeDelta kWarmWindowsDelay = base::Seconds(30);
 
+// A space theme's "scheme": "light", "dark", or anything else for the system's.
+Theme::Scheme SchemeOf(const std::string& scheme) {
+  return scheme == "light"  ? Theme::Scheme::kLight
+         : scheme == "dark" ? Theme::Scheme::kDark
+                            : Theme::Scheme::kSystem;
+}
+
 }  // namespace
 
 SpaceController::SpaceController(Profiles& profiles,
@@ -100,10 +107,7 @@ void SpaceController::ApplyTheme(Profile* profile, const std::string& json) {
                                             rgb[2].GetIfInt().value_or(0)));
   }
   const std::string* scheme = theme->FindString("scheme");
-  theme_->SetScheme(profile, !scheme              ? Theme::Scheme::kSystem
-                             : *scheme == "light" ? Theme::Scheme::kLight
-                             : *scheme == "dark"  ? Theme::Scheme::kDark
-                                                  : Theme::Scheme::kSystem);
+  theme_->SetScheme(profile, SchemeOf(scheme ? *scheme : ""));
 }
 
 
@@ -565,6 +569,18 @@ void SpaceController::SetSpaceTheme(const std::string& id,
                       self->NotifySpacesChanged();
                     },
                     weak_factory_.GetWeakPtr(), theme));
+}
+
+void SpaceController::SetSpaceScheme(const std::string& id,
+                                     const std::string& scheme) {
+  LoadSpace(id, base::BindOnce(
+                    [](base::WeakPtr<SpaceController> self, std::string scheme,
+                       Profile* profile) {
+                      if (self && profile) {
+                        self->theme_->SetScheme(profile, SchemeOf(scheme));
+                      }
+                    },
+                    weak_factory_.GetWeakPtr(), scheme));
 }
 
 void SpaceController::ReorderSpaces(const std::vector<std::string>& ids) {

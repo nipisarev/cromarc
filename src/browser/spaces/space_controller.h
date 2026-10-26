@@ -151,6 +151,9 @@ class SpaceController {
   // colour and the scheme its light or dark mode, so the window around the
   // sidebar follows.
   void SetSpaceTheme(const std::string& id, const std::string& theme);
+  // The theme picker's scheme buttons ("auto", "light", "dark") act at once,
+  // as Zen's do; the theme saved when the picker closes carries the scheme.
+  void SetSpaceScheme(const std::string& id, const std::string& scheme);
   // `ids` in the switcher's new order.
   void ReorderSpaces(const std::vector<std::string>& ids);
   // Deletes the space's profile the way Chrome's settings do, after `from`
