@@ -8,10 +8,10 @@ Zen's Library is at least 418px wide and moves the page aside as it
 slides out; the vertical tab strip region asks Cromarc for its width.
 
 diff --git a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
-index dc0c271dc9120..c0392ef316f6b 100644
+index b0836c94eced3..cd4e66feecca3 100644
 --- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
-@@ -516,6 +516,8 @@ gfx::Size VerticalTabStripRegionView::CalculatePreferredSize(
+@@ -540,6 +540,8 @@ gfx::Size VerticalTabStripRegionView::CalculatePreferredSize(
                   (motion == TabStripAnimations::kExpand
                        ? std::floor<double>
                        : std::ceil<double>)(expand_amount * expand_percent));

@@ -11,8 +11,8 @@
 #include "chrome/browser/themes/theme_service_factory.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
-#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
+#include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"  // nogncheck: //chrome/browser links //cromarc
+#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: as above
 #include "chrome/browser/ui/startup/startup_tab.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
 #include "cromarc/browser/chromium/adapters.h"
@@ -132,17 +132,16 @@ bool ClearSolidLayer(ui::Layer* layer, const BrowserView* browser_view) {
   return true;
 }
 
-base::flat_set<BrowserWindowInterface*> WithSpaceWindows(
-    base::flat_set<BrowserWindowInterface*> chrome_eligible) {
+base::flat_set<raw_ptr<BrowserWindowInterface>> WithSpaceWindows(
+    base::flat_set<raw_ptr<BrowserWindowInterface>> chrome_eligible) {
   for (BrowserWindowInterface* browser : GetAllBrowserWindowInterfaces()) {
     if (!cromarc::KeepsGlass(browser)) {
       continue;
     }
-    // Chrome's own exclusions: fullscreen windows and extension themes.
+    // Chrome's own exclusions (GlassFrameService::IsBrowserEligibleForGlass):
+    // fullscreen windows, the browser's or a tab's, and extension themes.
     ExclusiveAccessManager* access = ExclusiveAccessManager::From(browser);
-    FullscreenController* fullscreen =
-        access ? access->fullscreen_controller() : nullptr;
-    if (fullscreen && fullscreen->IsFullscreenForBrowser()) {
+    if (access && access->context() && access->context()->IsFullscreen()) {
       continue;
     }
     ThemeService* theme =
@@ -190,15 +189,6 @@ bool ShowsTopSeparator(BrowserView* browser_view,
 bool PaintsOnSpaceTheme(const views::View* view,
                         const BrowserView* browser_view) {
   return cromarc::PaintsOnSpaceTheme(view, browser_view);
-}
-
-bool TakesRoom(const views::View* combo_button) {
-  // Cromarc hides the combo button (tab search and groups): it takes no room.
-  return combo_button && combo_button->GetVisible();
-}
-
-int ComboButtonWidth(const views::View* combo_button, int chrome_width) {
-  return TakesRoom(combo_button) ? chrome_width : 0;
 }
 
 }  // namespace cromarc::hooks

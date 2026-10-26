@@ -10,18 +10,18 @@ in under 1% opacity before the swap: GlassFrameService counts normal windows
 so the window the swap shows has its glass already.
 
 diff --git a/chrome/browser/ui/views/frame/glass_frame_service.cc b/chrome/browser/ui/views/frame/glass_frame_service.cc
-index 791662db9cc88..c296347bea3c9 100644
+index 8936f80f446dc..e31a7ab5c1c9a 100644
 --- a/chrome/browser/ui/views/frame/glass_frame_service.cc
 +++ b/chrome/browser/ui/views/frame/glass_frame_service.cc
-@@ -27,6 +27,7 @@
+@@ -39,6 +39,7 @@
+ #include "components/prefs/pref_registry_simple.h"
+ #include "components/prefs/pref_service.h"
+ #include "ui/base/ui_base_features.h"
++#include "cromarc/hooks/hooks.h"  // Cromarc
  
  #if BUILDFLAG(IS_MAC)
  #include "base/mac/mac_util.h"
-+#include "cromarc/hooks/hooks.h"  // Cromarc
- #endif
- 
- DEFINE_USER_DATA(GlassFrameService);
-@@ -156,7 +157,8 @@ GlassFrameService::ActivationOrderedEligibleBrowsers() {
+@@ -313,7 +314,8 @@ GlassFrameService::GetEligibleBrowserWindowInterfaces() {
          return activation_ordered_eligible_browsers.size() < kMaxGlassWindows;
        },
        BrowserCollection::Order::kActivation);
@@ -30,4 +30,4 @@ index 791662db9cc88..c296347bea3c9 100644
 +  return cromarc::hooks::WithSpaceWindows(activation_ordered_eligible_browsers);
  }
  
- base::flat_set<BrowserWindowInterface*>
+ void GlassFrameService::OnGlassFrameEnabledPrefChanged() {

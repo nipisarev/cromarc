@@ -9,7 +9,7 @@
 #include "base/check.h"
 #include "base/functional/bind.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
 #include "ui/compositor/layer.h"

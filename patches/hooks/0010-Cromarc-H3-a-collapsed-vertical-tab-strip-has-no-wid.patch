@@ -4,26 +4,27 @@ Date: Sat, 24 Oct 2026 04:01:54 +0200
 Subject: [PATCH] Cromarc H3: a collapsed vertical tab strip has no width
 
 
-diff --git a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
-index 52ee4b9479a2a..33d97ad07c04e 100644
---- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
-+++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
-@@ -33,6 +33,7 @@
- #include "ui/views/controls/resize_area_delegate.h"
- #include "ui/views/focus/focus_manager.h"
- #include "ui/views/layout/delegating_layout_manager.h"
-+#include "cromarc/hooks/hooks.h"  // Cromarc
+diff --git a/chrome/browser/ui/tabs/vertical_tab_strip_state.h b/chrome/browser/ui/tabs/vertical_tab_strip_state.h
+index 62ea6d7c9b3f8..f4c14fd4a97cc 100644
+--- a/chrome/browser/ui/tabs/vertical_tab_strip_state.h
++++ b/chrome/browser/ui/tabs/vertical_tab_strip_state.h
+@@ -5,6 +5,8 @@
+ #ifndef CHROME_BROWSER_UI_TABS_VERTICAL_TAB_STRIP_STATE_H_
+ #define CHROME_BROWSER_UI_TABS_VERTICAL_TAB_STRIP_STATE_H_
  
- class BrowserView;
- class VerticalTabStripTopContainer;
-@@ -70,7 +71,9 @@ class VerticalTabStripRegionView final
-   // TODO(crbug.com/465832180): Replace constant based width final max width for
-   // view.
-   static constexpr int kUncollapsedMaxWidth = 400;
--  static constexpr int kCollapsedWidth = 56;
-+  // Cromarc: collapsed is compact mode.
-+  static constexpr int kCollapsedWidth =
-+      cromarc::hooks::CollapsedVerticalTabStripWidth(56);
-   // TODO(crbug.com/465833741): Determine snapping behavior.
-   static constexpr int kCollapseSnapWidth =
-       (kUncollapsedMinWidth + kCollapsedWidth) / 2;
++#include "cromarc/hooks/hooks.h"  // Cromarc
++
+ namespace tabs {
+ 
+ inline constexpr int kVerticalTabStripDefaultUncollapsedWidth = 240;
+@@ -14,7 +16,9 @@ inline constexpr int kVerticalTabStripUncollapsedMinWidth = 126;
+ // TODO(crbug.com/465832180): Replace constant based width final max width for
+ // view.
+ inline constexpr int kVerticalTabStripUncollapsedMaxWidth = 400;
+-inline constexpr int kVerticalTabStripCollapsedWidth = 56;
++// Cromarc: collapsed is compact mode.
++inline constexpr int kVerticalTabStripCollapsedWidth =
++    cromarc::hooks::CollapsedVerticalTabStripWidth(56);
+ // TODO(crbug.com/465833741): Determine snapping behavior.
+ inline constexpr int kVerticalTabStripCollapseSnapWidth =
+     (kVerticalTabStripUncollapsedMinWidth + kVerticalTabStripCollapsedWidth) /

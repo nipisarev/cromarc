@@ -6,10 +6,10 @@ Subject: [PATCH] Cromarc H6: Cmd+T, Cmd+L, Cmd+W and Cmd+O go through Cromarc
 
 
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 921461b9e9bd0..26739ed72019c 100644
+index 8db5695096671..9a21debd0424f 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -200,6 +200,8 @@
+@@ -206,6 +206,8 @@
  
  static_assert(BUILDFLAG(ENABLE_EXTENSIONS));
  
@@ -18,7 +18,7 @@ index 921461b9e9bd0..26739ed72019c 100644
  using Extension = extensions::Extension;
  using ExtensionRegistry = extensions::ExtensionRegistry;
  using ExtensionRegistryObserver = extensions::ExtensionRegistryObserver;
-@@ -753,6 +755,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
+@@ -765,6 +767,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
        CloseWindow(browser_);
        break;
      case IDC_NEW_TAB: {
@@ -28,7 +28,7 @@ index 921461b9e9bd0..26739ed72019c 100644
        NewTab(browser_, NewTabTypes::kNewTabCommand);
        break;
      }
-@@ -762,6 +767,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
+@@ -774,6 +779,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
      }
      case IDC_CLOSE_TAB:
        base::RecordAction(base::UserMetricsAction("CloseTabByKey"));
@@ -38,7 +38,7 @@ index 921461b9e9bd0..26739ed72019c 100644
        CloseTab(browser_);
        break;
      case IDC_SELECT_NEXT_TAB:
-@@ -1102,6 +1110,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
+@@ -1130,6 +1138,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
        FocusToolbar(browser_);
        break;
      case IDC_FOCUS_LOCATION:
@@ -48,7 +48,7 @@ index 921461b9e9bd0..26739ed72019c 100644
        if (!window()->IsLocationBarVisible()) {
          break;
        }
-@@ -1134,6 +1145,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
+@@ -1162,6 +1173,9 @@ void BrowserCommandController::HandleCommandWithDisposition(
  
      // Show various bits of UI
      case IDC_OPEN_FILE:

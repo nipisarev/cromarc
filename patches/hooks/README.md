@@ -17,7 +17,8 @@ re-export, and fix the adapter behind the call if Chromium's types changed.
 
 ### H0 build //cromarc into Chrome
 Kind: build
-Where: `chrome/browser/ui/BUILD.gn` (`ui` deps), `chrome/chrome_paks.gni`
+Where: `chrome/browser/BUILD.gn` (`browser` deps, desktop; until 156 the
+`ui` deps in `chrome/browser/ui/BUILD.gn`), `chrome/chrome_paks.gni`
 (`chrome_extra_paks`), `third_party/lit/v3_0/BUILD.gn` (visibility),
 `tools/gritsettings/resource_ids.spec`.
 Contract: //cromarc links into the browser, its WebUI resources pak ships, Lit is
@@ -42,9 +43,10 @@ container and separator, and puts its sidebar next to it.
 If it moved: where the vertical tab strip's tab list view is added to the region.
 
 ### H3 a collapsed vertical tab strip has no width
-Kind: code (the constant moved upstream in 157)
-Where: `chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h`,
-`kCollapsedWidth`.
+Kind: code
+Where: `chrome/browser/ui/tabs/vertical_tab_strip_state.h`,
+`tabs::kVerticalTabStripCollapsedWidth` (until 156
+`VerticalTabStripRegionView::kCollapsedWidth`).
 Calls: `cromarc::hooks::CollapsedVerticalTabStripWidth(<Chrome's width>)`, wrapping the value.
 Contract: collapsed (Cromarc's compact mode), the region takes no width.
 If it moved: the collapsed width of the vertical tab strip region.
@@ -133,7 +135,7 @@ If it moved: the glass frame feature's definition.
 ### H14 the space theme is the window's background
 Kind: code
 Where: `chrome/browser/ui/views/frame/browser_frame_view_mac.mm` (`OnPaint`),
-`browser_native_widget_mac.mm` (`GetGlassFrameHeight`, `UpdateBackgroundColor`),
+`browser_native_widget_mac.mm` (`GetGlassFrameWidth`, `UpdateBackgroundColor`),
 `custom_corners_background.cc` (`Paint`), `multi_contents_background_view.cc`.
 Calls: `cromarc::hooks::PaintWindowBackground`; guards on `ThemesWindow`,
 `PaintChromeBackground` and `ClearSolidLayer`; `GlassTint(...)` wrapping
@@ -145,7 +147,8 @@ If it moved: the Mac browser frame's painting and the glass frame's tint.
 ### H15 space windows keep their glass
 Kind: code
 Where: `chrome/browser/ui/views/frame/glass_frame_service.cc`,
-`GlassFrameService::ActivationOrderedEligibleBrowsers`.
+`GlassFrameService::GetEligibleBrowserWindowInterfaces` (until 156
+`ActivationOrderedEligibleBrowsers`), after its `IsGlassFrameAllowed()` check.
 Calls: `cromarc::hooks::WithSpaceWindows(<Chrome's eligible windows>)`,
 wrapping the returned set; Chrome's own selection is untouched.
 Contract: space windows keep the glass frame whether active or not, beyond
@@ -172,14 +175,18 @@ If it moved: where the region's background sets its blur.
 ### H18 the page is a card all round, under a clear bookmarks bar
 Kind: code
 Where: `chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc`
-(`CalculateProposedLayout`), `multi_contents_view.cc` (top separator),
-`themed_background.cc` (`Paint`), `chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.cc`.
+(`DoPostLayoutVisualAdjustments`; until 156 `CalculateProposedLayout`),
+`multi_contents_view.cc` (top separator), `themed_background.cc` (`Paint`).
 Calls: `content_corners = cromarc::hooks::PageCorners(...)`,
 `should_show = cromarc::hooks::ShowsTopSeparator(...)`, a guard on
-`PaintsOnSpaceTheme`, `TakesRoom(combo_button_)` wrapping Chrome's two
-conditions and `ComboButtonWidth(...)` wrapping its width.
+`PaintsOnSpaceTheme`.
 Contract: the page's corners are all round when it is a card, no line over it,
-the bookmarks bar lets the theme show, and a hidden tab-strip combo button takes
-no room in the top row.
+and the bookmarks bar lets the theme show.
 If it moved: the browser view's content corners, the multi contents top
-separator, the themed background, the vertical tab strip's top container layout.
+separator, the themed background.
+Since 157 Chrome itself gives the tab strip's combo button no room in the top
+row when it is hidden (`InstallSidebar` hides it), so the hook in
+`vertical_tab_strip_top_container.cc` went. That file's
+`UpdateControlsVisibility()` shows the combo button again; it runs only with
+`kOrganizerPanel`, off by default in 157. When that ships enabled, the
+combo button and the segmented control come back: hook there.

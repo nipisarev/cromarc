@@ -8,23 +8,23 @@ there, not here), the WebUI configs see //cromarc:headers, //cromarc WebUIs
 may use Lit, and the sidebar resources are packed into resources.pak with
 their own grit ids.
 
-diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
-index 238f8625e42d8..04e9137cf57dd 100644
---- a/chrome/browser/ui/BUILD.gn
-+++ b/chrome/browser/ui/BUILD.gn
-@@ -2507,6 +2507,7 @@ static_library("ui") {
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+index 814b9d649a316..485ea8ed7ebf5 100644
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -2979,6 +2979,7 @@ source_set("browser") {
        "//chrome/browser/ui/webui/metrics_reporter:impl",
        "//chrome/browser/ui/webui/new_tab_footer",
        "//chrome/browser/ui/webui/new_tab_footer:impl",
 +      "//cromarc",  # Cromarc
-       "//chrome/browser/ui/webui/organizer_panel",
+       "//chrome/browser/ui/webui/omnibox_internals",
+       "//chrome/browser/ui/webui/omnibox_internals/logging:mojo_bindings",
        "//chrome/browser/ui/webui/page_action_internals",
-       "//chrome/browser/ui/webui/settings",
 diff --git a/chrome/chrome_paks.gni b/chrome/chrome_paks.gni
-index 12a5e53584f9f..1ae206345213c 100644
+index 150c570d3ea97..b6f6cf99a926a 100644
 --- a/chrome/chrome_paks.gni
 +++ b/chrome/chrome_paks.gni
-@@ -275,6 +275,11 @@ template("chrome_extra_paks") {
+@@ -283,6 +283,11 @@ template("chrome_extra_paks") {
          "//components/headless/command_handler",
          "//content/browser/tracing:resources",
        ]
@@ -37,7 +37,7 @@ index 12a5e53584f9f..1ae206345213c 100644
          sources += [
            "$root_gen_dir/chrome/browser/nearby_sharing/internal/icons/nearby_share_internal_icons.pak",
 diff --git a/third_party/lit/v3_0/BUILD.gn b/third_party/lit/v3_0/BUILD.gn
-index a75e73285cf86..fb003daccc71b 100644
+index 7b494253a6bf9..28b5b90b90a49 100644
 --- a/third_party/lit/v3_0/BUILD.gn
 +++ b/third_party/lit/v3_0/BUILD.gn
 @@ -12,6 +12,7 @@ import("//ui/webui/webui_features.gni")
@@ -49,10 +49,10 @@ index a75e73285cf86..fb003daccc71b 100644
      # Lit has officially being declared as the preferred framework (over
      # Polymer) for new WebUI code, see [1] and [2]
 diff --git a/tools/gritsettings/resource_ids.spec b/tools/gritsettings/resource_ids.spec
-index 8749c14d44f1b..12a7de665c1d8 100644
+index 52b97ceee9ec8..89b84f077af0b 100644
 --- a/tools/gritsettings/resource_ids.spec
 +++ b/tools/gritsettings/resource_ids.spec
-@@ -1799,6 +1799,12 @@
+@@ -1791,6 +1791,12 @@
      "includes": [10140],
    },
  

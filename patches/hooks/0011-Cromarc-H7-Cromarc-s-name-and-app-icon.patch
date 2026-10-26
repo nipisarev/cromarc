@@ -5,10 +5,10 @@ Subject: [PATCH] Cromarc H7: Cromarc's name and app icon
 
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index d98c86e5dace9..59641d968c9f7 100644
+index f1d133b6cda97..67bc2b3a11684 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -670,12 +670,12 @@ if (is_win) {
+@@ -673,12 +673,12 @@ if (is_win) {
    }
  
    bundle_data("chrome_app_icon") {
@@ -24,7 +24,7 @@ index d98c86e5dace9..59641d968c9f7 100644
    }
  
 diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
-index 3de8ca69c9248..e11afb38759ad 100644
+index 87499190d7614..d54ab80f38803 100644
 --- a/chrome/app/chromium_strings.grd
 +++ b/chrome/app/chromium_strings.grd
 @@ -294,10 +294,10 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->

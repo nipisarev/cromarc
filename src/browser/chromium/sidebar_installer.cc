@@ -11,7 +11,7 @@
 #include "base/check.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/views/frame/frame_separator.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/views/frame/frame_separator.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/views/tabs/shared/tab_strip_combo_button.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_bottom_container.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.h"  // nogncheck: as above

@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "base/containers/flat_set.h"
+#include "base/memory/raw_ptr.h"
 #include "base/feature_list.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
@@ -115,8 +116,8 @@ bool ClearSolidLayer(ui::Layer* layer, const BrowserView* browser_view);
 
 // H15: space windows keep the glass frame, active or not, beyond Chrome's
 // limit of glass windows.
-base::flat_set<BrowserWindowInterface*> WithSpaceWindows(
-    base::flat_set<BrowserWindowInterface*> chrome_eligible);
+base::flat_set<raw_ptr<BrowserWindowInterface>> WithSpaceWindows(
+    base::flat_set<raw_ptr<BrowserWindowInterface>> chrome_eligible);
 
 // H16: the Library widens the region while it is out.
 gfx::Size RegionSize(BrowserWindowInterface* browser, const gfx::Size& size);
@@ -129,7 +130,7 @@ bool SetChromeBackgroundBlur(const views::View* view,
                              const SkPath& path);
 
 // H18: the page as a card all round, no line over it, the bookmarks bar on
-// the theme, and a hidden tab strip combo button taking no room.
+// the theme.
 gfx::RoundedCornersF PageCorners(views::View* browser_view,
                                  const gfx::RoundedCornersF& chrome_corners);
 bool ShowsTopSeparator(BrowserView* browser_view,
@@ -137,8 +138,6 @@ bool ShowsTopSeparator(BrowserView* browser_view,
                        bool chrome_shows);
 bool PaintsOnSpaceTheme(const views::View* view,
                         const BrowserView* browser_view);
-bool TakesRoom(const views::View* combo_button);
-int ComboButtonWidth(const views::View* combo_button, int chrome_width);
 
 }  // namespace cromarc::hooks
 

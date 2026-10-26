@@ -8,10 +8,10 @@ EnsureBrowserContextKeyedServiceFactoriesBuilt() lets //cromarc build its
 own (the tree service now, more in later parts).
 
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-index 352402767d777..27ded1341d1f6 100644
+index a281709c54cd7..eaa41472cf616 100644
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -663,6 +663,8 @@
+@@ -654,6 +654,8 @@
  #include "chrome/browser/net/nss_service_factory.h"
  #endif
  
@@ -20,7 +20,7 @@ index 352402767d777..27ded1341d1f6 100644
  void AddProfilesExtraParts(ChromeBrowserMainParts* main_parts) {
    main_parts->AddParts(std::make_unique<ChromeBrowserMainExtraPartsProfiles>());
  }
-@@ -1596,6 +1598,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -1576,6 +1578,7 @@ void ChromeBrowserMainExtraPartsProfiles::
  
    WebDataServiceFactory::GetInstance();
    webrtc_event_logging::WebRtcEventLogManagerKeyedServiceFactory::GetInstance();

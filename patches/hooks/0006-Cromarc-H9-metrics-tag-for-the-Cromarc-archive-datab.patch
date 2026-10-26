@@ -6,7 +6,7 @@ Subject: [PATCH] Cromarc H9: metrics tag for the Cromarc archive database
 sql::Database checks its tag against this list at compile time.
 
 diff --git a/tools/metrics/histograms/metadata/sql/histograms.xml b/tools/metrics/histograms/metadata/sql/histograms.xml
-index 55f07550ca901..ad5d82f1c26d0 100644
+index 4987233523965..01bc8c573c3d5 100644
 --- a/tools/metrics/histograms/metadata/sql/histograms.xml
 +++ b/tools/metrics/histograms/metadata/sql/histograms.xml
 @@ -30,6 +30,7 @@ chromium-metrics-reviews@google.com.

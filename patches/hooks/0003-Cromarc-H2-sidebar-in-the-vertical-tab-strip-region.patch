@@ -8,7 +8,7 @@ the native tab list it adds is hidden and the Cromarc WebUI sidebar takes
 its place.
 
 diff --git a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
-index fdfdd93f076b3..dc0c271dc9120 100644
+index f3ab4f166bc17..b0836c94eced3 100644
 --- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
 @@ -82,6 +82,7 @@
@@ -19,7 +19,7 @@ index fdfdd93f076b3..dc0c271dc9120 100644
  
  namespace {
  constexpr int kResizeAreaWidth = 5;
-@@ -855,7 +856,11 @@ void VerticalTabStripRegionView::AddTabStripView(
+@@ -866,7 +867,11 @@ void VerticalTabStripRegionView::AddTabStripView(
    std::optional<size_t> separator_index =
        content_parent->GetIndexOf(top_button_separator_);
    CHECK(separator_index.has_value());

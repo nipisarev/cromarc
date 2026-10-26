@@ -7,10 +7,10 @@ The Cromarc sidebar is hosted in the vertical tab strip region, so new
 profiles start in that mode.
 
 diff --git a/chrome/browser/ui/tabs/tab_strip_prefs.cc b/chrome/browser/ui/tabs/tab_strip_prefs.cc
-index ca0afc6fd02f5..c2a73e5d3b502 100644
+index 9a855747c23c7..1240eae49ccd4 100644
 --- a/chrome/browser/ui/tabs/tab_strip_prefs.cc
 +++ b/chrome/browser/ui/tabs/tab_strip_prefs.cc
-@@ -16,6 +16,7 @@
+@@ -17,6 +17,7 @@
  #include "components/pref_registry/pref_registry_syncable.h"
  #include "components/prefs/pref_service.h"
  #include "ui/actions/actions.h"
@@ -18,7 +18,7 @@ index ca0afc6fd02f5..c2a73e5d3b502 100644
  
  namespace tabs {
  
-@@ -24,7 +25,9 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -25,7 +26,9 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kOrganizerPanelPinnedToTabstrip, true);
    registry->RegisterBooleanPref(prefs::kEverythingMenuPinnedToTabstrip, true);
    registry->RegisterBooleanPref(prefs::kTabScrollButtonsPinnedToTabstrip, true);
@@ -26,6 +26,6 @@ index ca0afc6fd02f5..c2a73e5d3b502 100644
 +  // Cromarc: the sidebar lives in the vertical tab strip region.
 +  registry->RegisterBooleanPref(prefs::kVerticalTabsEnabled,
 +                                cromarc::hooks::VerticalTabsByDefault(false));
-   registry->RegisterBooleanPref(
-       prefs::kVerticalTabsExpandOnHoverEnabled,
-       tabs::kVerticalTabsExpandOnHoverDefaultEnabled.Get());
+   registry->RegisterBooleanPref(prefs::kVerticalTabsExpandOnHoverEnabled, true);
+   registry->RegisterBooleanPref(prefs::kVerticalTabsEnabledFirstTime, false);
+   registry->RegisterBooleanPref(prefs::kVerticalTabsCollapsedState, false);

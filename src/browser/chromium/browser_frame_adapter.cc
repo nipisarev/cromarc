@@ -11,7 +11,7 @@
 #include "base/logging.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/bookmarks/bookmark_bar_view.h"  // nogncheck: as above

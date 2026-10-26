@@ -8,10 +8,10 @@ into //cromarc, which registers chrome://cromarc-* pages and binds their
 Mojo interfaces (TabStripService for the sidebar's window, Cromarc's own).
 
 diff --git a/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc b/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
-index 378e1a6f0c8b4..293ceff06c3e7 100644
+index 28f49b378fec8..adf44d52fafb0 100644
 --- a/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
 +++ b/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
-@@ -188,6 +188,8 @@
+@@ -186,6 +186,8 @@
  #include "chrome/browser/ui/webui/feature_showcase/feature_showcase_ui.h"
  #endif
  
@@ -20,7 +20,7 @@ index 378e1a6f0c8b4..293ceff06c3e7 100644
  namespace chrome::internal {
  
  using content::RegisterWebUIControllerInterfaceBinder;
-@@ -632,6 +634,8 @@ void PopulateChromeWebUIFrameInterfaceBrokersTrustedPartsDesktop(
+@@ -619,6 +621,8 @@ void PopulateChromeWebUIFrameInterfaceBrokersTrustedPartsDesktop(
                 CustomizeColorSchemeModeHandlerFactory>()
        .Add<help_bubble::mojom::HelpBubbleHandlerFactory>();
  
@@ -30,10 +30,10 @@ index 378e1a6f0c8b4..293ceff06c3e7 100644
      registry.ForWebUI<WebUIBrowserUI>()
          .Add<webui_browser::mojom::PageHandlerFactory>()
 diff --git a/chrome/browser/ui/webui/chrome_web_ui_configs.cc b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
-index 139fecebd5645..c389d78d75904 100644
+index d79e9dfdb0e67..f1fc699cc4ed9 100644
 --- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
-@@ -245,6 +245,8 @@
+@@ -251,6 +251,8 @@
  #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
          // BUILDFLAG(IS_CHROMEOS)
  
@@ -42,7 +42,7 @@ index 139fecebd5645..c389d78d75904 100644
  void RegisterChromeWebUIConfigs() {
    // Don't add calls to `AddWebUIConfig()` for Ash-specific WebUIs here. Add
    // them to `AshWebUIConfigManager::RegisterWebUIConfigs()` in
-@@ -389,6 +391,7 @@ void RegisterChromeWebUIConfigs() {
+@@ -398,6 +400,7 @@ void RegisterChromeWebUIConfigs() {
    map.AddWebUIConfig(std::make_unique<NewTabUIConfig>());
    map.AddWebUIConfig(std::make_unique<OmniboxEverywhereUIConfig>());
    map.AddWebUIConfig(std::make_unique<OmniboxPopupUIConfig>());

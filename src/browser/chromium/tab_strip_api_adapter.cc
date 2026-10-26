@@ -5,7 +5,7 @@
 #include "cromarc/browser/chromium/tab_strip_api_adapter.h"
 
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_model_impl/converters/tab_converters.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_model_impl/converters/tab_converters.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: as above
 #include "components/browser_apis/tab_strip/types/node_id.h"
 #include "components/tabs/public/tab_interface.h"

@@ -7,11 +7,11 @@
 #include <utility>
 
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
-#include "chrome/browser/ui/navigator/browser_navigator.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/navigator/browser_navigator.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"  // nogncheck: as above
