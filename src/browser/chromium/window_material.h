@@ -20,6 +20,9 @@ void InstallWindowMaterial(gfx::NativeWindow window);
 // translucent panel window: on macOS 26 and later its glass, before that its
 // material. A second call does nothing.
 void InstallPanelMaterial(gfx::NativeWindow window);
+// The popover frame's corner radius, which the panel window takes (its
+// content and so its shadow are rounded by it).
+int PanelCornerRadius();
 
 }  // namespace cromarc
 
