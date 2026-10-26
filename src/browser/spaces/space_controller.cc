@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "base/auto_reset.h"
+#include "base/command_line.h"
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
 #include "base/values.h"
@@ -46,6 +47,10 @@
 namespace cromarc {
 
 namespace {
+
+// Browser suites (tooling/test-browser) read what a switch did from the log:
+// in headless mode a hidden window's pages may still report "visible".
+constexpr char kLogSpacesSwitch[] = "cromarc-test-log-spaces";
 
 // New spaces' colours, in turn: distinct hues until the theme editor.
 constexpr auto kNewSpaceColors = std::to_array<SkColor>({
@@ -529,6 +534,10 @@ void SpaceController::SwitchToLoaded(SessionID from_id, Profile* target) {
   to->GetWindow()->SetBounds(bounds);
   to->GetWindow()->Show();
   to->GetWindow()->Activate();
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(kLogSpacesSwitch)) {
+    LOG(ERROR) << "cromarc space switch: " << IdOf(from->GetProfile()) << " -> "
+               << IdOf(target);
+  }
   if (IsFullscreen(from)) {
     // Out of the fullscreen Space to the desktop, then into one of its own.
     chrome::ToggleFullscreenMode(to);

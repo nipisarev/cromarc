@@ -102,6 +102,7 @@ launch() {
   [ -n "${CROMARC_TEST_WINDOWED:-}" ] || args+=(--headless=new)
   case "$name" in
     theme | compact) args+=(--cromarc-test-log-background) ;;
+    library_spaces) args+=(--cromarc-test-log-spaces) ;;
     import) args+=(--cromarc-arc-sidebar="$fixtures/arc_sidebar.json") ;;
     import_export)
       args+=(--cromarc-arc-sidebar="$work/no-arc.json"

@@ -6,6 +6,8 @@
 // a card per space, renamed and given an icon in place, moved by its
 // handle, opened on a tab of another space; the Library as wide as they
 // need.
+import {readFileSync} from 'node:fs';
+
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
 const site = process.env.CROMARC_TEST_SITE ?? 'http://127.0.0.1:9599';
@@ -109,9 +111,14 @@ check('letting go reorders the spaces', !!after && after === before.split(',').r
 // A tab of the other space brings that space's window up.
 const otherRow = `${ALL(`${S} .space-card`)}.find(c => c.querySelector('.space-card-name').textContent === 'Работа').querySelector('.space-row[data-url]')`;
 await until(() => evaluate(second, `!!${otherRow}`));
+const idOf = name => evaluate(second, `${APP}.spaces_.find(s => s.name === ${JSON.stringify(name)}).id`);
+const switched = `cromarc space switch: ${await idOf(await currentName(second))} -> ${await idOf('Работа')}`;
 await evaluate(second, `${otherRow}.click(), true`);
+// What the browser did, from its log: headless, a hidden window's pages may
+// still say "visible" (--cromarc-test-log-spaces).
 check('a tab of another space opens that space', !!(await until(async () =>
-    await visibility(first) === 'visible' && await visibility(second) === 'hidden')),
-    `${await visibility(first)} ${await visibility(second)}`);
+    readFileSync(process.env.CROMARC_TEST_LOG, 'utf8').includes(switched) &&
+    await visibility(first) === 'visible')),
+    `${await visibility(first)}, log has "${switched}": ${readFileSync(process.env.CROMARC_TEST_LOG, 'utf8').includes(switched)}`);
 check('…the Library shut in the window left', await evaluate(second, `!${APP}.libraryOpen_ && !${APP}.libraryShown_`));
 process.exit(results.every(Boolean) ? 0 : 1);
