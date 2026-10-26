@@ -61,11 +61,28 @@ await sleep(1500);
 await evaluate(sb, `${APP}.proxy_.handler.clearToday()`);
 await sleep(800);
 const narrow = await evaluate(sb, 'innerWidth');
+// The window's height, which the Library takes whole as Zen's does; closed,
+// the sidebar sits under Chrome's row of top buttons, above its padding.
+const pageTab = (await targets()).find(t => t.type === 'page' && t.url.startsWith(site));
+const {windowId} = (await send(await browserWs(), 'Browser.getWindowForTarget', {targetId: pageTab.id})).result;
+const windowHeight = (await send(await browserWs(), 'Browser.getWindowBounds', {windowId})).result.bounds.height;
+const shortColumn = await evaluate(sb, 'innerHeight');
 
 await evaluate(sb, `${APP}.shadowRoot.querySelector('#library-button').click()`);
 check('the library button brings the Library out on its spring', !!(await settled(true)));
 const wide = await until(async () => { const w = await evaluate(sb, 'innerWidth'); return w >= 418 && w; }, 4000);
 check('…and the column widens to Zen\'s 418px', !!wide, `${narrow} → ${await evaluate(sb, 'innerWidth')}`);
+const tallColumn = await until(async () => { const h = await evaluate(sb, 'innerHeight'); return h === windowHeight && h; }, 4000);
+check('the Library takes the window\'s whole height, under the window buttons', shortColumn < windowHeight && !!tallColumn,
+    `${shortColumn} → ${await evaluate(sb, 'innerHeight')} of ${windowHeight}`);
+const libraryColumn = await evaluate(sb, `(() => {
+  const side = ${IN('#side')}.getBoundingClientRect();
+  return {top: side.top, bottom: side.bottom, height: innerHeight,
+          tab: ${IN('.tab')}.getBoundingClientRect().top};
+})()`);
+check('…its column runs from the top edge to the bottom one, the window buttons in its 40px header',
+    libraryColumn.top === 0 && libraryColumn.bottom === libraryColumn.height && libraryColumn.tab >= 40,
+    JSON.stringify(libraryColumn));
 const rail = await evaluate(sb, `${ALL('.tab .tab-label')}.map(n => n.textContent)`);
 check('its rail holds Zen\'s sections in Zen\'s order, History chosen', rail.join() === 'Маршруты,Медиа,Загрузки,Пространства,История' &&
     await evaluate(sb, `${IN('.tab[active]')}.dataset.section`) === 'history', JSON.stringify(rail));
@@ -96,6 +113,8 @@ const restored = await until(async () => (await evaluate(sb, `${APP}.tabs_.map(t
 check('a click brings the tab back', !!restored);
 check('…and shuts the Library, the column back as it was', !!(await settled(false)) &&
     !!(await until(async () => (await evaluate(sb, 'innerWidth')) === narrow, 4000)), String(await evaluate(sb, 'innerWidth')));
+check('…the row of top buttons back above the sidebar', !!(await until(async () =>
+    (await evaluate(sb, 'innerHeight')) === shortColumn, 4000)), `${await evaluate(sb, 'innerHeight')} ≠ ${shortColumn}`);
 const left = await evaluate(sb, `${APP}.proxy_.handler.searchArchive('little', 10).then(({tabs}) => tabs.length)`);
 check('…and out of the archive', left === 0, String(left));
 

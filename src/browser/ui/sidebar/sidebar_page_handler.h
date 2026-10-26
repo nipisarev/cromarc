@@ -105,6 +105,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   void SetSpaceTheme(const std::string& id, const std::string& theme) override;
   void OpenThemePicker(const std::string& id) override;
   void SetLibraryWidth(int32_t width) override;
+  void GetColumnInsets(GetColumnInsetsCallback callback) override;
   void BlendSpaceTheme(const std::string& theme, float progress) override;
   void ReorderSpaces(const std::vector<std::string>& ids) override;
   void SleepSpace(const std::string& id) override;

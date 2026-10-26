@@ -123,6 +123,13 @@ base::flat_set<BrowserWindowInterface*> WithSpaceWindows(
 // H16: the Library widens the region while it is out.
 gfx::Size RegionSize(BrowserWindowInterface* browser, const gfx::Size& size);
 
+// H19: while the Library is out it takes the region's whole height: no row of
+// top buttons above the sidebar, no padding below it.
+gfx::Size RegionTopRowSize(BrowserWindowInterface* browser,
+                           const gfx::Size& size);
+bool RegionTopRowVisible(BrowserWindowInterface* browser, bool visible);
+int RegionBottomPadding(BrowserWindowInterface* browser, int padding);
+
 // H17: the floating compact sidebar blurs what it is over; true when Cromarc
 // set the layer's blur.
 bool SetChromeBackgroundBlur(const views::View* view,

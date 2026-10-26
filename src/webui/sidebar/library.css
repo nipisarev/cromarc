@@ -82,8 +82,11 @@ button {
   width: 110px;
 }
 
+/* The window buttons sit here, as in Zen's header on macOS: 12px over
+ * Firefox's button box (3px, 22px, 3px). */
 #header {
-  padding-top: 4px;
+  flex: none;
+  height: 40px;
 }
 
 #tabs {

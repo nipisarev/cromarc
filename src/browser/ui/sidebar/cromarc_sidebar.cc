@@ -14,6 +14,11 @@ int RegionWidth(BrowserWindowInterface* browser, int width) {
                                                  : width;
 }
 
+bool LibraryTakesRegion(BrowserWindowInterface* browser) {
+  SidebarView* sidebar = SidebarView::ForBrowser(browser);
+  return sidebar && sidebar->library_width() > 0;
+}
+
 gfx::Insets CardInsets(bool compact) {
   return gfx::Insets::TLBR(0, compact ? kPageSeparation : 0, kPageSeparation,
                            kPageSeparation);

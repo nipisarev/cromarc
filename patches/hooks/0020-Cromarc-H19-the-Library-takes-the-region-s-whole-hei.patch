@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Mon, 26 Oct 2026 23:09:08 +0100
+Subject: [PATCH] Cromarc H19: the Library takes the region's whole height
+
+While the Library is out, the vertical tab strip region has no row of
+top buttons (hidden, no height) and no padding below its content, so
+the sidebar page (and the Library in it) runs from the window's top to
+its bottom edge, as Zen's Library does, which shows only the window
+buttons.
+
+diff --git a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+index c0392ef316f6b..3aa80ea24627c 100644
+--- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+@@ -393,16 +393,21 @@ views::ProposedLayout VerticalTabStripRegionView::CalculateProposedLayout(
+   // Get some constants that will be used for calculations.
+   const auto horizontal_padding =
+       GetLayoutConstant(LayoutConstant::kVerticalTabStripHorizontalPadding);
+-  const auto vertical_padding = GetLayoutConstant(
+-      LayoutConstant::kVerticalTabStripUncollapsedVerticalPadding);
++  // Cromarc: none while the Library takes the region.
++  const auto vertical_padding = cromarc::hooks::RegionBottomPadding(
++      browser_view()->browser(),
++      GetLayoutConstant(
++          LayoutConstant::kVerticalTabStripUncollapsedVerticalPadding));
+ 
+   views::SizeBounds button_available_size = size_bounds;
+   if (button_available_size.width().is_bounded()) {
+     button_available_size.set_width(button_available_size.width() -
+                                     2 * horizontal_padding);
+   }
+-  const gfx::Size button_size =
+-      top_button_container_->GetPreferredSize(button_available_size);
++  // Cromarc: no top row while the Library takes the region.
++  const gfx::Size button_size = cromarc::hooks::RegionTopRowSize(
++      browser_view()->browser(),
++      top_button_container_->GetPreferredSize(button_available_size));
+   const gfx::Size tab_strip_size =
+       tab_strip_view() ? tab_strip_view()->GetPreferredSize() : gfx::Size();
+   const gfx::Size organizer_panel_size =
+@@ -427,7 +432,9 @@ views::ProposedLayout VerticalTabStripRegionView::CalculateProposedLayout(
+   // Lay out the top button container.
+   layout.child_layouts.push_back(
+       {.child_view = top_button_container_.get(),
+-       .visible = true,
++       // Cromarc: hidden while the Library takes the region.
++       .visible = cromarc::hooks::RegionTopRowVisible(
++           browser_view()->browser(), true),
+        .bounds =
+            gfx::Rect(horizontal_padding, 0,
+                      std::max(0, available.width() - 2 * horizontal_padding),

@@ -18,6 +18,7 @@
 #include "base/time/time.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/native_ui_types.h"
 #include "ui/views/controls/webview/unhandled_keyboard_event_handler.h"
 #include "ui/views/controls/webview/webview.h"
@@ -104,6 +105,11 @@ class SidebarView : public views::WebView {
   // for it (hook H16); 0 when it is shut.
   int library_width() const { return library_width_; }
   void SetLibraryWidth(int width);
+  // While the Library is shut: how far the sidebar sits from the top of its
+  // region (Chrome's row of top buttons) and from its bottom (Chrome's
+  // padding). The Library takes both while it is out (hook H19); the page
+  // keeps the sidebar under it still by as much. Empty while it is out.
+  gfx::Insets ColumnInsets() const;
 
   // content::WebContentsDelegate (through views::WebView):
   // Browser shortcuts (Cmd+T, Cmd+W, ...) keep working while the sidebar has
