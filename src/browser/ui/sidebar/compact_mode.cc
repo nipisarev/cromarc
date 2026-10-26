@@ -4,21 +4,15 @@
 
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
 
+#include <optional>
+
 #include "base/functional/bind.h"
 #include "base/task/sequenced_task_runner.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: as above
-#include "chrome/browser/ui/views/frame/tab_strip_region_view.h"  // nogncheck: as above
-#include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
+#include "cromarc/browser/ports/browser_frame.h"
+#include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ui/sidebar/compact_hover.h"
-#include "cromarc/browser/ui/sidebar/sidebar_view.h"
-#include "cromarc/browser/ui/sidebar/space_input.h"
-#include "ui/base/base_window.h"
-#include "ui/compositor/layer.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
-#include "ui/views/view_utils.h"
 
 namespace cromarc {
 
@@ -32,78 +26,46 @@ constexpr int kEdge = 6;
 
 }  // namespace
 
-CompactMode::CompactMode(SidebarView* sidebar) : sidebar_(sidebar) {
-  sidebar->browser()->GetTabStripModel()->AddObserver(this);
+CompactMode::CompactMode(VerticalStrip& strip,
+                         BrowserFrame& frame,
+                         Tabs& tabs,
+                         MouseWatcher watch_mouse)
+    : strip_(strip), frame_(frame), watch_mouse_(std::move(watch_mouse)) {
+  opened_in_background_ = tabs.OnOpenedInBackground(
+      base::BindRepeating(&CompactMode::Flash, base::Unretained(this)));
 }
 
 CompactMode::~CompactMode() = default;
 
-// static
-bool CompactMode::Toggle(BrowserWindowInterface* browser) {
-  SidebarView* sidebar = SidebarView::ForBrowser(browser);
-  auto* controller = tabs::VerticalTabStripStateController::From(browser);
-  if (!sidebar || !controller || !controller->ShouldDisplayVerticalTabs()) {
+bool CompactMode::Toggle() {
+  if (!strip_->IsShown()) {
     return false;
   }
   // Collapsing counts as collapsed: Cmd+S during the animation turns back.
-  controller->RequestCollapse(controller->GetCollapseState() ==
-                              tabs::VerticalTabStripCollapseState::kExpanded);
+  strip_->RequestCollapse(!strip_->IsCollapsedOrCollapsing());
   return true;
 }
 
 bool CompactMode::IsCompact() const {
-  auto* controller =
-      tabs::VerticalTabStripStateController::From(sidebar_->browser());
-  return controller && controller->IsCollapsed();
-}
-
-VerticalTabStripRegionView* CompactMode::Region() const {
-  for (views::View* view = sidebar_->parent(); view; view = view->parent()) {
-    if (auto* region = views::AsViewClass<VerticalTabStripRegionView>(view)) {
-      return region;
-    }
-  }
-  return nullptr;
-}
-
-void CompactMode::ObserveRegion() {
-  VerticalTabStripRegionView* region = Region();
-  if (!region || region_observation_.IsObservingSource(region)) {
-    return;
-  }
-  region_observation_.Reset();
-  region_observation_.Observe(region);
-  OnViewBoundsChanged(region);
-}
-
-void CompactMode::OnViewBoundsChanged(views::View* region) {
-  // At no width the strip still showed its top buttons over the page: they
-  // paint to layers of their own, which the strip's layer doesn't clip. Not
-  // while it has width: its shadow falls outside.
-  region->layer()->SetMasksToBounds(region->width() == 0);
-}
-
-void CompactMode::OnViewIsDeleting(views::View* region) {
-  region_observation_.Reset();
+  return strip_->IsCollapsed();
 }
 
 void CompactMode::OnMouseMoved(const gfx::Point& screen_point) {
-  VerticalTabStripRegionView* region = Region();
-  if (!IsCompact() || !region) {
+  const std::optional<gfx::Rect> strip = strip_->BoundsInScreen();
+  if (!IsCompact() || !strip) {
     Hide();
     return;
   }
-  const gfx::Rect window = sidebar_->browser()->GetWindow()->GetBounds();
-  const gfx::Rect strip = region->GetBoundsInScreen();
-  const bool in_strip_band = screen_point.y() >= strip.y() &&
-                             screen_point.y() < strip.bottom();
-  if (!lock_) {
+  const gfx::Rect window = frame_->BoundsInScreen();
+  const bool in_strip_band = screen_point.y() >= strip->y() &&
+                             screen_point.y() < strip->bottom();
+  if (!hold_) {
     if (in_strip_band && screen_point.x() - window.x() <= kEdge) {
       Reveal();
     }
     return;
   }
-  if (CompactSidebarStaysOut(window, strip, screen_point)) {
+  if (CompactSidebarStaysOut(window, *strip, screen_point)) {
     hide_timer_.Stop();
   } else if (!hide_timer_.IsRunning()) {
     HideAfter(kKeepAfterLeave);
@@ -120,12 +82,12 @@ void CompactMode::Flash() {
 
 void CompactMode::Reveal() {
   hide_timer_.Stop();
-  if (lock_) {
+  if (hold_) {
     return;
   }
-  if (VerticalTabStripRegionView* region = Region()) {
-    lock_ = region->GetExpandOnHoverLock(ExpandOnHoverLockType::kKeepExpanded);
-    mouse_watch_ = WatchMouseEverywhere(base::BindRepeating(
+  hold_ = strip_->KeepOut();
+  if (hold_) {
+    mouse_watch_ = watch_mouse_.Run(base::BindRepeating(
         &CompactMode::OnMouseMoved, weak_factory_.GetWeakPtr()));
   }
 }
@@ -137,23 +99,12 @@ void CompactMode::HideAfter(base::TimeDelta delay) {
 
 void CompactMode::Hide() {
   hide_timer_.Stop();
-  lock_.reset();
+  hold_.reset();
   // Not from inside the monitor's own handler.
   if (mouse_watch_) {
     base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
         FROM_HERE, base::DoNothingWithBoundArgs(std::move(mouse_watch_)));
   }
-}
-
-void CompactMode::OnTabStripModelChanged(
-    TabStripModel* tab_strip_model,
-    const TabStripModelChange& change,
-    const TabStripSelectionChange& selection) {
-  if (change.type() != TabStripModelChange::kInserted ||
-      selection.active_tab_changed()) {
-    return;
-  }
-  Flash();
 }
 
 }  // namespace cromarc

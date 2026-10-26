@@ -80,6 +80,18 @@ test_r1_feature_include() {
   expect "R1: a feature including chrome/browser/ui fails" "$status: $out" $?
 }
 
+test_r1_own_resources_allowed() {
+  local root out status
+  root="$(fixture r1res)"
+  echo '#include "chrome/grit/cromarc_resources.h"' >"$root/src/browser/feature/ok.cc"
+  out="$(check "$root")"
+  status=$?
+  echo '#include "chrome/grit/generated_resources.h"' >"$root/src/browser/feature/bad.cc"
+  out="$status $(check "$root")"
+  [[ "$out" == "0 "* ]] && [[ "$out" == *"R1 src/browser/feature/bad.cc chrome/grit/generated_resources.h"* ]]
+  expect "R1: our generated chrome/grit/cromarc_* passes, Chrome's grit fails" "$out" $?
+}
+
 test_r1_adapter_allowed() {
   local root out
   root="$(fixture r1a)"
@@ -329,6 +341,7 @@ test_update_baseline_whole_repo_only() {
 
 test_clean_passes
 test_r1_feature_include
+test_r1_own_resources_allowed
 test_r1_adapter_allowed
 test_r2_view_by_class
 test_r3_unregistered

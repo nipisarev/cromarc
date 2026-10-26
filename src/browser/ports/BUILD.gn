@@ -1,0 +1,31 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Cromarc's interfaces to Chromium (AGENTS.md, "Layers"). Feature code depends
+# on these; //cromarc/browser/chromium implements them.
+source_set("ports") {
+  sources = [
+    "browser_frame.h",
+    "tabs.h",
+    "vertical_strip.h",
+  ]
+  public_deps = [
+    "//base",
+    "//ui/gfx/geometry",
+  ]
+}
+
+# Fakes of the ports for unit tests.
+source_set("test_support") {
+  testonly = true
+  sources = [
+    "fake_browser_frame.cc",
+    "fake_browser_frame.h",
+    "fake_tabs.cc",
+    "fake_tabs.h",
+    "fake_vertical_strip.cc",
+    "fake_vertical_strip.h",
+  ]
+  public_deps = [ ":ports" ]
+}

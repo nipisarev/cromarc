@@ -44,7 +44,6 @@
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/browser_commands.h"
-#include "cromarc/browser/ui/sidebar/compact_mode.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "ui/base/base_window.h"
@@ -237,6 +236,9 @@ SidebarPageHandler::SidebarPageHandler(
               },
               base::Unretained(this)))) {
   SpaceController::Get()->AddSidebar(browser_, this);
+  if (SidebarView* view = SidebarView::ForBrowser(browser_)) {
+    view->ShareSidebarState();
+  }
 }
 
 SidebarPageHandler::~SidebarPageHandler() {
@@ -438,7 +440,7 @@ void SidebarPageHandler::SetEssential(const std::string& id, bool essential) {
 }
 
 void SidebarPageHandler::ToggleCompactMode() {
-  CompactMode::Toggle(browser_);
+  SidebarView::ToggleCompactMode(browser_);
 }
 
 void SidebarPageHandler::NewTab() {

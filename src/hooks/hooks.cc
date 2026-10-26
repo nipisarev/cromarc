@@ -15,6 +15,8 @@
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/startup/startup_tab.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
+#include "cromarc/browser/chromium/browser_frame_adapter.h"
+#include "cromarc/browser/chromium/sidebar_installer.h"
 #include "cromarc/browser/keyed_services.h"
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"

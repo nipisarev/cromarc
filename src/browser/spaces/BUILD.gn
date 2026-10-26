@@ -10,6 +10,15 @@ source_set("swipe_tracker") {
   public_deps = [ "//base" ]
 }
 
+source_set("shared_sidebar_state") {
+  sources = [
+    "shared_sidebar_state.cc",
+    "shared_sidebar_state.h",
+  ]
+  public_deps = [ "//base" ]
+  deps = [ "//cromarc/browser/ports" ]
+}
+
 # The space controller (browser-process singleton) and per-space prefs.
 source_set("spaces") {
   sources = [
@@ -24,6 +33,7 @@ source_set("spaces") {
     frameworks = [ "AppKit.framework" ]
   }
   public_deps = [
+    ":shared_sidebar_state",
     ":swipe_tracker",
     "//chrome/browser:browser_public_dependencies",
     "//components/sessions",
@@ -46,9 +56,14 @@ source_set("spaces") {
 
 source_set("unit_tests") {
   testonly = true
-  sources = [ "swipe_tracker_unittest.cc" ]
+  sources = [
+    "shared_sidebar_state_unittest.cc",
+    "swipe_tracker_unittest.cc",
+  ]
   deps = [
+    ":shared_sidebar_state",
     ":swipe_tracker",
+    "//cromarc/browser/ports:test_support",
     "//testing/gtest",
   ]
 }

@@ -1,0 +1,34 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adapters: the ports (//cromarc/browser/ports) on Chromium's internals, the
+# only feature-side code that includes them (AGENTS.md, "Layers").
+source_set("chromium") {
+  sources = [
+    "browser_frame_adapter.cc",
+    "browser_frame_adapter.h",
+    "sidebar_installer.cc",
+    "sidebar_installer.h",
+    "tabs_adapter.cc",
+    "tabs_adapter.h",
+    "vertical_strip_adapter.cc",
+    "vertical_strip_adapter.h",
+  ]
+  public_deps = [
+    "//chrome/browser:browser_public_dependencies",
+    "//cromarc/browser/ports",
+  ]
+  deps = [
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui/browser_window",
+    "//components/prefs",
+    "//cromarc/browser/spaces",
+    "//cromarc/browser/ui/sidebar",
+    "//cromarc/browser/ui/sidebar:space_theme_painter",
+    "//ui/color",
+    "//ui/compositor",
+    "//ui/gfx",
+    "//ui/views",
+  ]
+}

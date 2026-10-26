@@ -19,6 +19,7 @@ source_set("impl") {
     ":hooks",
     "//chrome/app/vector_icons",
     "//cromarc/browser:keyed_services",
+    "//cromarc/browser/chromium",
     "//cromarc/browser/ui:browser_commands",
     "//cromarc/browser/ui:webui_registration",
     "//cromarc/browser/ui/sidebar",

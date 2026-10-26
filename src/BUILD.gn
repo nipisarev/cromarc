@@ -13,6 +13,7 @@ group("cromarc") {
     ":headers",
     "//cromarc/browser:keyed_services_impl",
     "//cromarc/browser/archive:service",
+    "//cromarc/browser/chromium",
     "//cromarc/browser/lifecycle:service",
     "//cromarc/browser/spaces",
     "//cromarc/browser/tree:service",

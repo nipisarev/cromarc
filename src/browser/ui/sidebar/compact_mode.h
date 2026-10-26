@@ -7,18 +7,13 @@
 
 #include <memory>
 
+#include "base/callback_list.h"
+#include "base/functional/callback.h"
 #include "base/functional/callback_helpers.h"
-#include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
-#include "base/scoped_observation.h"
 #include "base/timer/timer.h"
-#include "chrome/browser/ui/tabs/tab_strip_model_observer.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "ui/views/view.h"
-#include "ui/views/view_observer.h"
-
-class BrowserWindowInterface;
-class ExpandOnHoverLock;
-class VerticalTabStripRegionView;
+#include "cromarc/browser/ports/vertical_strip.h"
 
 namespace gfx {
 class Point;
@@ -26,7 +21,8 @@ class Point;
 
 namespace cromarc {
 
-class SidebarView;
+class BrowserFrame;
+class Tabs;
 
 // Compact mode (design, UI section 9), Zen's compact mode with the sidebar
 // hidden: Chrome's collapsed vertical tab strip has no width in Cromarc (hook
@@ -36,48 +32,43 @@ class SidebarView;
 // and flashes for 800 ms when a tab opens in the background (Zen's
 // flashSidebar). Hidden, nothing of the strip shows, as Zen's sidebar is off
 // the window then.
-class CompactMode : public TabStripModelObserver, public views::ViewObserver {
+class CompactMode {
  public:
-  explicit CompactMode(SidebarView* sidebar);
+  // WatchMouseEverywhere() (space_input.h), or a fake in tests.
+  using MouseWatcher = base::RepeatingCallback<base::ScopedClosureRunner(
+      base::RepeatingCallback<void(const gfx::Point&)>)>;
+
+  CompactMode(VerticalStrip& strip,
+              BrowserFrame& frame,
+              Tabs& tabs,
+              MouseWatcher watch_mouse);
   CompactMode(const CompactMode&) = delete;
   CompactMode& operator=(const CompactMode&) = delete;
-  ~CompactMode() override;
+  ~CompactMode();
 
-  // Cmd+S (Arc) and Ctrl+Alt+C (Zen), from the key monitor. False for
-  // windows without a sidebar.
-  static bool Toggle(BrowserWindowInterface* browser);
+  // Cmd+S (Arc) and Ctrl+Alt+C (Zen). False when the window shows no
+  // vertical tabs.
+  bool Toggle();
 
   bool IsCompact() const;
-  // Once the sidebar is in its window's vertical tab strip region.
-  void ObserveRegion();
   // The cursor is at `screen_point` over this window.
   void OnMouseMoved(const gfx::Point& screen_point);
   void Flash();
 
-  // TabStripModelObserver:
-  void OnTabStripModelChanged(
-      TabStripModel* tab_strip_model,
-      const TabStripModelChange& change,
-      const TabStripSelectionChange& selection) override;
-
-  // views::ViewObserver (the region):
-  void OnViewBoundsChanged(views::View* observed_view) override;
-  void OnViewIsDeleting(views::View* observed_view) override;
-
  private:
-  VerticalTabStripRegionView* Region() const;
   void Reveal();
   void HideAfter(base::TimeDelta delay);
   void Hide();
 
-  const raw_ptr<SidebarView> sidebar_;
-  std::unique_ptr<ExpandOnHoverLock> lock_;
+  const raw_ref<VerticalStrip> strip_;
+  const raw_ref<BrowserFrame> frame_;
+  const MouseWatcher watch_mouse_;
+  std::unique_ptr<VerticalStrip::Hold> hold_;
   // The cursor everywhere while the sidebar is out, as Zen's mouse tracker:
   // a move out of the window ends it, unless just past the sidebar's edge.
   base::ScopedClosureRunner mouse_watch_;
   base::OneShotTimer hide_timer_;
-  base::ScopedObservation<views::View, views::ViewObserver> region_observation_{
-      this};
+  base::CallbackListSubscription opened_in_background_;
   base::WeakPtrFactory<CompactMode> weak_factory_{this};
 };
 

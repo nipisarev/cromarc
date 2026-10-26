@@ -87,7 +87,7 @@ NSEvent* HandleKeyDown(NSEvent* event) {
   if ((flags == NSEventModifierFlagCommand && event.keyCode == kVK_ANSI_S) ||
       (flags == (NSEventModifierFlagControl | NSEventModifierFlagOption) &&
        event.keyCode == kVK_ANSI_C)) {
-    CompactMode::Toggle(browser);
+    SidebarView::ToggleCompactMode(browser);
     return nil;
   }
   if (flags == (NSEventModifierFlagCommand | NSEventModifierFlagOption)) {

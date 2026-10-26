@@ -10,6 +10,7 @@
 #include <string>
 
 #include "base/callback_list.h"
+#include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/process/kill.h"
@@ -21,10 +22,18 @@
 #include "ui/views/controls/webview/webview.h"
 
 class BrowserWindowInterface;
+class PrefService;
+
+namespace content {
+class BrowserContext;
+}  // namespace content
 
 namespace cromarc {
 
+class BrowserFrame;
 class CompactMode;
+class Tabs;
+class VerticalStrip;
 
 // Hosts chrome://cromarc-sidebar.top-chrome for one browser window. Fills the
 // space the native tab list had in the vertical tab strip region.
@@ -32,7 +41,23 @@ class SidebarView : public views::WebView {
   METADATA_HEADER(SidebarView, views::WebView)
 
  public:
-  explicit SidebarView(BrowserWindowInterface* browser);
+  // What a window gives its sidebar, built by the window's adapter
+  // (InstallSidebar(), hook H2).
+  struct Host {
+    Host();
+    Host(Host&&);
+    Host& operator=(Host&&);
+    ~Host();
+
+    raw_ptr<BrowserWindowInterface> browser;
+    raw_ptr<content::BrowserContext> browser_context;
+    raw_ptr<PrefService> prefs;
+    std::unique_ptr<BrowserFrame> frame;
+    std::unique_ptr<VerticalStrip> strip;
+    std::unique_ptr<Tabs> tabs;
+  };
+
+  explicit SidebarView(Host host);
   SidebarView(const SidebarView&) = delete;
   SidebarView& operator=(const SidebarView&) = delete;
   ~SidebarView() override;
@@ -45,9 +70,16 @@ class SidebarView : public views::WebView {
   static BrowserWindowInterface* BrowserFor(gfx::NativeWindow window);
   static SidebarView* ForWindow(gfx::NativeWindow window);
   static SidebarView* ForBrowser(BrowserWindowInterface* browser);
+  // Cmd+S (Arc) and Ctrl+Alt+C (Zen), from the key monitor and the sidebar's
+  // page. False for windows without a sidebar.
+  static bool ToggleCompactMode(BrowserWindowInterface* browser);
 
   BrowserWindowInterface* browser() const { return browser_; }
   CompactMode* compact_mode() { return compact_mode_.get(); }
+
+  // Once the sidebar's page is up, the window's strip shares its state with
+  // the other space windows' (SpaceController::ShareSidebarState()).
+  void ShareSidebarState();
 
   // The theme being edited, shown under the window until it is saved or
   // dropped (nullopt).
@@ -86,12 +118,15 @@ class SidebarView : public views::WebView {
 
  private:
   void Reload();
+  // The page's rounded corners: none in tab fullscreen.
   void ObserveFullscreen();
-  // The page's rounded corners go with PageInsets(): none in tab fullscreen.
-  void UpdatePageCorners();
 
   raw_ptr<BrowserWindowInterface> browser_;
+  const std::unique_ptr<BrowserFrame> frame_;
+  const std::unique_ptr<VerticalStrip> strip_;
+  const std::unique_ptr<Tabs> tabs_;
   std::unique_ptr<CompactMode> compact_mode_;
+  base::ScopedClosureRunner shared_sidebar_state_;
   views::UnhandledKeyboardEventHandler unhandled_keyboard_event_handler_;
   // Reloads within a minute of the first one, to stop a crash loop.
   base::TimeTicks first_reload_;

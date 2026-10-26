@@ -38,7 +38,6 @@ R1 src/browser/spaces/space_controller.cc chrome/browser/ui/navigator/browser_na
 R1 src/browser/spaces/space_controller.cc chrome/browser/ui/profiles/profile_colors_util.h
 R1 src/browser/spaces/space_controller.cc chrome/browser/ui/tabs/tab_enums.h
 R1 src/browser/spaces/space_controller.cc chrome/browser/ui/tabs/tab_strip_model.h
-R1 src/browser/spaces/space_controller.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
 R1 src/browser/spaces/space_controller.cc chrome/common/pref_names.h
 R1 src/browser/spaces/space_controller.cc chrome/common/webui_url_constants.h
 R1 src/browser/spaces/space_controller.h chrome/browser/profiles/profile_attributes_storage_observer.h
@@ -133,20 +132,6 @@ R1 src/browser/ui/little/little_window.cc chrome/browser/ui/views/frame/browser_
 R1 src/browser/ui/little/little_window.cc chrome/browser/ui/views/toolbar/toolbar_view.h
 R1 src/browser/ui/little/little_window.h components/sessions/core/session_id.h
 R1 src/browser/ui/little/little_window.h components/tabs/public/tab_interface.h
-R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
-R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/tabs/tab_strip_model.h
-R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
-R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/views/frame/tab_strip_region_view.h
-R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
-R1 src/browser/ui/sidebar/compact_mode.h chrome/browser/ui/tabs/tab_strip_model_observer.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/exclusive_access/exclusive_access_manager.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/exclusive_access/fullscreen_controller.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/frame/browser_view.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/frame/frame_separator.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/tabs/shared/tab_strip_combo_button.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_bottom_container.h
-R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.h
 R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/browsing_data/chrome_browsing_data_remover_constants.h
 R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/history/history_service_factory.h
 R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/profiles/profile.h
@@ -175,28 +160,13 @@ R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/tabs/tab_enu
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/tabs/tab_strip_api/tab_strip_model_impl/converters/tab_converters.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/tabs/tab_strip_model.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/common/webui_url_constants.h
-R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/grit/cromarc_resources_map.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/bookmarks/browser/bookmark_node.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/browser_apis/tab_strip/types/node_id.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/favicon/core/favicon_service.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/favicon_base/favicon_types.h
 R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/tabs/public/tab_interface.h
-R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/profiles/profile.h
-R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
-R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/exclusive_access/exclusive_access_manager.h
-R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/exclusive_access/fullscreen_controller.h
-R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/views/frame/browser_view.h
-R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/views/frame/multi_contents_view.h
-R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/webui/webui_embedding_context.h
 R1 src/browser/ui/sidebar/space_input_mac.mm chrome/browser/ui/browser_window/public/browser_window_interface.h
 R1 src/browser/ui/sidebar/space_input_mac.mm components/sessions/core/session_id.h
-R1 src/browser/ui/sidebar/window_background.cc chrome/browser/profiles/profile.h
-R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
-R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
-R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/views/bookmarks/bookmark_bar_view.h
-R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/views/frame/browser_view.h
-R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
-R1 src/browser/ui/sidebar/window_background.cc chrome/grit/cromarc_resources.h
 R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/profiles/profile.h
 R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/shell_integration.h
 R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/themes/theme_service.h
@@ -207,18 +177,3 @@ R1 src/browser/ui/welcome/welcome_page_handler.cc components/tabs/public/tab_int
 R2 src/browser/ui/little/little_window.cc BrowserView x2
 R2 src/browser/ui/little/little_window.cc GetBrowserViewForBrowser
 R2 src/browser/ui/little/little_window.cc toolbar()
-R2 src/browser/ui/sidebar/compact_mode.cc view-by-class<VerticalTabStripRegionView>
-R2 src/browser/ui/sidebar/cromarc_sidebar.cc BrowserView x2
-R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<FrameSeparator>
-R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<TabStripComboButton>
-R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<VerticalTabStripBottomContainer>
-R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<VerticalTabStripTopContainer>
-R2 src/browser/ui/sidebar/cromarc_sidebar.h BrowserView x8
-R2 src/browser/ui/sidebar/sidebar_view.cc BrowserView x3
-R2 src/browser/ui/sidebar/sidebar_view.cc multi_contents_view() x2
-R2 src/browser/ui/sidebar/sidebar_view.cc view-by-class<BrowserView> x2
-R2 src/browser/ui/sidebar/window_background.cc BrowserView x11
-R2 src/browser/ui/sidebar/window_background.cc GetBrowserViewForBrowser
-R2 src/browser/ui/sidebar/window_background.cc non_client_view()
-R2 src/browser/ui/sidebar/window_background.cc view-by-class<BookmarkBarView>
-R2 src/browser/ui/sidebar/window_background.cc view-by-class<VerticalTabStripRegionView> x2

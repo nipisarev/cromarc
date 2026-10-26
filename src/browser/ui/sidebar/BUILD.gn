@@ -26,6 +26,7 @@ source_set("sidebar") {
   ]
   public_deps = [
     ":mojo_bindings",
+    "//cromarc/browser/ports",
     "//chrome/browser/ui/webui/top_chrome",
     "//components/browser_apis/tab_strip:mojom",
     "//components/prefs",
@@ -40,8 +41,6 @@ source_set("sidebar") {
 
 source_set("impl") {
   sources = [
-    "compact_mode.cc",
-    "compact_mode.h",
     "cromarc_sidebar.cc",
     "library_backend.cc",
     "library_backend.h",
@@ -53,8 +52,6 @@ source_set("impl") {
     "sidebar_page_handler.h",
     "sidebar_ui.cc",
     "sidebar_view.cc",
-    "window_background.cc",
-    "window_background.h",
     "haptic_feedback.h",
     "space_input.h",
   ]
@@ -72,7 +69,7 @@ source_set("impl") {
   }
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]
   deps = [
-    ":compact_hover",
+    ":compact_mode",
     ":sidebar",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui/browser_window",
@@ -117,6 +114,38 @@ source_set("impl") {
   ]
 }
 
+source_set("compact_mode") {
+  sources = [
+    "compact_mode.cc",
+    "compact_mode.h",
+  ]
+  public_deps = [
+    "//base",
+    "//cromarc/browser/ports",
+  ]
+  deps = [
+    ":compact_hover",
+    "//ui/gfx/geometry",
+  ]
+}
+
+# The space theme's painting, Zen's gradient and grain.
+source_set("space_theme_painter") {
+  sources = [
+    "space_theme_painter.cc",
+    "space_theme_painter.h",
+  ]
+  public_deps = [ "//skia" ]
+  deps = [
+    "//base",
+    "//cc/paint",
+    "//cromarc/webui:resources",
+    "//ui/base",
+    "//ui/gfx",
+    "//ui/gfx/codec",
+  ]
+}
+
 source_set("compact_hover") {
   sources = [
     "compact_hover.cc",
@@ -130,10 +159,18 @@ source_set("compact_hover") {
 
 source_set("unit_tests") {
   testonly = true
-  sources = [ "compact_hover_unittest.cc" ]
+  sources = [
+    "compact_hover_unittest.cc",
+    "compact_mode_unittest.cc",
+    "space_theme_painter_unittest.cc",
+  ]
   deps = [
     ":compact_hover",
+    ":compact_mode",
+    ":space_theme_painter",
     "//base",
+    "//base/test:test_support",
+    "//cromarc/browser/ports:test_support",
     "//testing/gtest",
     "//ui/gfx/geometry",
   ]

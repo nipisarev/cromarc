@@ -12,6 +12,7 @@
 
 #include "base/callback_list.h"
 #include "base/functional/callback.h"
+#include "base/functional/callback_helpers.h"
 #include "base/files/file_path.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
@@ -22,6 +23,7 @@
 #include "chrome/browser/profiles/profile_attributes_storage_observer.h"
 #include "chrome/browser/profiles/profile_manager_observer.h"
 #include "components/sessions/core/session_id.h"
+#include "cromarc/browser/spaces/shared_sidebar_state.h"
 #include "cromarc/browser/spaces/swipe_tracker.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/gfx/geometry/rect.h"
@@ -32,6 +34,8 @@ class ProfileAttributesStorage;
 class ProfileManager;
 
 namespace cromarc {
+
+class VerticalStrip;
 
 // Spaces are profiles (design, premise 1): one browser process sees all of
 // them, and each space has one main window. Switching keeps one window on
@@ -81,6 +85,10 @@ class SpaceController : public ProfileAttributesStorageObserver,
 
   void AddSidebar(BrowserWindowInterface* browser, Sidebar* sidebar);
   void RemoveSidebar(BrowserWindowInterface* browser);
+  // A space window's strip shares its state with the others while the result
+  // lives (SharedSidebarState).
+  [[nodiscard]] base::ScopedClosureRunner ShareSidebarState(
+      VerticalStrip& strip);
 
   // Cmd+W on the last tab of a space window: the window stays, with a new
   // tab, as in Arc. Returns false when Chrome should close the tab itself.
@@ -164,21 +172,8 @@ class SpaceController : public ProfileAttributesStorageObserver,
   SpaceController();
   ~SpaceController() override;
 
-  struct SidebarState {
-    bool collapsed = false;
-    int width = 0;
-
-    bool operator==(const SidebarState&) const = default;
-  };
-
   void NotifySpacesChanged();
-  // Zen keeps one sidebar in its window whichever space it shows: compact or
-  // not, and as wide. The space windows are that one window here, so a change
-  // in one goes to the others and to the windows the spaces open later.
-  void ShareSidebarState(BrowserWindowInterface* from);
-  // `browser`'s sidebar as the shared state has it.
-  void ApplySidebarState(BrowserWindowInterface* browser);
-  // A new window of `profile` starts as the shared state.
+  // A new window of `profile` starts as the shared sidebar state.
   void SeedSidebarState(Profile* profile);
   void HideInactiveSpaceWindows();
   // Warm switching: every space gets a hidden window after startup, so a
@@ -208,12 +203,7 @@ class SpaceController : public ProfileAttributesStorageObserver,
   std::map<BrowserWindowInterface*, raw_ptr<Sidebar>> sidebars_;
   std::map<BrowserWindowInterface*, base::CallbackListSubscription>
       close_subscriptions_;
-  std::map<BrowserWindowInterface*,
-           std::vector<base::CallbackListSubscription>>
-      sidebar_state_subscriptions_;
-  std::optional<SidebarState> sidebar_state_;
-  // While the shared state goes to the windows, their changes are its own.
-  bool sharing_sidebar_state_ = false;
+  SharedSidebarState sidebar_state_;
   bool warm_windows_scheduled_ = false;
   // The window PrepareSwitch() brought over the visible one, and the space it
   // was asked for while its profile loads.
