@@ -109,6 +109,15 @@ let s = await state();
 check('a click on the pad places the first colour', s.dots.length === 1 && s.dots[0].type === 'float', JSON.stringify(s.dots));
 check('…and the window shows it at once, as a preview', !!(await paintedSoon(/colors=1 .*preview=1/)), painted());
 
+// The scheme buttons act at once, as Zen's do: the panel itself turns dark.
+const darkPanel = () => evaluate(picker, `matchMedia('(prefers-color-scheme: dark)').matches`);
+await clickOn('[data-scheme="dark"]');
+check('the dark scheme button darkens the panel at once', !!(await until(darkPanel)) &&
+    await visible(picker));
+await clickOn('[data-scheme="light"]');
+check('…and the light one lightens it', !!(await until(async () => !(await darkPanel()))));
+await clickOn('[data-scheme="auto"]');
+
 await clickOn('#add');
 s = await state();
 check('+ adds its complement', s.dots.length === 2 && s.harmony === 'complementary', JSON.stringify(s));

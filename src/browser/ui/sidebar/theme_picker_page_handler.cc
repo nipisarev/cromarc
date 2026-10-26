@@ -63,6 +63,10 @@ void ThemePickerPageHandler::Preview(const std::string& theme) {
   }
 }
 
+void ThemePickerPageHandler::SetScheme(const std::string& scheme) {
+  SpaceController::Get()->SetSpaceScheme(space_id_, scheme);
+}
+
 void ThemePickerPageHandler::PlayHapticFeedback() {
 #if BUILDFLAG(IS_MAC)
   PerformHapticFeedback();

@@ -44,6 +44,7 @@ class ThemePickerPageHandler : public theme_picker::mojom::PageHandler {
 
   // theme_picker::mojom::PageHandler:
   void Preview(const std::string& theme) override;
+  void SetScheme(const std::string& scheme) override;
   void PlayHapticFeedback() override;
   void Close() override;
   void SetHeight(int32_t height) override;

@@ -247,6 +247,7 @@ export class ThemePickerAppElement extends CrLitElement {
   protected onSchemeClick_(e: Event) {
     const scheme = (e.currentTarget as HTMLElement).dataset['scheme'] as Scheme;
     this.theme_ = {...this.theme_, scheme};
+    this.handler_.setScheme(scheme);
     this.preview_();
   }
 
