@@ -7,7 +7,10 @@ import("//mojo/public/tools/bindings/mojom.gni")
 assert(!is_android)
 
 mojom("mojo_bindings") {
-  sources = [ "sidebar.mojom" ]
+  sources = [
+    "sidebar.mojom",
+    "theme_picker.mojom",
+  ]
   webui_module_path = "/"
   public_deps = [
     "//components/browser_apis/tab_strip:mojom",
@@ -23,6 +26,7 @@ source_set("sidebar") {
     "cromarc_sidebar.h",
     "sidebar_ui.h",
     "sidebar_view.h",
+    "theme_picker_ui.h",
   ]
   public_deps = [
     ":mojo_bindings",
@@ -50,6 +54,11 @@ source_set("impl") {
     "sidebar_page_handler.h",
     "sidebar_ui.cc",
     "sidebar_view.cc",
+    "theme_picker.cc",
+    "theme_picker.h",
+    "theme_picker_page_handler.cc",
+    "theme_picker_page_handler.h",
+    "theme_picker_ui.cc",
     "haptic_feedback.h",
     "space_input.h",
   ]
@@ -90,6 +99,7 @@ source_set("impl") {
     "//components/browser_apis/tab_strip/resources:resources",
     "//cromarc/browser/archive:service",
     "//cromarc/browser/chromium:adapters",
+    "//cromarc/browser/chromium:window_material",
     "//cromarc/browser/lifecycle:service",
     "//cromarc/browser/routing",
     "//cromarc/browser/sync",

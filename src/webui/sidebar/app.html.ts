@@ -11,7 +11,7 @@ export function getHtml(this: SidebarAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
 <div id="toolbox" style="${this.toolboxStyle_()}">
-<div id="viewport" ?editing="${!!this.editor_ || !!this.themeEditor_}"
+<div id="viewport" ?editing="${!!this.editor_}"
     ?stack-open="${this.stackOpen_}"
     ?stack-closing="${this.stackClosing_}">
   ${this.strips_().map(({space, content: strip}, index) => html`
@@ -205,11 +205,6 @@ ${this.editor_ ? html`
       @space-edit-cancel="${this.onSpaceEditCancel_}"
       @space-edit-theme="${this.onSpaceEditTheme_}">
   </cromarc-space-editor>` : nothing}
-${this.themeEditor_ ? html`
-  <cromarc-theme-editor id="theme-editor" .theme="${this.themeEditor_.theme}"
-      @theme-change="${this.onThemeChange_}"
-      @theme-done="${this.onThemeDone_}">
-  </cromarc-theme-editor>` : nothing}
 ${this.icloud_ ? html`
   <div id="icloud" class="card" role="dialog">
     <div class="title">${this.strings.icloudTitle} · ${this.icloud_.space.name}</div>

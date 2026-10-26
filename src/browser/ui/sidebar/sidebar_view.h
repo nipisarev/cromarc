@@ -79,6 +79,7 @@ class SidebarView : public views::WebView {
 
   BrowserWindowInterface* browser() const { return browser_; }
   CompactMode* compact_mode() { return compact_mode_.get(); }
+  VerticalStrip& strip() { return *strip_; }
 
   // Once the sidebar's page is up, the window's strip shares its state with
   // the other space windows' (SpaceController::ShareSidebarState()).

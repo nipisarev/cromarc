@@ -68,6 +68,10 @@ bool PaintsOnSpaceTheme(const views::View* view,
 // glass included. True for normal windows, the ones with the sidebar.
 bool ThemesWindow(const BrowserView* browser_view);
 
+// Hook H14, where Chrome would put its glass: Zen's window material under a
+// space window instead; true then.
+bool InstallWindowMaterial(BrowserView* browser_view);
+
 // Hook H14, from the frame view's paint: the space theme over `bounds`.
 void PaintWindowBackground(gfx::Canvas* canvas,
                            const gfx::Rect& bounds,

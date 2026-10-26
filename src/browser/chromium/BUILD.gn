@@ -79,14 +79,10 @@ source_set("chromium") {
     "space_routing_get.cc",
     "vertical_strip_adapter.cc",
     "vertical_strip_adapter.h",
-    "window_material.h",
   ]
-  if (is_mac) {
-    sources += [ "window_material_mac.mm" ]
-    frameworks = [ "AppKit.framework" ]
-  }
   public_deps = [
     ":adapters",
+    ":window_material",
     "//chrome/browser:browser_public_dependencies",
     "//cromarc/browser/ports",
   ]
@@ -109,6 +105,17 @@ source_set("chromium") {
     "//ui/gfx",
     "//ui/views",
   ]
+}
+
+# Zen's materials under a space window and a panel (AppKit only), for the
+# hooks and for the theme picker.
+source_set("window_material") {
+  sources = [ "window_material.h" ]
+  if (is_mac) {
+    sources += [ "window_material_mac.mm" ]
+    frameworks = [ "AppKit.framework" ]
+  }
+  public_deps = [ "//ui/gfx" ]
 }
 
 # Tree in Chromium bookmarks.

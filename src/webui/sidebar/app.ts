@@ -16,7 +16,6 @@ import type {TabStripObserver} from '/tab_strip_api/tab_strip_observer.js';
 import './folder_icon.js';
 import './library.js';
 import './space_editor.js';
-import './theme_editor.js';
 
 import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
@@ -27,7 +26,6 @@ import {setTestMenuChoice, showMenu, testMenuChoice} from './menu.js';
 import type {MenuItem} from './menu.js';
 import {iconMask} from './space_icon.js';
 import {themeFromJson} from './theme_model.js';
-import type {SpaceTheme} from './theme_model.js';
 import {canRetry, hasFile, hasProgress, isPending, progressOf, stackEntries, statusText} from './downloads_model.js';
 import {downloadsStore} from './downloads_store.js';
 import {libraryStrings} from './library_strings.js';
@@ -126,7 +124,6 @@ export class SidebarAppElement extends CrLitElement {
       editor_: {type: Object},
       deleting_: {type: Object},
       icloud_: {type: Object},
-      themeEditor_: {type: Object},
       remoteSpaces_: {type: Array},
       libraryShown_: {type: Boolean},
       libraryOpen_: {type: Boolean},
@@ -182,9 +179,6 @@ export class SidebarAppElement extends CrLitElement {
   // Spaces in iCloud Drive this Mac does not have, offered in the new space
   // form.
   protected accessor remoteSpaces_: ICloudSpace[] = [];
-  // The theme editor open over the strip, and its unsaved theme.
-  protected accessor themeEditor_: {space: Space, theme: SpaceTheme}|null =
-      null;
   // The Library: rendered while open, dragged in or closing.
   protected accessor libraryShown_: boolean = false;
   protected accessor libraryOpen_: boolean = false;
@@ -715,12 +709,10 @@ export class SidebarAppElement extends CrLitElement {
     }
   }
 
+  // Zen's Library opens the theme picker for the space, the Library staying
+  // (ZenLibrarySpacesSection.mjs, #openThemePicker).
   protected onLibrarySpaceTheme_(e: CustomEvent<string>) {
-    const space = this.spaces_.find(s => s.id === e.detail);
-    if (space) {
-      this.closeLibrary_();
-      this.themeEditor_ = {space, theme: themeFromJson(space.theme)};
-    }
+    this.proxy_.handler.openThemePicker(e.detail);
   }
 
   protected onLibraryCreateSpace_() {
@@ -1197,10 +1189,8 @@ export class SidebarAppElement extends CrLitElement {
         },
         {
           label: strings.editTheme,
-          action: inSidebar(() => this.themeEditor_ = {
-            space,
-            theme: themeFromJson(space.theme),
-          }),
+          action: inSidebar(
+              () => this.proxy_.handler.openThemePicker(space.id)),
         },
         {
           label: strings.sleepSpace,
@@ -1242,12 +1232,12 @@ export class SidebarAppElement extends CrLitElement {
     }
   }
 
-  // The form's "Edit theme": the theme editor takes the form's place.
+  // The form's "Edit theme": the theme picker for the space, the form gone.
   protected onSpaceEditTheme_() {
-    const space = this.spaces_.find(s => s.id === this.editor_?.id);
+    const id = this.editor_?.id;
     this.editor_ = null;
-    if (space) {
-      this.themeEditor_ = {space, theme: themeFromJson(space.theme)};
+    if (id) {
+      this.proxy_.handler.openThemePicker(id);
     }
   }
 
@@ -1297,25 +1287,6 @@ export class SidebarAppElement extends CrLitElement {
 
   protected stripStyle_(index: number): string {
     return `transform: translateX(${this.stripX_[index] ?? 0}%)`;
-  }
-
-  protected onThemeChange_(e: CustomEvent<SpaceTheme>) {
-    if (this.themeEditor_) {
-      // Lit sets object properties again on every render: the editor's own
-      // theme has to be the one bound.
-      this.themeEditor_ = {...this.themeEditor_, theme: e.detail};
-      this.proxy_.handler.previewSpaceTheme(JSON.stringify(e.detail));
-    }
-  }
-
-  protected onThemeDone_(e: CustomEvent<SpaceTheme>) {
-    const editor = this.themeEditor_;
-    this.themeEditor_ = null;
-    if (editor) {
-      this.proxy_.handler.setSpaceTheme(
-          editor.space.id, JSON.stringify(e.detail));
-    }
-    this.proxy_.handler.previewSpaceTheme('');
   }
 
   protected snapshotOf_(id: string): StripContent {

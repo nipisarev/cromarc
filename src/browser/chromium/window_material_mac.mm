@@ -6,9 +6,8 @@
 
 #import <AppKit/AppKit.h>
 
-// zen:widget/cocoa/nsCocoaWindow-mm.patch, ZenWindowMaterialView, with Zen's
-// defaults: zen.widget.macos.window-material 1 (the HUD window material) and
-// zen.view.grey-out-inactive-windows on.
+// zen:widget/cocoa/nsCocoaWindow-mm.patch, ZenWindowMaterialView: blends what
+// is behind the window.
 @interface CromarcWindowMaterialView : NSVisualEffectView
 @end
 
@@ -19,8 +18,6 @@
     self.appearance = nil;
     self.emphasized = NO;
     self.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-    self.state = NSVisualEffectStateFollowsWindowActiveState;
-    self.material = NSVisualEffectMaterialHUDWindow;
   }
   return self;
 }
@@ -32,16 +29,34 @@
 
 @end
 
-namespace cromarc {
+namespace {
 
-void InstallWindowMaterial(gfx::NativeWindow native_window) {
+// A stretchable rounded rectangle, the mask of a material with round corners.
+NSImage* RoundedMask(CGFloat radius) {
+  const CGFloat edge = 2 * radius + 1;
+  NSImage* mask = [NSImage
+       imageWithSize:NSMakeSize(edge, edge)
+             flipped:NO
+      drawingHandler:^BOOL(NSRect rect) {
+        [NSColor.blackColor setFill];
+        [[NSBezierPath bezierPathWithRoundedRect:rect
+                                         xRadius:radius
+                                         yRadius:radius] fill];
+        return YES;
+      }];
+  mask.capInsets = NSEdgeInsetsMake(radius, radius, radius, radius);
+  mask.resizingMode = NSImageResizingModeStretch;
+  return mask;
+}
+
+CromarcWindowMaterialView* Install(gfx::NativeWindow native_window) {
   NSView* content = native_window.GetNativeNSWindow().contentView;
   if (!content) {
-    return;
+    return nil;
   }
   for (NSView* view in content.subviews) {
     if ([view isKindOfClass:[CromarcWindowMaterialView class]]) {
-      return;
+      return nil;
     }
   }
   CromarcWindowMaterialView* material =
@@ -50,6 +65,28 @@ void InstallWindowMaterial(gfx::NativeWindow native_window) {
   material.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
   // Under everything, where Chrome puts its glass.
   [content addSubview:material positioned:NSWindowBelow relativeTo:nil];
+  return material;
+}
+
+}  // namespace
+
+namespace cromarc {
+
+void InstallWindowMaterial(gfx::NativeWindow window) {
+  // Zen's defaults: zen.widget.macos.window-material 1 (the HUD window
+  // material), zen.view.grey-out-inactive-windows on.
+  if (CromarcWindowMaterialView* material = Install(window)) {
+    material.material = NSVisualEffectMaterialHUDWindow;
+    material.state = NSVisualEffectStateFollowsWindowActiveState;
+  }
+}
+
+void InstallPanelMaterial(gfx::NativeWindow window, int corner_radius) {
+  if (CromarcWindowMaterialView* material = Install(window)) {
+    material.material = NSVisualEffectMaterialPopover;
+    material.state = NSVisualEffectStateActive;
+    material.maskImage = RoundedMask(corner_radius);
+  }
 }
 
 }  // namespace cromarc

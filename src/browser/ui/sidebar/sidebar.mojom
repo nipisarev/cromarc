@@ -278,8 +278,8 @@ interface PageHandler {
   RenameSpace(string id, string name);
   SetSpaceIcon(string id, string icon);
   SetSpaceTheme(string id, string theme);
-  // The theme editor's theme under this window until saved; "" drops it.
-  PreviewSpaceTheme(string theme);
+  // Zen's theme picker for space `id`, beside the sidebar.
+  OpenThemePicker(string id);
   // While switching spaces, the window's background fades toward the other
   // space's `theme` by `progress` 0-1, as Zen's --zen-background-opacity.
   BlendSpaceTheme(string theme, float progress);

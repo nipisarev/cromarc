@@ -805,9 +805,8 @@ button[hidden],
   background: var(--hover);
 }
 
-/* The space form and the theme editor take the strip's place, on the
- * window's background (zen:spaces/ZenSpaceCreation.mjs hides the space while
- * it shows). */
+/* The space form takes the strip's place, on the window's background
+ * (zen:spaces/ZenSpaceCreation.mjs hides the space while it shows). */
 #viewport[editing] {
   visibility: hidden;
 }
@@ -1276,15 +1275,6 @@ button[hidden],
   border-radius: 50%;
   height: 8px;
   width: 8px;
-}
-
-/* On the window's background, which shows the theme being edited. */
-#theme-editor {
-  bottom: 44px;
-  inset-inline: 0;
-  overflow-y: auto;
-  position: absolute;
-  top: 0;
 }
 
 /* zen:library: the Library slides over the sidebar from the left, on the
