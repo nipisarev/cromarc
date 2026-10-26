@@ -92,7 +92,7 @@ commit. Reading a command-line switch is not a system change; adding one is.
 | When | What |
 |---|---|
 | An agent writes a file | `.claude/settings.json` runs `tooling/arch-check --claude-hook`; a violation comes back to the agent at once |
-| `git commit` | `tooling/git-hooks/pre-commit` (arch-check on the staged files, the baseline only shrinks) and `commit-msg` (`System-Change:`). `tooling/bootstrap` sets `core.hooksPath` |
+| `git commit` | `tooling/git-hooks/pre-commit` (arch-check on the staged files, the baseline only shrinks; all of `tooling/check` when tooling or WebUI files are staged) and `commit-msg` (`System-Change:`). `tooling/bootstrap` sets `core.hooksPath` |
 | Push | CI (`.github/workflows/check.yml`): `tooling/check` (arch-check `--strict` and its tests), baseline growth, `System-Change:` on every pushed commit |
 | Install | `tooling/install` refuses unless the tree is committed, arch-check passes, every suite passed on this very build (`tooling/test-browser` stamps it) and Chromium holds exactly `patches/hooks` |
 

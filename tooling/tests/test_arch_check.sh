@@ -10,6 +10,13 @@
 
 set -uo pipefail
 
+# Run from a git hook, git's own variables point at this repository and its
+# commit (GIT_INDEX_FILE, GIT_AUTHOR_EMAIL...); the throwaway trees below must
+# not see them.
+while read -r var; do unset "$var"; done < <(git rev-parse --local-env-vars)
+unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE \
+  GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
+
 TOOLING_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CHECK="$TOOLING_DIR/arch-check"
 failures=0

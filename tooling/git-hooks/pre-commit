@@ -5,10 +5,18 @@
 #
 # Stops a commit whose staged code breaks Cromarc's architecture rules
 # (AGENTS.md): tooling/arch-check on the staged files, and the baseline of
-# known violations only shrinks. Installed by tooling/bootstrap
+# known violations only shrinks. A commit that touches what only
+# tooling/check covers (the tooling, its tests, the WebUI's unit tests) needs
+# tooling/check green as well. Installed by tooling/bootstrap
 # (core.hooksPath = tooling/git-hooks).
 
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 "$root/tooling/arch-check" --root "$root" --staged
 "$root/tooling/arch-check" --root "$root" --staged --baseline-grew HEAD
+if git diff --cached --name-only | grep -qE '^(tooling|branding|src/webui)/'; then
+  "$root/tooling/check" >/dev/null || {
+    echo "pre-commit: tooling/check is red; run it to see why" >&2
+    exit 1
+  }
+fi
