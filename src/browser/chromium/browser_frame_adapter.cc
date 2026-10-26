@@ -9,6 +9,7 @@
 
 #include "base/command_line.h"
 #include "base/logging.h"
+#include "build/build_config.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser links //cromarc
@@ -20,6 +21,7 @@
 #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "components/prefs/pref_service.h"
+#include "cromarc/browser/chromium/window_material.h"
 #include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
@@ -131,6 +133,21 @@ bool ThemesWindow(const BrowserView* browser_view) {
   return browser_view && browser_view->GetIsNormalType();
 }
 
+bool InstallWindowMaterial(BrowserView* browser_view) {
+#if BUILDFLAG(IS_MAC)
+  if (!ThemesWindow(browser_view)) {
+    return false;
+  }
+  cromarc::InstallWindowMaterial(browser_view->GetWidget()->GetNativeWindow());
+  if (LogsBackground()) {
+    LOG(ERROR) << "cromarc material: installed";
+  }
+  return true;
+#else
+  return false;
+#endif
+}
+
 void PaintWindowBackground(gfx::Canvas* canvas,
                            const gfx::Rect& bounds,
                            BrowserView* browser_view) {
@@ -146,6 +163,7 @@ void PaintWindowBackground(gfx::Canvas* canvas,
   if (LogsBackground()) {
     LOG(ERROR) << "cromarc background: colors=" << theme.colors.size()
                << " texture=" << theme.texture
+               << " opacity=" << theme.opacity
                << " preview=" << (sidebar && sidebar->theme_preview())
                << " blend=" << (blend ? blend->progress : 0);
   }

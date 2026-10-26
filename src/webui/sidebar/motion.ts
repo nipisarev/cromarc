@@ -62,6 +62,42 @@ export const LIBRARY_SPRING: SpringOptions = {
   mass: 1.2,
 };
 
+// Motion's spring for {duration, bounce} (motion: generators/spring/find.ts,
+// findSpring, from rest): the stiffness whose oscillation has died down to
+// 0.001 of its start `duration` seconds in, damped 1 - bounce.
+export function springFromDuration(duration: number, bounce: number):
+    SpringOptions {
+  const safeMin = 0.001;
+  const dampingRatio = Math.min(1, Math.max(0.05, 1 - bounce));
+  duration = Math.min(10, Math.max(0.01, duration));
+  const angular = (frequency: number) =>
+      frequency * Math.sqrt(1 - dampingRatio * dampingRatio);
+  const envelope = (frequency: number) => {
+    const decay = frequency * dampingRatio;
+    return safeMin - (decay / angular(frequency)) * Math.exp(-decay * duration);
+  };
+  const derivative = (frequency: number) => {
+    const delta = frequency * dampingRatio * duration;
+    const e = dampingRatio ** 2 * frequency ** 2 * duration;
+    const factor = -envelope(frequency) + safeMin > 0 ? -1 : 1;
+    return (factor * (-e * Math.exp(-delta))) / angular(frequency ** 2);
+  };
+  let frequency = 5 / duration;
+  for (let i = 1; i < 12; i++) {
+    frequency -= envelope(frequency) / derivative(frequency);
+  }
+  if (Number.isNaN(frequency)) {
+    // Motion's defaults.
+    return {stiffness: 100, damping: 10, mass: 1};
+  }
+  const stiffness = frequency ** 2;
+  return {stiffness, damping: dampingRatio * 2 * Math.sqrt(stiffness), mass: 1};
+}
+
+// Zen's theme picker moves its dots with {type: 'spring', duration: 0.4,
+// bounce: 0.3} (ZenGradientGenerator.mjs, handleColorPositions).
+export const THEME_DOT_SPRING = springFromDuration(0.4, 0.3);
+
 // CSS's cubic-bezier() timing function: progress at time `t`, 0-1.
 export function cubicBezier(x1: number, y1: number, x2: number, y2: number):
     (t: number) => number {

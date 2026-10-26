@@ -15,6 +15,8 @@
 #include "cromarc/browser/ui/command_bar/command_bar_ui.h"
 #include "cromarc/browser/ui/sidebar/sidebar.mojom.h"
 #include "cromarc/browser/ui/sidebar/sidebar_ui.h"
+#include "cromarc/browser/ui/sidebar/theme_picker.mojom.h"
+#include "cromarc/browser/ui/sidebar/theme_picker_ui.h"
 #include "cromarc/browser/ui/welcome/welcome.mojom.h"
 #include "cromarc/browser/ui/welcome/welcome_ui.h"
 
@@ -24,6 +26,7 @@ void RegisterWebUIConfigs(content::WebUIConfigMap& map) {
   map.AddWebUIConfig(std::make_unique<ArcImportUIConfig>());
   map.AddWebUIConfig(std::make_unique<CommandBarUIConfig>());
   map.AddWebUIConfig(std::make_unique<SidebarUIConfig>());
+  map.AddWebUIConfig(std::make_unique<ThemePickerUIConfig>());
   map.AddWebUIConfig(std::make_unique<WelcomeUIConfig>());
 }
 
@@ -36,6 +39,8 @@ void PopulateWebUIInterfaceBrokers(
   registry.ForWebUI<SidebarUI>()
       .Add<tabs_api::mojom::TabStripService>()
       .Add<mojom::PageHandlerFactory>();
+  registry.ForWebUI<ThemePickerUI>()
+      .Add<theme_picker::mojom::PageHandlerFactory>();
   registry.ForWebUI<WelcomeUI>().Add<welcome::mojom::PageHandlerFactory>();
 }
 

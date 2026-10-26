@@ -103,7 +103,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   void RenameSpace(const std::string& id, const std::string& name) override;
   void SetSpaceIcon(const std::string& id, const std::string& icon) override;
   void SetSpaceTheme(const std::string& id, const std::string& theme) override;
-  void PreviewSpaceTheme(const std::string& theme) override;
+  void OpenThemePicker(const std::string& id) override;
   void SetLibraryWidth(int32_t width) override;
   void BlendSpaceTheme(const std::string& theme, float progress) override;
   void ReorderSpaces(const std::vector<std::string>& ids) override;

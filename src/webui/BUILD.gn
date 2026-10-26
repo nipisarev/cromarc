@@ -36,6 +36,7 @@ build_webui("build") {
     "sidebar/ui_icons/chevron.svg",
     "sidebar/ui_icons/clear.svg",
     "sidebar/ui_icons/close.svg",
+    "sidebar/ui_icons/color-filter.svg",
     "sidebar/ui_icons/copy.svg",
     "sidebar/ui_icons/ellipsis.svg",
     "sidebar/ui_icons/eye-off.svg",
@@ -44,14 +45,19 @@ build_webui("build") {
     "sidebar/ui_icons/link.svg",
     "sidebar/ui_icons/lock.svg",
     "sidebar/ui_icons/menu.svg",
+    "sidebar/ui_icons/moon.svg",
     "sidebar/ui_icons/move.svg",
     "sidebar/ui_icons/open.svg",
     "sidebar/ui_icons/options.svg",
     "sidebar/ui_icons/play.svg",
     "sidebar/ui_icons/refresh.svg",
+    "sidebar/ui_icons/remove.svg",
     "sidebar/ui_icons/return-down-forward.svg",
     "sidebar/ui_icons/search.svg",
+    "sidebar/ui_icons/sparkles.svg",
+    "sidebar/ui_icons/sunny.svg",
     "sidebar/ui_icons/trash.svg",
+    "theme_picker/theme_picker.html",
     "welcome/welcome.html",
   ] + cromarc_space_icons
 
@@ -101,9 +107,10 @@ build_webui("build") {
     "sidebar/spaces.ts",
     "sidebar/strings.ts",
     "sidebar/tab_list_model.ts",
-    "sidebar/theme_editor.html.ts",
-    "sidebar/theme_editor.ts",
     "sidebar/theme_model.ts",
+    "theme_picker/app.html.ts",
+    "theme_picker/app.ts",
+    "theme_picker/presets.ts",
     "welcome/app.html.ts",
     "welcome/app.ts",
     "welcome/steps.ts",
@@ -116,7 +123,7 @@ build_webui("build") {
     "sidebar/icon_picker.css",
     "sidebar/library.css",
     "sidebar/space_editor.css",
-    "sidebar/theme_editor.css",
+    "theme_picker/app.css",
     "welcome/app.css",
   ]
 
@@ -152,6 +159,7 @@ build_webui("build") {
     "$root_gen_dir/cromarc/browser/ui/arc_import/arc_import.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/command_bar/command_bar.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/sidebar/sidebar.mojom-webui.ts",
+    "$root_gen_dir/cromarc/browser/ui/sidebar/theme_picker.mojom-webui.ts",
     "$root_gen_dir/cromarc/browser/ui/welcome/welcome.mojom-webui.ts",
   ]
 

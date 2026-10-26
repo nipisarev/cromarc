@@ -1,0 +1,399 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* #css_wrapper_metadata_start
+ * #type=style-lit
+ * #scheme=relative
+ * #css_wrapper_metadata_end */
+
+/* zen:spaces/zen-gradient-generator.css, on the panel's native material.
+ * Firefox's design tokens: --size-item-xsmall 12px, --size-item-small 16px,
+ * --icon-size-medium 20px; Zen's --size-item-large 34px. */
+:host {
+  --panel-width: 380px;
+  --panel-padding: 10px;
+  --panel-border-radius: 12px;
+  --button-color: light-dark(rgba(0, 0, 0, .7), rgba(255, 255, 255, .9));
+  --button-hover: light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .1));
+
+  color: CanvasText;
+  display: block;
+  user-select: none;
+}
+
+#panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--panel-padding);
+  width: var(--panel-width);
+}
+
+/* .zen-theme-picker-gradient */
+#pad {
+  background: light-dark(rgba(0, 0, 0, .05), rgba(255, 255, 255, .03));
+  background-image: radial-gradient(
+      light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .05)) 1px,
+      transparent 0);
+  background-position: -23px -23px;
+  background-size: 6px 6px;
+  border-radius: calc(var(--panel-border-radius) - 4px);
+  flex-shrink: 0;
+  min-height: calc(var(--panel-width) - var(--panel-padding) * 2 - 2px);
+  overflow: hidden;
+  position: relative;
+}
+
+.dot {
+  background: var(--dot-color);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 20px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transform-origin: left top;
+  width: 20px;
+  z-index: 2;
+}
+
+.dot[primary] {
+  border-width: 6px;
+  height: 38px;
+  pointer-events: all;
+  touch-action: none;
+  transition: transform .2s;
+  width: 38px;
+  z-index: 999;
+}
+
+.dot[primary]:hover {
+  transform: scale(1.05) translate(-50%, -50%);
+}
+
+.dot[dragging] {
+  transform: scale(1.2) translate(-25%, -25%) !important;
+}
+
+#click-to-add {
+  font-size: small;
+  font-weight: 600;
+  left: 50%;
+  margin: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+
+#click-to-add[hidden] {
+  display: none;
+}
+
+/* #PanelUI-zen-gradient-generator-color-actions and -scheme */
+.buttons {
+  display: flex;
+  gap: 5px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+#scheme {
+  max-height: 34px;
+  top: 15px;
+}
+
+#actions {
+  bottom: 12px;
+}
+
+button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--button-color);
+  display: flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  transition: background .2s;
+  width: 30px;
+}
+
+button:not([disabled]):hover,
+button[selected] {
+  background: var(--button-hover);
+}
+
+button[disabled] {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.icon {
+  background: currentColor;
+  height: 16px;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  width: 16px;
+}
+
+/* The preset pages, between Zen's page buttons. */
+#pages-row {
+  align-items: center;
+  display: flex;
+}
+
+.page-button {
+  flex-shrink: 0;
+  height: 28px;
+  width: 28px;
+}
+
+.page-button[disabled] {
+  cursor: default;
+  opacity: .4;
+}
+
+#pages {
+  align-items: center;
+  display: flex;
+  justify-content: space-around;
+  margin: 0 10px;
+  overflow: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  width: 100%;
+}
+
+.page {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  min-width: 100%;
+  padding: 0 1px;
+}
+
+.swatch {
+  border-radius: 50%;
+  box-shadow: 0 0 1px 1px rgba(0, 0, 0, .1);
+  cursor: pointer;
+  flex-shrink: 0;
+  height: 26px;
+  position: relative;
+  transition: transform .1s;
+  width: 26px;
+}
+
+.swatch:hover {
+  transform: scale(1.05);
+}
+
+.swatch:hover:active {
+  transform: scale(.95);
+}
+
+/* #PanelUI-zen-gradient-generator-controls; 2rem on macOS at Firefox's 13px
+ * menu font. */
+#controls {
+  align-items: center;
+  display: flex;
+  gap: var(--panel-padding);
+  padding-top: 10px;
+}
+
+#colors-wrapper {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  gap: 26px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 0 var(--panel-padding);
+  width: 100%;
+}
+
+#opacity-wrapper {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  height: 55px;
+  position: relative;
+}
+
+#wave {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: flex-start;
+  left: -5px;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+  z-index: 1;
+}
+
+#wave::before {
+  background: light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .1));
+  border-radius: 999px;
+  content: '';
+  height: 16px;
+  left: 8px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(100% - 8px);
+  z-index: -1;
+}
+
+#wave svg {
+  margin-left: 4px;
+  min-width: calc(100% * 1.1);
+  overflow: visible;
+  scale: 1.2;
+}
+
+#wave path {
+  stroke-width: 8px;
+}
+
+#wave path.wave {
+  stroke: url(#wave-gradient);
+}
+
+#wave path.line,
+#panel[invalidate-controls] #wave path {
+  stroke: light-dark(rgba(77, 77, 77, .5), rgba(161, 161, 161, .5));
+}
+
+.stop-full {
+  stop-color: light-dark(rgb(90, 90, 90), rgb(161, 161, 161));
+}
+
+.stop-faint {
+  stop-color: light-dark(rgba(77, 77, 77, .5), rgba(161, 161, 161, .5));
+}
+
+#opacity {
+  appearance: none;
+  background: transparent;
+  box-sizing: border-box;
+  height: 18px;
+  margin: 0;
+  padding: 0 5px;
+  position: relative;
+  width: 100%;
+  z-index: 2;
+}
+
+#panel[invalidate-controls] #opacity {
+  display: none;
+}
+
+#opacity::-webkit-slider-runnable-track {
+  background: transparent;
+  border-radius: 999px;
+  height: 18px;
+}
+
+#opacity::-webkit-slider-thumb {
+  appearance: none;
+  background: light-dark(black, white);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  height: var(--thumb-height);
+  margin-top: calc((18px - var(--thumb-height)) / 2);
+  transform: scale(1);
+  transform-origin: center;
+  transition: transform .5s;
+  width: var(--thumb-width);
+}
+
+#opacity:hover::-webkit-slider-thumb {
+  transform: scale(1.1);
+}
+
+/* #PanelUI-zen-gradient-generator-texture-wrapper */
+#texture {
+  flex-shrink: 0;
+  height: 78px;
+  position: relative;
+  width: 78px;
+}
+
+/* The inner circle, lit from the corner. */
+#texture::after {
+  background: linear-gradient(
+      -45deg, transparent -10%,
+      light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .1)) 110%);
+  border: 1px solid light-dark(rgba(0, 0, 0, .1), rgba(79, 79, 79, .5));
+  border-radius: 50%;
+  content: '';
+  height: 60%;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  z-index: 2;
+}
+
+/* The grain inside it, at the theme's strength. */
+#texture::before {
+  background-image: url(sidebar/images/grain-bg.png);
+  border-radius: 50%;
+  content: '';
+  height: 60%;
+  left: 50%;
+  mix-blend-mode: hard-light;
+  opacity: var(--grain);
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  z-index: 1;
+}
+
+.texture-dot {
+  background: light-dark(rgba(0, 0, 0, .3), rgba(255, 255, 255, .3));
+  border-radius: 50%;
+  height: 4px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: opacity .2s;
+  width: 4px;
+}
+
+.texture-dot:not([active]) {
+  opacity: .4;
+}
+
+#texture-handle {
+  background: light-dark(#757575, #d1d1d1);
+  border-radius: 2px;
+  cursor: pointer;
+  height: 12px;
+  position: absolute;
+  touch-action: none;
+  transition: height .1s;
+  width: 6px;
+  z-index: 2;
+}
+
+#texture-handle:hover {
+  height: 14px;
+}

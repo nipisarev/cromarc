@@ -13,6 +13,9 @@ namespace cromarc {
 
 inline constexpr char kSidebarHost[] = "cromarc-sidebar.top-chrome";
 inline constexpr char kSidebarURL[] = "chrome://cromarc-sidebar.top-chrome/";
+inline constexpr char kThemePickerHost[] = "cromarc-theme-picker.top-chrome";
+inline constexpr char kThemePickerURL[] =
+    "chrome://cromarc-theme-picker.top-chrome/";
 
 // Zen's zen.theme.content-element-separation, and the page's radius on macOS
 // (zen-browser-container.css): --zen-native-inner-radius over the squircle,

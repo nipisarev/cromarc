@@ -1,0 +1,26 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+module cromarc.theme_picker.mojom;
+
+interface PageHandlerFactory {
+  CreatePageHandler(pending_remote<Page> page,
+                    pending_receiver<PageHandler> handler);
+};
+
+interface PageHandler {
+  // The theme being edited, as the theme editor's JSON: shown under the
+  // window, and saved with the space when the panel closes.
+  Preview(string theme);
+  PlayHapticFeedback();
+  // Escape: closes the panel, as a click elsewhere does.
+  Close();
+  // The page's height, which the panel takes.
+  SetHeight(int32 height);
+};
+
+interface Page {
+  // The panel opened for `space_id`, whose theme is `theme` ("" for none).
+  Open(string space_id, string theme);
+};

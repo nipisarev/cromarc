@@ -34,6 +34,7 @@
 #include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
+#include "cromarc/browser/ui/sidebar/theme_picker.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "ui/base/base_window.h"
 #include "ui/base/mojom/menu_source_type.mojom.h"
@@ -586,11 +587,8 @@ void SidebarPageHandler::SetSpaceTheme(const std::string& id,
   SpaceController::Get()->SetSpaceTheme(id, theme);
 }
 
-void SidebarPageHandler::PreviewSpaceTheme(const std::string& theme) {
-  if (SidebarView* sidebar = SidebarView::ForBrowser(browser_)) {
-    sidebar->SetThemePreview(theme.empty() ? std::nullopt
-                                           : std::make_optional(theme));
-  }
+void SidebarPageHandler::OpenThemePicker(const std::string& id) {
+  ThemePicker::GetOrCreate(*windows_, browser_)->Show(id);
 }
 
 void SidebarPageHandler::SetLibraryWidth(int32_t width) {

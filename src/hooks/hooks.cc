@@ -6,7 +6,6 @@
 
 #include <optional>
 
-#include "build/build_config.h"
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/themes/theme_service.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/themes/theme_service_factory.h"  // nogncheck: as above
@@ -19,7 +18,6 @@
 #include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/chromium/browser_frame_adapter.h"
 #include "cromarc/browser/chromium/sidebar_installer.h"
-#include "cromarc/browser/chromium/window_material.h"
 #include "cromarc/browser/keyed_services.h"
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
@@ -29,7 +27,6 @@
 #include "ui/compositor/layer_solid_color.h"
 #include "ui/views/view.h"
 #include "ui/views/view_utils.h"
-#include "ui/views/widget/widget.h"
 
 namespace cromarc::hooks {
 
@@ -116,15 +113,7 @@ bool ThemesWindow(const BrowserView* browser_view) {
 }
 
 bool InstallWindowMaterial(BrowserView* browser_view) {
-#if BUILDFLAG(IS_MAC)
-  if (!cromarc::ThemesWindow(browser_view)) {
-    return false;
-  }
-  cromarc::InstallWindowMaterial(browser_view->GetWidget()->GetNativeWindow());
-  return true;
-#else
-  return false;
-#endif
+  return cromarc::InstallWindowMaterial(browser_view);
 }
 
 bool PaintChromeBackground(gfx::Canvas* canvas,
