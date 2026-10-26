@@ -12,6 +12,7 @@
 #include "base/callback_list.h"
 #include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
 #include "base/process/kill.h"
 #include "base/time/time.h"
@@ -54,7 +55,7 @@ class SidebarView : public views::WebView {
     raw_ptr<PrefService> prefs;
     std::unique_ptr<BrowserFrame> frame;
     std::unique_ptr<VerticalStrip> strip;
-    std::unique_ptr<Tabs> tabs;
+    raw_ptr<Tabs> tabs;
   };
 
   explicit SidebarView(Host host);
@@ -124,7 +125,7 @@ class SidebarView : public views::WebView {
   raw_ptr<BrowserWindowInterface> browser_;
   const std::unique_ptr<BrowserFrame> frame_;
   const std::unique_ptr<VerticalStrip> strip_;
-  const std::unique_ptr<Tabs> tabs_;
+  const raw_ref<Tabs> tabs_;
   std::unique_ptr<CompactMode> compact_mode_;
   base::ScopedClosureRunner shared_sidebar_state_;
   views::UnhandledKeyboardEventHandler unhandled_keyboard_event_handler_;

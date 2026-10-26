@@ -15,6 +15,8 @@
 #include "base/timer/timer.h"
 #include "cromarc/browser/ports/vertical_strip.h"
 
+class BrowserWindowInterface;
+
 namespace gfx {
 class Point;
 }  // namespace gfx
@@ -38,9 +40,11 @@ class CompactMode {
   using MouseWatcher = base::RepeatingCallback<base::ScopedClosureRunner(
       base::RepeatingCallback<void(const gfx::Point&)>)>;
 
+  // `window` is the one `strip` and `frame` are of.
   CompactMode(VerticalStrip& strip,
               BrowserFrame& frame,
               Tabs& tabs,
+              BrowserWindowInterface* window,
               MouseWatcher watch_mouse);
   CompactMode(const CompactMode&) = delete;
   CompactMode& operator=(const CompactMode&) = delete;

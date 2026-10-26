@@ -7,10 +7,12 @@
 #include <vector>
 
 #include "base/functional/bind.h"
+#include "base/memory/raw_ptr.h"
 #include "base/test/task_environment.h"
 #include "cromarc/browser/ports/fake_browser_frame.h"
 #include "cromarc/browser/ports/fake_tabs.h"
 #include "cromarc/browser/ports/fake_vertical_strip.h"
+#include "cromarc/browser/ports/fake_windows.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "ui/gfx/geometry/point.h"
 
@@ -39,8 +41,10 @@ class CompactModeTest : public testing::Test {
   FakeVerticalStrip strip_;
   FakeBrowserFrame frame_;
   FakeTabs tabs_;
+  const raw_ptr<BrowserWindowInterface> window_ =
+      FakeWindows::Handle<BrowserWindowInterface>(1);
   int watching_ = 0;
-  CompactMode compact_{strip_, frame_, tabs_,
+  CompactMode compact_{strip_, frame_, tabs_, window_,
                        base::BindRepeating(&CompactModeTest::WatchMouse,
                                            base::Unretained(this))};
 };
@@ -82,7 +86,7 @@ TEST_F(CompactModeTest, OnlyTheEdgeBesideTheStripRevealsIt) {
 
 TEST_F(CompactModeTest, NotCompactNothingSlidesOut) {
   compact_.OnMouseMoved(kAtTheEdge);
-  tabs_.OpenInBackground();
+  tabs_.OpenInBackground(window_);
   EXPECT_EQ(0, strip_.holds);
 }
 
@@ -126,7 +130,9 @@ TEST_F(CompactModeTest, LeavingCompactModeHidesIt) {
 
 TEST_F(CompactModeTest, ABackgroundTabFlashesItFor800Ms) {
   Compact();
-  tabs_.OpenInBackground();
+  tabs_.OpenInBackground(FakeWindows::Handle<BrowserWindowInterface>(2));
+  EXPECT_EQ(0, strip_.holds);
+  tabs_.OpenInBackground(window_);
   EXPECT_EQ(1, strip_.holds);
   task_environment_.FastForwardBy(base::Milliseconds(799));
   EXPECT_EQ(1, strip_.holds);

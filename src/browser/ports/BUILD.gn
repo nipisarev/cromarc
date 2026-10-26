@@ -6,9 +6,12 @@
 # on these; //cromarc/browser/chromium implements them.
 source_set("ports") {
   sources = [
+    "app_lifecycle.h",
     "browser_frame.h",
+    "tab_strip_api.h",
     "tabs.h",
     "vertical_strip.h",
+    "windows.h",
   ]
   public_deps = [
     "//base",
@@ -26,6 +29,11 @@ source_set("test_support") {
     "fake_tabs.h",
     "fake_vertical_strip.cc",
     "fake_vertical_strip.h",
+    "fake_windows.cc",
+    "fake_windows.h",
   ]
-  public_deps = [ ":ports" ]
+  public_deps = [
+    ":ports",
+    "//url",
+  ]
 }

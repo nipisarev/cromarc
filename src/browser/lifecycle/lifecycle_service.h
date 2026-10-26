@@ -11,12 +11,13 @@
 
 #include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/power_monitor/power_observer.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
 #include "components/keyed_service/core/keyed_service.h"
-#include "components/tabs/public/tab_interface.h"
 #include "cromarc/browser/lifecycle/policy.h"
+#include "cromarc/browser/ports/tabs.h"
 #include "url/gurl.h"
 
 class BrowserWindowInterface;
@@ -24,8 +25,10 @@ class Profile;
 
 namespace cromarc {
 
+class AppLifecycle;
 class ArchiveService;
 class TreeService;
+class Windows;
 
 // The Arc lifecycle of one regular profile (design, component 3): once a
 // minute, on wake from sleep and after session restore, Today tabs idle for
@@ -36,7 +39,7 @@ class LifecycleService : public KeyedService,
                          public base::PowerSuspendObserver {
  public:
   struct TabState {
-    raw_ptr<tabs::TabInterface> tab;
+    TabId tab;
     bool deferred = false;
     // Within the last hour before the archive; zero otherwise.
     base::TimeDelta time_left;
@@ -46,7 +49,10 @@ class LifecycleService : public KeyedService,
 
   LifecycleService(Profile* profile,
                    TreeService* tree_service,
-                   ArchiveService* archive_service);
+                   ArchiveService* archive_service,
+                   Tabs& tabs,
+                   Windows& windows,
+                   AppLifecycle& app_lifecycle);
   LifecycleService(const LifecycleService&) = delete;
   LifecycleService& operator=(const LifecycleService&) = delete;
   ~LifecycleService() override;
@@ -54,7 +60,7 @@ class LifecycleService : public KeyedService,
   // Deferred tabs and countdowns of `browser`'s tabs, for its sidebar.
   std::vector<TabState> GetTabStates(BrowserWindowInterface* browser);
   // "Keep" on a deferred tab: its clock restarts.
-  void Keep(tabs::TabInterface* tab);
+  void Keep(TabId tab);
   // Archives and closes the Today tabs of `browser` (Today's "Clear").
   // Returns the closed URLs, for undo.
   std::vector<GURL> ClearToday(BrowserWindowInterface* browser);
@@ -72,24 +78,25 @@ class LifecycleService : public KeyedService,
   void OnResume() override;
 
  private:
-  TabFacts FactsFor(tabs::TabInterface* tab,
+  TabFacts FactsFor(TabId tab,
                     bool active_in_visible_window,
                     base::TimeDelta user_away_for,
                     base::Time now);
-  bool HasUnsavedInput(tabs::TabInterface* tab);
-  void ArchiveAndClose(tabs::TabInterface* tab, const char* reason);
-  void Close(tabs::TabInterface* tab);
+  bool HasUnsavedInput(TabId tab);
+  void ArchiveAndClose(TabId tab, const char* reason);
   // After session restore: every pinned item starts asleep.
   void CloseRestoredPinnedTabs();
-  std::vector<BrowserWindowInterface*> Windows();
 
   raw_ptr<Profile> profile_;
   raw_ptr<TreeService> tree_service_;
   raw_ptr<ArchiveService> archive_service_;
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Windows> windows_;
+  const raw_ref<AppLifecycle> app_lifecycle_;
   Limits limits_;
-  std::map<tabs::TabHandle, base::Time> last_active_;
-  std::set<tabs::TabHandle> deferred_;
-  std::set<tabs::TabHandle> kept_;
+  std::map<TabId, base::Time> last_active_;
+  std::set<TabId> deferred_;
+  std::set<TabId> kept_;
   bool startup_pass_done_ = false;
   base::RepeatingTimer timer_;
   base::OneShotTimer first_sweep_;

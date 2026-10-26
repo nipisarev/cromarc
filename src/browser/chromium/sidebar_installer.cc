@@ -15,8 +15,8 @@
 #include "chrome/browser/ui/views/tabs/shared/tab_strip_combo_button.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_bottom_container.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.h"  // nogncheck: as above
+#include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/chromium/browser_frame_adapter.h"
-#include "cromarc/browser/chromium/tabs_adapter.h"
 #include "cromarc/browser/chromium/vertical_strip_adapter.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/views/view.h"
@@ -61,7 +61,7 @@ void InstallSidebar(views::View* parent,
   host.prefs = browser->GetProfile()->GetPrefs();
   host.frame = std::make_unique<BrowserFrameAdapter>(browser);
   host.strip = std::make_unique<VerticalStripAdapter>(browser, parent);
-  host.tabs = std::make_unique<TabsAdapter>(browser);
+  host.tabs = &ChromiumTabs();
   parent->AddChildViewAt(std::make_unique<SidebarView>(std::move(host)),
                          *index + 1);
 }

@@ -16,13 +16,9 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
 #include "build/build_config.h"
-#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
-#include "chrome/browser/ui/tabs/tab_enums.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_model_impl/converters/tab_converters.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/common/webui_url_constants.h"
 #include "chrome/grit/cromarc_resources_map.h"
 #include "chrome/browser/favicon/favicon_service_factory.h"
 #include "chrome/browser/lifetime/application_lifetime.h"
@@ -32,12 +28,14 @@
 #include "components/favicon_base/favicon_types.h"
 #include "components/keyed_service/core/service_access_type.h"
 #include "components/prefs/pref_service.h"
-#include "components/browser_apis/tab_strip/types/node_id.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
+#include "cromarc/browser/ports/tab_strip_api.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/routing/space_routing.h"
 #include "cromarc/browser/sync/icloud_sync.h"
 #include "cromarc/browser/tree/tree.h"
@@ -67,21 +65,9 @@ namespace cromarc {
 
 namespace {
 
-tabs::TabInterface* TabFromNodeId(const tabs_api::NodeId& id) {
-  std::optional<tabs::TabHandle> handle = id.ToTabHandle();
-  return handle ? handle->Get() : nullptr;
-}
-
-void SetPinned(tabs::TabInterface* tab, bool pinned) {
-  TabStripModel* model = tab->GetBrowserWindowInterface()->GetTabStripModel();
-  const int index = model->GetIndexOfTab(tab);
-  if (index != TabStripModel::kNoTab && model->IsTabPinned(index) != pinned) {
-    model->SetTabPinned(index, pinned);
-  }
-}
-
 std::vector<mojom::TreeNodePtr> BuildChildren(
     TreeService* tree_service,
+    TabStripApi& tab_strip_api,
     const bookmarks::BookmarkNode* folder) {
   std::vector<mojom::TreeNodePtr> nodes;
   for (const auto& child : folder->children()) {
@@ -91,12 +77,13 @@ std::vector<mojom::TreeNodePtr> BuildChildren(
     node->is_folder = child->is_folder();
     if (child->is_folder()) {
       node->collapsed = Tree::IsCollapsed(child.get());
-      node->children = BuildChildren(tree_service, child.get());
+      node->children =
+          BuildChildren(tree_service, tab_strip_api, child.get());
     } else {
       node->essential = Tree::IsEssential(child.get());
       node->home_url = child->url();
-      if (tabs::TabInterface* tab = tree_service->GetLiveTab(node->id)) {
-        node->tab = tabs_api::NodeId::FromTabHandle(tab->GetHandle());
+      if (std::optional<TabId> tab = tree_service->GetLiveTab(node->id)) {
+        node->tab = tab_strip_api.NodeIdOf(*tab);
       }
     }
     nodes.push_back(std::move(node));
@@ -209,13 +196,19 @@ SidebarPageHandler::SidebarPageHandler(
     BrowserWindowInterface* browser,
     TreeService* tree_service,
     LifecycleService* lifecycle_service,
-    ArchiveService* archive_service)
+    ArchiveService* archive_service,
+    Tabs& tabs,
+    Windows& windows,
+    TabStripApi& tab_strip_api)
     : receiver_(this, std::move(receiver)),
       page_(std::move(page)),
       browser_(browser),
       tree_service_(tree_service),
       lifecycle_service_(lifecycle_service),
       archive_service_(archive_service),
+      tabs_(tabs),
+      windows_(windows),
+      tab_strip_api_(tab_strip_api),
       tree_subscription_(tree_service_->RegisterOnChanged(
           base::BindRepeating(&SidebarPageHandler::OnTreeChanged,
                               base::Unretained(this)))),
@@ -250,12 +243,14 @@ void SidebarPageHandler::GetTree(GetTreeCallback callback) {
     std::move(callback).Run({});
     return;
   }
-  std::move(callback).Run(BuildChildren(tree_service_, tree_service_->tree().Root()));
+  std::move(callback).Run(BuildChildren(tree_service_, *tab_strip_api_,
+                                        tree_service_->tree().Root()));
 }
 
 void SidebarPageHandler::OnTreeChanged() {
   if (tree_service_->loaded()) {
-    page_->OnTreeChanged(BuildChildren(tree_service_, tree_service_->tree().Root()));
+    page_->OnTreeChanged(BuildChildren(tree_service_, *tab_strip_api_,
+                                       tree_service_->tree().Root()));
   }
 }
 
@@ -276,11 +271,11 @@ void SidebarPageHandler::PinTab(const tabs_api::NodeId& tab_id,
                                 const std::string& parent_id,
                                 uint32_t index,
                                 bool essential) {
-  tabs::TabInterface* tab = TabFromNodeId(tab_id);
-  if (!tab || tree_service_->GetItemForTab(tab)) {
+  const std::optional<TabId> tab = tab_strip_api_->TabOf(tab_id);
+  content::WebContents* contents = tab ? tabs_->GetContents(*tab) : nullptr;
+  if (!contents || tree_service_->GetItemForTab(*tab)) {
     return;
   }
-  content::WebContents* contents = tab->GetContents();
   Tree& tree = tree_service_->tree();
   // The item comes linked to its tab, then the tab is pinned: no step shows
   // it asleep, in two places, or in none.
@@ -297,10 +292,10 @@ void SidebarPageHandler::PinTab(const tabs_api::NodeId& tab_id,
     if (essential) {
       tree.SetEssential(id, true);
     }
-    tree_service_->Link(id, tab);
+    tree_service_->Link(id, *tab);
   });
   if (added) {
-    SetPinned(tab, true);
+    tabs_->SetPinned(*tab, true);
   }
 }
 
@@ -318,8 +313,8 @@ void SidebarPageHandler::RenameItem(const std::string& id,
 void SidebarPageHandler::ReleaseLiveTabs(const bookmarks::BookmarkNode* node) {
   if (node->is_url()) {
     const std::string id = Tree::IdOf(node);
-    if (tabs::TabInterface* tab = tree_service_->GetLiveTab(id)) {
-      SetPinned(tab, false);
+    if (std::optional<TabId> tab = tree_service_->GetLiveTab(id)) {
+      tabs_->SetPinned(*tab, false);
       tree_service_->Unlink(id);
     }
     return;
@@ -365,8 +360,9 @@ void SidebarPageHandler::RemoveItem(const std::string& id) {
 
 void SidebarPageHandler::ResetItem(const std::string& id) {
   const bookmarks::BookmarkNode* node = tree_service_->tree().Find(id);
-  tabs::TabInterface* tab = tree_service_->GetLiveTab(id);
-  if (!node || !node->is_url() || !tab) {
+  const std::optional<TabId> tab = tree_service_->GetLiveTab(id);
+  content::WebContents* contents = tab ? tabs_->GetContents(*tab) : nullptr;
+  if (!node || !node->is_url() || !contents) {
     return;
   }
   // As Zen's reset (ZenPinnedTabManager #resetTabToStoredState): only the
@@ -374,34 +370,28 @@ void SidebarPageHandler::ResetItem(const std::string& id) {
   content::NavigationController::LoadURLParams params(node->url());
   params.transition_type = ui::PAGE_TRANSITION_AUTO_BOOKMARK;
   params.should_clear_history_list = true;
-  tab->GetContents()->GetController().LoadURLWithParams(params);
+  contents->GetController().LoadURLWithParams(params);
 }
 
 void SidebarPageHandler::SeparateItem(const std::string& id) {
-  tabs::TabInterface* tab = tree_service_->GetLiveTab(id);
+  const std::optional<TabId> tab = tree_service_->GetLiveTab(id);
   if (!tab) {
     return;
   }
-  BrowserWindowInterface* browser = tab->GetBrowserWindowInterface();
-  TabStripModel* model = browser->GetTabStripModel();
   // The copy keeps the page and its history as an ordinary tab, loaded at
   // once as Zen's duplicateTab(tab, true).
-  if (content::WebContents* copy =
-          chrome::DuplicateTabAt(browser, model->GetIndexOfTab(tab))) {
-    if (tabs::TabInterface* copy_tab =
-            tabs::TabInterface::GetFromContents(copy)) {
-      SetPinned(copy_tab, false);
-    }
-    copy->GetController().LoadIfNecessary();
+  if (std::optional<TabId> copy = tabs_->Duplicate(*tab)) {
+    tabs_->SetPinned(*copy, false);
+    tabs_->GetContents(*copy)->GetController().LoadIfNecessary();
   }
   ResetItem(id);
-  model->ActivateTabAt(model->GetIndexOfTab(tab));
+  tabs_->Activate(*tab);
 }
 
 void SidebarPageHandler::SetHomeToCurrent(const std::string& id) {
-  if (tabs::TabInterface* tab = tree_service_->GetLiveTab(id)) {
+  if (std::optional<TabId> tab = tree_service_->GetLiveTab(id)) {
     tree_service_->tree().SetHomeUrl(
-        id, tab->GetContents()->GetLastCommittedURL());
+        id, tabs_->GetContents(*tab)->GetLastCommittedURL());
   }
 }
 
@@ -446,8 +436,7 @@ void SidebarPageHandler::ToggleCompactMode() {
 void SidebarPageHandler::NewTab() {
   // Same as Cmd+T (design, UI section 4).
   if (!ShowCommandBar(browser_, /*edit_current_url=*/false)) {
-    browser_->OpenGURL(GURL(chrome::kChromeUINewTabURL),
-                       WindowOpenDisposition::NEW_FOREGROUND_TAB);
+    tabs_->OpenNewTabPage(browser_);
   }
 }
 
@@ -456,7 +445,7 @@ std::vector<mojom::TabLifecyclePtr> SidebarPageHandler::BuildLifecycles() {
   for (const LifecycleService::TabState& state :
        lifecycle_service_->GetTabStates(browser_)) {
     auto lifecycle = mojom::TabLifecycle::New();
-    lifecycle->tab = tabs_api::NodeId::FromTabHandle(state.tab->GetHandle());
+    lifecycle->tab = tab_strip_api_->NodeIdOf(state.tab);
     lifecycle->deferred = state.deferred;
     lifecycle->minutes_left =
         static_cast<int32_t>(state.time_left.InMinutes());
@@ -474,8 +463,8 @@ void SidebarPageHandler::OnLifecyclesChanged() {
 }
 
 void SidebarPageHandler::KeepTab(const tabs_api::NodeId& tab_id) {
-  if (tabs::TabInterface* tab = TabFromNodeId(tab_id)) {
-    lifecycle_service_->Keep(tab);
+  if (std::optional<TabId> tab = tab_strip_api_->TabOf(tab_id)) {
+    lifecycle_service_->Keep(*tab);
   }
 }
 
@@ -485,7 +474,7 @@ void SidebarPageHandler::ClearToday(ClearTodayCallback callback) {
 
 void SidebarPageHandler::ReopenTabs(const std::vector<GURL>& urls) {
   for (const GURL& url : urls) {
-    browser_->OpenGURL(url, WindowOpenDisposition::NEW_BACKGROUND_TAB);
+    tabs_->Open(browser_, url, /*background=*/true);
     // Open again, so not archived: as restoring from the Library.
     archive_service_->RemoveUrl(url);
   }
@@ -524,7 +513,8 @@ void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
     return;
   }
   auto snapshot = mojom::SpaceSnapshot::New();
-  snapshot->tree = BuildChildren(tree_service, tree_service->tree().Root());
+  snapshot->tree = BuildChildren(tree_service, *tab_strip_api_,
+                                 tree_service->tree().Root());
   if (BrowserWindowInterface* window = SpaceController::GetWindowFor(profile)) {
     TabStripModel* model = window->GetTabStripModel();
     for (int i = 0; i < model->count(); ++i) {
@@ -638,19 +628,13 @@ void SidebarPageHandler::SleepSpace(const std::string& id) {
   if (!lifecycle || !tree) {
     return;
   }
-  for (BrowserWindowInterface* window : GetAllBrowserWindowInterfaces()) {
-    if (window->GetProfile() != profile ||
-        window->GetType() != BrowserWindowInterface::TYPE_NORMAL) {
-      continue;
-    }
+  for (BrowserWindowInterface* window : windows_->NormalWindowsOf(profile)) {
     // The window keeps a new tab; the rest goes.
-    window->OpenGURL(GURL(chrome::kChromeUINewTabURL),
-                     WindowOpenDisposition::NEW_FOREGROUND_TAB);
-    TabStripModel* model = window->GetTabStripModel();
-    for (int i = model->count() - 1; i >= 0; --i) {
-      if (tree->GetItemForTab(model->GetTabAtIndex(i))) {
-        model->CloseWebContentsAt(i,
-                                  TabCloseTypes::CLOSE_CREATE_HISTORICAL_TAB);
+    tabs_->OpenNewTabPage(window);
+    const std::vector<TabId> tabs = tabs_->List(window);
+    for (auto it = tabs.rbegin(); it != tabs.rend(); ++it) {
+      if (tree->GetItemForTab(*it)) {
+        tabs_->Close(*it);
       }
     }
     lifecycle->ClearToday(window);
@@ -723,25 +707,28 @@ void SidebarPageHandler::OpenSpaceEntry(const std::string& space_id,
                                         const GURL& url) {
   SpaceController::Get()->ShowSpace(
       space_id,
+      // The ports outlive the page: they are the browser's.
       base::BindOnce(
-          [](std::string item_id, GURL url, BrowserWindowInterface* window) {
+          [](Tabs* tabs, Windows* windows, std::string item_id, GURL url,
+             BrowserWindowInterface* window) {
             if (!window) {
               return;
             }
             if (!item_id.empty()) {
-              if (TreeService* tree = TreeService::Get(window->GetProfile())) {
+              if (TreeService* tree =
+                      TreeService::Get(windows->ProfileOf(window))) {
                 tree->Open(window, item_id);
               }
               return;
             }
-            TabStripModel* model = window->GetTabStripModel();
-            for (int i = 0; i < model->count(); ++i) {
-              if (model->GetWebContentsAt(i)->GetLastCommittedURL() == url) {
-                model->ActivateTabAt(i);
+            for (TabId tab : tabs->List(window)) {
+              if (tabs->GetContents(tab)->GetLastCommittedURL() == url) {
+                tabs->Activate(tab);
                 return;
               }
             }
           },
+          base::Unretained(&tabs_.get()), base::Unretained(&windows_.get()),
           item_id, url));
 }
 

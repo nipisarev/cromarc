@@ -106,10 +106,11 @@ SidebarView::SidebarView(Host host)
       browser_(host.browser),
       frame_(std::move(host.frame)),
       strip_(std::move(host.strip)),
-      tabs_(std::move(host.tabs)) {
+      tabs_(*host.tabs) {
   Sidebars().insert(this);
   compact_mode_ = std::make_unique<CompactMode>(
-      *strip_, *frame_, *tabs_, base::BindRepeating(&WatchMouseEverywhere));
+      *strip_, *frame_, *tabs_, browser_,
+      base::BindRepeating(&WatchMouseEverywhere));
   InstallSpaceInputMonitor();
   SpaceController::Get()->OnWindowCreated(browser_);
   MaybeShowWelcome(browser_);

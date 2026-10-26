@@ -25,6 +25,7 @@
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/tree/tree_service.h"
+#include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/sidebar/library_downloads.h"
 #include "cromarc/browser/ui/sidebar/library_media.h"
@@ -106,7 +107,8 @@ void SidebarUI::CreatePageHandler(
   }
   page_handler_ = std::make_unique<SidebarPageHandler>(
       std::move(handler), std::move(page), browser, tree_service,
-      lifecycle_service, archive_service);
+      lifecycle_service, archive_service, ChromiumTabs(), ChromiumWindows(),
+      ChromiumTabStripApi());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(SidebarUI)

@@ -29,10 +29,11 @@ constexpr int kEdge = 6;
 CompactMode::CompactMode(VerticalStrip& strip,
                          BrowserFrame& frame,
                          Tabs& tabs,
+                         BrowserWindowInterface* window,
                          MouseWatcher watch_mouse)
     : strip_(strip), frame_(frame), watch_mouse_(std::move(watch_mouse)) {
   opened_in_background_ = tabs.OnOpenedInBackground(
-      base::BindRepeating(&CompactMode::Flash, base::Unretained(this)));
+      window, base::BindRepeating(&CompactMode::Flash, base::Unretained(this)));
 }
 
 CompactMode::~CompactMode() = default;

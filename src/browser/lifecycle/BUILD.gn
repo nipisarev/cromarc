@@ -30,19 +30,17 @@ source_set("service") {
     ":policy",
     "//chrome/browser:browser_public_dependencies",
     "//components/keyed_service/core",
-    "//components/tabs:public",
+    "//cromarc/browser/ports",
     "//url",
   ]
   deps = [
     "//chrome/browser/prefs:util",
     "//chrome/browser/profiles:profile",
-    "//chrome/browser/sessions",
-    "//chrome/browser/ui/browser_window",
     "//chrome/common:constants",
-    "//components/performance_manager",
     "//components/pref_registry",
     "//content/public/browser",
     "//cromarc/browser/archive:service",
+    "//cromarc/browser/chromium:adapters",
     "//cromarc/browser/tree:service",
     "//ui/base/idle",
   ]

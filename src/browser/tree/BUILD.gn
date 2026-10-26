@@ -30,22 +30,32 @@ source_set("unit_tests") {
 }
 
 # The per-profile service (KeyedService) around Tree.
-source_set("service") {
+source_set("tree_service") {
   sources = [
     "tree_service.cc",
     "tree_service.h",
+  ]
+  public_deps = [
+    ":tree",
+    "//components/keyed_service/core",
+    "//cromarc/browser/ports",
+  ]
+  deps = [ "//url" ]
+}
+
+# Its factory, the composition root.
+source_set("service") {
+  sources = [
     "tree_service_factory.cc",
     "tree_service_factory.h",
   ]
   public_deps = [
-    ":tree",
+    ":tree_service",
     "//chrome/browser:browser_public_dependencies",
-    "//components/keyed_service/core",
-    "//components/tabs:public",
   ]
   deps = [
     "//chrome/browser/bookmarks",
     "//chrome/browser/profiles:profile",
-    "//chrome/browser/ui/browser_window",
+    "//cromarc/browser/chromium:adapters",
   ]
 }

@@ -4,18 +4,47 @@
 
 # Adapters: the ports (//cromarc/browser/ports) on Chromium's internals, the
 # only feature-side code that includes them (AGENTS.md, "Layers").
+
+# The process-wide ports, for the keyed service factories.
+source_set("adapters") {
+  sources = [
+    "adapters.cc",
+    "adapters.h",
+    "app_lifecycle_adapter.cc",
+    "app_lifecycle_adapter.h",
+    "tab_strip_api_adapter.cc",
+    "tab_strip_api_adapter.h",
+    "tabs_adapter.cc",
+    "tabs_adapter.h",
+    "windows_adapter.cc",
+    "windows_adapter.h",
+  ]
+  public_deps = [
+    "//chrome/browser:browser_public_dependencies",
+    "//cromarc/browser/ports",
+  ]
+  deps = [
+    "//chrome/browser/ui/browser_window",
+    "//components/browser_apis/tab_strip/types",
+    "//components/performance_manager",
+    "//components/tabs:public",
+    "//ui/base",
+    "//url",
+  ]
+}
+
+# A window's sidebar and its frame and strip.
 source_set("chromium") {
   sources = [
     "browser_frame_adapter.cc",
     "browser_frame_adapter.h",
     "sidebar_installer.cc",
     "sidebar_installer.h",
-    "tabs_adapter.cc",
-    "tabs_adapter.h",
     "vertical_strip_adapter.cc",
     "vertical_strip_adapter.h",
   ]
   public_deps = [
+    ":adapters",
     "//chrome/browser:browser_public_dependencies",
     "//cromarc/browser/ports",
   ]

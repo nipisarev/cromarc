@@ -11,6 +11,7 @@
 
 #include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
 #include "base/task/cancelable_task_tracker.h"
 #include "cromarc/browser/spaces/space_controller.h"
@@ -29,15 +30,14 @@ namespace bookmarks {
 class BookmarkNode;
 }  // namespace bookmarks
 
-namespace tabs {
-class TabInterface;
-}  // namespace tabs
-
 namespace cromarc {
 
 class ArchiveService;
 class LifecycleService;
+class TabStripApi;
+class Tabs;
 class TreeService;
+class Windows;
 
 // Tree operations for the sidebar of `browser`.
 class SidebarPageHandler : public mojom::PageHandler,
@@ -48,7 +48,10 @@ class SidebarPageHandler : public mojom::PageHandler,
                      BrowserWindowInterface* browser,
                      TreeService* tree_service,
                      LifecycleService* lifecycle_service,
-                     ArchiveService* archive_service);
+                     ArchiveService* archive_service,
+                     Tabs& tabs,
+                     Windows& windows,
+                     TabStripApi& tab_strip_api);
   SidebarPageHandler(const SidebarPageHandler&) = delete;
   SidebarPageHandler& operator=(const SidebarPageHandler&) = delete;
   ~SidebarPageHandler() override;
@@ -171,6 +174,9 @@ class SidebarPageHandler : public mojom::PageHandler,
   raw_ptr<TreeService> tree_service_;
   raw_ptr<LifecycleService> lifecycle_service_;
   raw_ptr<ArchiveService> archive_service_;
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Windows> windows_;
+  const raw_ref<TabStripApi> tab_strip_api_;
   base::CallbackListSubscription tree_subscription_;
   base::CallbackListSubscription lifecycle_subscription_;
   std::unique_ptr<ContextMenu> context_menu_;

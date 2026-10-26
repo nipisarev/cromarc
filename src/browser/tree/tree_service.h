@@ -12,8 +12,9 @@
 #include "base/callback_list.h"
 #include "base/functional/function_ref.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "components/keyed_service/core/keyed_service.h"
-#include "components/tabs/public/tab_interface.h"
+#include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/tree/tree.h"
 
 class BrowserWindowInterface;
@@ -26,6 +27,8 @@ class BookmarkModel;
 
 namespace cromarc {
 
+class Windows;
+
 // One per regular profile (= space): the tree of folders and pinned items, and
 // which live tab belongs to which pinned item. A pinned item without a live tab
 // is asleep; opening it loads its home URL. Links are not persisted: on
@@ -35,7 +38,7 @@ class TreeService : public KeyedService {
   // Null for profiles without a tree (incognito, guest, system).
   static TreeService* Get(Profile* profile);
 
-  explicit TreeService(bookmarks::BookmarkModel* model);
+  TreeService(bookmarks::BookmarkModel* model, Tabs& tabs, Windows& windows);
   TreeService(const TreeService&) = delete;
   TreeService& operator=(const TreeService&) = delete;
   ~TreeService() override;
@@ -43,11 +46,11 @@ class TreeService : public KeyedService {
   bool loaded() const;
   Tree& tree() { return tree_; }
 
-  // The live tab of a pinned item, or null when it sleeps.
-  tabs::TabInterface* GetLiveTab(const std::string& item_id);
+  // The live tab of a pinned item; nullopt when it sleeps.
+  std::optional<TabId> GetLiveTab(const std::string& item_id);
   // The pinned item `tab` belongs to, if any.
-  std::optional<std::string> GetItemForTab(const tabs::TabInterface* tab);
-  void Link(const std::string& item_id, tabs::TabInterface* tab);
+  std::optional<std::string> GetItemForTab(TabId tab);
+  void Link(const std::string& item_id, TabId tab);
   void Unlink(const std::string& item_id);
 
   // Focuses the live tab of a pinned item, or opens its home URL in `browser`
@@ -68,7 +71,9 @@ class TreeService : public KeyedService {
   void NotifyChanged();
 
   Tree tree_;
-  std::map<std::string, tabs::TabHandle> links_;
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Windows> windows_;
+  std::map<std::string, TabId> links_;
   base::RepeatingClosureList on_changed_;
   bool batching_ = false;
   bool changed_in_batch_ = false;

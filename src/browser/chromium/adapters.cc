@@ -1,0 +1,35 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#include "cromarc/browser/chromium/adapters.h"
+
+#include "base/no_destructor.h"
+#include "cromarc/browser/chromium/app_lifecycle_adapter.h"
+#include "cromarc/browser/chromium/tab_strip_api_adapter.h"
+#include "cromarc/browser/chromium/tabs_adapter.h"
+#include "cromarc/browser/chromium/windows_adapter.h"
+
+namespace cromarc {
+
+Tabs& ChromiumTabs() {
+  static base::NoDestructor<TabsAdapter> tabs;
+  return *tabs;
+}
+
+Windows& ChromiumWindows() {
+  static base::NoDestructor<WindowsAdapter> windows;
+  return *windows;
+}
+
+AppLifecycle& ChromiumAppLifecycle() {
+  static base::NoDestructor<AppLifecycleAdapter> app_lifecycle;
+  return *app_lifecycle;
+}
+
+TabStripApi& ChromiumTabStripApi() {
+  static base::NoDestructor<TabStripApiAdapter> tab_strip_api;
+  return *tab_strip_api;
+}
+
+}  // namespace cromarc

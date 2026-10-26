@@ -8,6 +8,7 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/common/pref_names.h"
 #include "components/pref_registry/pref_registry_syncable.h"
+#include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/archive/archive_service_factory.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
@@ -29,6 +30,11 @@ LifecycleServiceFactory* LifecycleServiceFactory::GetInstance() {
 }
 
 // Regular profiles only: in off-the-record profiles nothing is archived.
+// static
+LifecycleService* LifecycleService::Get(Profile* profile) {
+  return LifecycleServiceFactory::GetForProfile(profile);
+}
+
 LifecycleServiceFactory::LifecycleServiceFactory()
     : ProfileKeyedServiceFactory("CromarcLifecycleService",
                                  ProfileSelections::BuildForRegularProfile()) {
@@ -54,7 +60,8 @@ LifecycleServiceFactory::BuildServiceInstanceForBrowserContext(
   Profile* profile = Profile::FromBrowserContext(context);
   return std::make_unique<LifecycleService>(
       profile, TreeServiceFactory::GetForProfile(profile),
-      ArchiveServiceFactory::GetForProfile(profile));
+      ArchiveServiceFactory::GetForProfile(profile), ChromiumTabs(),
+      ChromiumWindows(), ChromiumAppLifecycle());
 }
 
 bool LifecycleServiceFactory::ServiceIsCreatedWithBrowserContext() const {
