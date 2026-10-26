@@ -476,6 +476,10 @@ void SidebarPageHandler::ClearToday(ClearTodayCallback callback) {
 
 void SidebarPageHandler::ReopenTabs(const std::vector<GURL>& urls) {
   for (const GURL& url : urls) {
+    // A URL the page sent that did not parse arrives empty.
+    if (!url.is_valid()) {
+      continue;
+    }
     tabs_->Open(browser_, url, WindowOpenDisposition::NEW_BACKGROUND_TAB);
     // Open again, so not archived: as restoring from the Library.
     archive_service_->RemoveUrl(url);

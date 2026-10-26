@@ -3,6 +3,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // Today's Clear and its undo toast.
+import net from 'node:net';
+
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
 const site = process.env.CROMARC_TEST_SITE ?? 'http://127.0.0.1:9599';
@@ -55,6 +57,28 @@ check('…the toast goes', !!(await until(() => evaluate(sb, `!${R}.querySelecto
 check('…and they leave the archive', !!(await until(async () => (await archived()).length === 0, 4000)), JSON.stringify(await archived()));
 await evaluate(sb, `${clear}.click(), true`);
 check('without undo the toast goes after 5 s', !!(await until(() => evaluate(sb, `!${R}.querySelector('#toast')`), 7000)));
+
+// A page still loading (nothing committed yet: its server has not answered)
+// goes to the archive under the address it is loading, and undo brings it
+// back (it came back empty and took the browser down, 26.10.2026).
+const silent = net.createServer(() => {}).listen(0, '127.0.0.1');
+await new Promise(r => silent.once('listening', r));
+const loading = `http://127.0.0.1:${silent.address().port}/loading.html`;
+const allArchived = async () => evaluate(await sidebar(), `${APP}.proxy_.handler.searchArchive('', 50).then(({tabs}) => tabs.map(t => t.url))`);
+for (const url of [loading, `${site}/c.html`]) {
+  await fetch(`${base}/json/new?${encodeURIComponent(url)}`, {method: 'PUT'});
+}
+await until(async () => (await pages()).includes(`${site}/c.html`) &&
+    (await targets()).some(t => t.url === loading));
+await evaluate(await sidebar(), `${clear}.click(), true`);
+check('a page still loading goes to the archive too', !!(await until(async () => (await allArchived()).includes(loading), 3000)), JSON.stringify(await allArchived()));
+await until(() => evaluate(sb, `!!${R}.querySelector('#toast button')`));
+await evaluate(sb, `${R}.querySelector('#toast button').click(), true`);
+check('…and undo brings it back', !!(await until(async () => (await targets()).some(t => t.url === loading))), JSON.stringify((await targets()).map(t => t.url)));
+silent.close();
+for (const s of [...(await targets())].filter(t => t.url === loading)) {
+  await fetch(`${base}/json/close/${s.id}`);
+}
 
 // Tabs that close later (their beforeunload listeners run first): the window
 // still keeps a page instead of closing with the last of them.

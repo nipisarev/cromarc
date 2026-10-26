@@ -202,17 +202,24 @@ void LifecycleService::CloseRestoredPinnedTabs() {
   }
 }
 
-void LifecycleService::ArchiveAndClose(TabId tab, const char* reason) {
+GURL LifecycleService::ArchiveAndClose(TabId tab, const char* reason) {
   content::WebContents* contents = tabs_->GetContents(tab);
   ArchiveEntry entry;
-  entry.url = contents->GetLastCommittedURL();
+  // A page still loading has committed nothing: it goes under the address
+  // it is loading, the one its row shows.
+  entry.url = contents->GetLastCommittedURL().is_empty()
+                  ? contents->GetVisibleURL()
+                  : contents->GetLastCommittedURL();
   entry.title = contents->GetTitle();
   entry.closed_at = base::Time::Now();
   entry.reason = reason;
-  if (entry.url.is_valid() && !entry.url.is_empty()) {
+  GURL archived;
+  if (entry.url.is_valid()) {
+    archived = entry.url;
     archive_service_->Add(std::move(entry));
   }
   tabs_->Close(tab);
+  return archived;
 }
 
 std::vector<LifecycleService::TabState> LifecycleService::GetTabStates(
@@ -259,8 +266,10 @@ std::vector<GURL> LifecycleService::ClearToday(
   }
   std::vector<GURL> urls;
   for (TabId tab : today) {
-    urls.push_back(tabs_->GetContents(tab)->GetLastCommittedURL());
-    ArchiveAndClose(tab, "clear");
+    GURL url = ArchiveAndClose(tab, "clear");
+    if (url.is_valid()) {
+      urls.push_back(std::move(url));
+    }
   }
   on_changed_.Notify();
   return urls;

@@ -62,7 +62,7 @@ class LifecycleService : public KeyedService,
   // "Keep" on a deferred tab: its clock restarts.
   void Keep(TabId tab);
   // Archives and closes the Today tabs of `browser` (Today's "Clear").
-  // Returns the closed URLs, for undo.
+  // Returns the archived URLs, for undo.
   std::vector<GURL> ClearToday(BrowserWindowInterface* browser);
 
   // Runs after every sweep (countdowns move) and after Keep/ClearToday.
@@ -83,7 +83,8 @@ class LifecycleService : public KeyedService,
                     base::TimeDelta user_away_for,
                     base::Time now);
   bool HasUnsavedInput(TabId tab);
-  void ArchiveAndClose(TabId tab, const char* reason);
+  // Returns the URL it archived the tab under; empty when it had none.
+  GURL ArchiveAndClose(TabId tab, const char* reason);
   // After session restore: every pinned item starts asleep.
   void CloseRestoredPinnedTabs();
 
