@@ -43,6 +43,7 @@ elif [ "$tag_commit" != unknown ] && [ "$(git merge-base "$head_commit" "$tag_co
   log "tree:    $(git rev-parse --abbrev-ref HEAD), $(git rev-list --count "$tag_commit..$head_commit") commit(s) on top of the pin"
   # Hooks reference //cromarc: build what is in src/ now, not the last tooling/apply.
   mirror_cromarc_sources
+  inputs="$(build_inputs)"
 else
   die "src is at $head_commit, neither the pin $CHROMIUM_TAG ($tag_commit) nor a descendant of it.
      Vanilla tree that drifted: tooling/sync. Patches here: rebase onto the pin first."
@@ -98,7 +99,9 @@ if [ "$status" -ne 0 ]; then
   die "autoninja failed (exit $status) after $(( elapsed / 60 )) min; full log: $build_log"
 fi
 
-[ "$(tree_fingerprint)" = "$before" ] || warn "the source tree changed during the build; build again before trusting the binary"
+changed=false
+[ "$(tree_fingerprint)" = "$before" ] || changed=true
+$changed && warn "the source tree changed during the build; build again before trusting the binary"
 
 log "built in $(( elapsed / 3600 ))h $(( (elapsed % 3600) / 60 ))m"
 app="$(find_app_bundle "$abs_out" || true)"
@@ -108,6 +111,15 @@ if [ -n "$app" ]; then
     log "signed: $SIGNING_IDENTITY"
   else
     warn "ad-hoc signature: the Keychain asks for \"Chromium Safe Storage\" again after every build. tooling/bootstrap sets up local signing"
+  fi
+  # What this build is made of, for tooling/test-browser's stamp and the
+  # release gate in tooling/install.
+  rm -f "$abs_out/.cromarc-built"
+  # Only an app this very build linked: a build of other targets leaves it as
+  # it was.
+  if [ -n "${inputs:-}" ] && ! $changed && [ "$app/Contents/MacOS/Cromarc" -nt "$marker" ] &&
+     printf '%s\n' "${targets[@]}" | grep -qx chrome; then
+    printf 'inputs=%s\nbuild=%s\n' "$inputs" "$(build_identity "$app")" > "$abs_out/.cromarc-built"
   fi
   log "app:  $app ($(du -sh "$app" | cut -f1))"
   log "run:  open '$app'"

@@ -245,3 +245,39 @@ sign_app() {
   sign_code "$app"
   codesign --verify --deep --strict "$app" || die "the signature of $app does not verify"
 }
+
+# What a build and its tests are made of: src/, patches/, tooling/args/, the
+# pin, the browser suites and their runner, in tree-ish $1 or, with no
+# argument, in the working tree (tracked and new files, ignored ones aside).
+build_inputs() {
+  local tree="${1:-}" dir p
+  if [ -z "$tree" ]; then
+    dir="$(mktemp -d)"
+    GIT_INDEX_FILE="$dir/index" git -C "$CROMARC_ROOT" add -A >/dev/null
+    tree="$(GIT_INDEX_FILE="$dir/index" git -C "$CROMARC_ROOT" write-tree)"
+    rm -rf "$dir"
+  fi
+  for p in src patches tooling/args CHROMIUM_VERSION tests tooling/test-browser; do
+    printf '%s=%s ' "$p" "$(git -C "$CROMARC_ROOT" rev-parse "$tree:$p")"
+  done
+}
+
+# Which build an app is: its binaries' modification times and sizes.
+build_identity() {
+  stat -f '%m:%z' "$1/Contents/MacOS/Cromarc" \
+    "$1/Contents/Frameworks/Cromarc Framework.framework/Versions/Current/Cromarc Framework" |
+    tr '\n' ' '
+}
+
+# Refuses unless every patch in patches/hooks is a commit on cromarc-work
+# (the reverse of require_exported_patches).
+require_hooks_in_chromium() {
+  local base="$1" applied id p
+  applied="$(git -C "$CHROMIUM_SRC" log -p --reverse "$base..refs/heads/cromarc-work" |
+    git -C "$CHROMIUM_SRC" patch-id --stable | cut -d' ' -f1 | sort -u)"
+  for p in "$CROMARC_ROOT"/patches/hooks/*.patch; do
+    [ -e "$p" ] || continue
+    id="$(git -C "$CHROMIUM_SRC" patch-id --stable < "$p" | cut -d' ' -f1)"
+    grep -qx "$id" <<<"$applied" || die "$(basename "$p") is not on cromarc-work: tooling/apply first"
+  done
+}

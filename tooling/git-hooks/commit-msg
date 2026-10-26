@@ -1,0 +1,20 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# A commit that touches a system change (docs/system-changes.md: Chromium's
+# own files through patches/hooks, build args, branding, CI, the registered
+# files) says why, in a line "System-Change: <why>".
+
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+files="$("$root/tooling/arch-check" --root "$root" --system-files)"
+[ -n "$files" ] || exit 0
+grep -qE '^System-Change: .{8,}' "$1" && exit 0
+{
+  echo "commit-msg: these are system changes (docs/system-changes.md):"
+  printf '%s\n' "$files" | sed 's/^/  /'
+  echo 'Add a line "System-Change: <why>" to the message. AGENTS.md, "System changes".'
+} >&2
+exit 1

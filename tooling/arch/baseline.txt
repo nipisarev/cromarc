@@ -1,0 +1,259 @@
+# Architecture violations present when tooling/arch-check came in (AGENTS.md).
+# Only shrinks: fix one, then run tooling/arch-check --update-baseline.
+R1 src/browser/arc_import/arc_import.cc components/bookmarks/browser/bookmark_node.h
+R1 src/browser/arc_import/arc_import_unittest.cc components/bookmarks/browser/bookmark_model.h
+R1 src/browser/arc_import/arc_import_unittest.cc components/bookmarks/browser/bookmark_node.h
+R1 src/browser/arc_import/arc_import_unittest.cc components/bookmarks/test/test_bookmark_client.h
+R1 src/browser/archive/archive.cc sql/statement.h
+R1 src/browser/archive/archive.cc sql/transaction.h
+R1 src/browser/archive/archive.h sql/database.h
+R1 src/browser/lifecycle/lifecycle_service.cc chrome/browser/profiles/profile.h
+R1 src/browser/lifecycle/lifecycle_service.cc chrome/browser/sessions/session_restore.h
+R1 src/browser/lifecycle/lifecycle_service.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/lifecycle/lifecycle_service.cc chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h
+R1 src/browser/lifecycle/lifecycle_service.cc chrome/browser/ui/tabs/tab_enums.h
+R1 src/browser/lifecycle/lifecycle_service.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/lifecycle/lifecycle_service.cc components/performance_manager/public/graph/page_node.h
+R1 src/browser/lifecycle/lifecycle_service.cc components/performance_manager/public/performance_manager.h
+R1 src/browser/lifecycle/lifecycle_service.h components/tabs/public/tab_interface.h
+R1 src/browser/routing/routes.cc third_party/re2/src/re2/re2.h
+R1 src/browser/routing/space_routing.cc chrome/browser/browser_process.h
+R1 src/browser/routing/space_routing.cc chrome/browser/profiles/profile_manager.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/browser_process.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/profiles/delete_profile_helper.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/profiles/profile.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/profiles/profile_attributes_entry.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/profiles/profile_attributes_storage.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/profiles/profile_avatar_icon_util.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/profiles/profile_manager.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/profiles/profile_metrics.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/themes/theme_service.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/themes/theme_service_factory.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/browser_commands.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/browser_tabstrip.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/browser_window/public/create_browser_window.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/navigator/browser_navigator_params.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/profiles/profile_colors_util.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/tabs/tab_enums.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/spaces/space_controller.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
+R1 src/browser/spaces/space_controller.cc chrome/common/pref_names.h
+R1 src/browser/spaces/space_controller.cc chrome/common/webui_url_constants.h
+R1 src/browser/spaces/space_controller.h chrome/browser/profiles/profile_attributes_storage_observer.h
+R1 src/browser/spaces/space_controller.h chrome/browser/profiles/profile_manager_observer.h
+R1 src/browser/spaces/space_controller.h components/sessions/core/session_id.h
+R1 src/browser/spaces/space_prefs.h chrome/browser/profiles/profile_keyed_service_factory.h
+R1 src/browser/spaces/space_window_mac.mm chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/sync/icloud_sync.cc chrome/browser/browser_process.h
+R1 src/browser/sync/icloud_sync.cc chrome/browser/profiles/profile.h
+R1 src/browser/sync/icloud_sync.cc chrome/browser/profiles/profile_attributes_entry.h
+R1 src/browser/sync/icloud_sync.cc chrome/browser/profiles/profile_attributes_storage.h
+R1 src/browser/sync/icloud_sync.cc chrome/browser/profiles/profile_manager.h
+R1 src/browser/sync/icloud_sync.cc chrome/browser/sync/sync_service_factory.h
+R1 src/browser/sync/icloud_sync.cc components/sync/base/pref_names.h
+R1 src/browser/sync/icloud_sync.cc components/sync/base/user_selectable_type.h
+R1 src/browser/sync/icloud_sync.cc components/sync/service/sync_service.h
+R1 src/browser/sync/icloud_sync.cc components/sync/service/sync_user_settings.h
+R1 src/browser/sync/icloud_sync.h chrome/browser/profiles/profile_keyed_service_factory.h
+R1 src/browser/tree/tree.cc components/bookmarks/browser/bookmark_model.h
+R1 src/browser/tree/tree.cc components/bookmarks/browser/bookmark_node.h
+R1 src/browser/tree/tree.cc components/bookmarks/common/bookmark_metrics.h
+R1 src/browser/tree/tree.h components/bookmarks/browser/bookmark_model_observer.h
+R1 src/browser/tree/tree_service.cc chrome/browser/profiles/profile.h
+R1 src/browser/tree/tree_service.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/tree/tree_service.cc chrome/browser/ui/navigator/browser_navigator.h
+R1 src/browser/tree/tree_service.cc chrome/browser/ui/navigator/browser_navigator_params.h
+R1 src/browser/tree/tree_service.cc chrome/browser/ui/tabs/tab_enums.h
+R1 src/browser/tree/tree_service.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/tree/tree_service.cc components/bookmarks/browser/bookmark_model.h
+R1 src/browser/tree/tree_service.cc components/bookmarks/browser/bookmark_node.h
+R1 src/browser/tree/tree_service.cc components/tabs/public/tab_interface.h
+R1 src/browser/tree/tree_service.h components/tabs/public/tab_interface.h
+R1 src/browser/tree/tree_unittest.cc components/bookmarks/browser/bookmark_model.h
+R1 src/browser/tree/tree_unittest.cc components/bookmarks/browser/bookmark_node.h
+R1 src/browser/tree/tree_unittest.cc components/bookmarks/test/test_bookmark_client.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/browser_process.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/profiles/profile_avatar_icon_util.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/profiles/profile_manager.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/themes/theme_service.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/themes/theme_service_factory.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/ui/browser_tabrestore.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/ui/select_file_policy/chrome_select_file_policy.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc components/sessions/core/serialized_navigation_entry.h
+R1 src/browser/ui/arc_import/arc_import_page_handler.cc components/sessions/core/serialized_user_agent_override.h
+R1 src/browser/ui/browser_commands.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/browser_commands.h chrome/browser/ui/startup/startup_tab.h
+R1 src/browser/ui/command_bar/command_bar.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/command_bar/command_bar.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/command_bar/command_bar.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/ui/command_bar/command_bar.cc chrome/browser/ui/webui/webui_embedding_context.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc chrome/browser/autocomplete/chrome_autocomplete_provider_client.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/bookmarks/browser/bookmark_node.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/omnibox/browser/autocomplete_classifier.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/omnibox/browser/autocomplete_controller_config.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/omnibox/browser/autocomplete_input.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/omnibox/browser/autocomplete_match.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc components/omnibox/browser/autocomplete_result.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.cc third_party/metrics_proto/omnibox_event.pb.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.h components/omnibox/browser/autocomplete_controller.h
+R1 src/browser/ui/command_bar/command_bar_page_handler.h components/tabs/public/tab_interface.h
+R1 src/browser/ui/glance/glance.cc chrome/app/vector_icons/vector_icons.h
+R1 src/browser/ui/glance/glance.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/glance/glance.cc chrome/browser/ui/browser_tabstrip.h
+R1 src/browser/ui/glance/glance.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/glance/glance.cc chrome/browser/ui/tabs/tab_enums.h
+R1 src/browser/ui/glance/glance.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/ui/glance/glance.cc components/input/native_web_keyboard_event.h
+R1 src/browser/ui/glance/glance.cc components/tabs/public/tab_interface.h
+R1 src/browser/ui/glance/glance.cc components/vector_icons/vector_icons.h
+R1 src/browser/ui/glance/glance.h chrome/browser/ui/tabs/tab_strip_model_observer.h
+R1 src/browser/ui/glance/hovered_link.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/glance/hovered_link.cc components/tabs/public/tab_interface.h
+R1 src/browser/ui/little/little_bar.cc components/vector_icons/vector_icons.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/lifetime/application_lifetime_desktop.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/lifetime/browser_shutdown.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/browser_window/public/create_browser_window.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/navigator/browser_navigator.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/navigator/browser_navigator_params.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/tabs/tab_enums.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/views/frame/browser_view.h
+R1 src/browser/ui/little/little_window.cc chrome/browser/ui/views/toolbar/toolbar_view.h
+R1 src/browser/ui/little/little_window.h components/sessions/core/session_id.h
+R1 src/browser/ui/little/little_window.h components/tabs/public/tab_interface.h
+R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
+R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/views/frame/tab_strip_region_view.h
+R1 src/browser/ui/sidebar/compact_mode.cc chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
+R1 src/browser/ui/sidebar/compact_mode.h chrome/browser/ui/tabs/tab_strip_model_observer.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/exclusive_access/exclusive_access_manager.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/exclusive_access/fullscreen_controller.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/frame/browser_view.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/frame/frame_separator.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/tabs/shared/tab_strip_combo_button.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_bottom_container.h
+R1 src/browser/ui/sidebar/cromarc_sidebar.cc chrome/browser/ui/views/tabs/vertical/vertical_tab_strip_top_container.h
+R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/browsing_data/chrome_browsing_data_remover_constants.h
+R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/history/history_service_factory.h
+R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/sidebar/library_backend.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/sidebar/library_backend.cc components/history/core/browser/history_types.h
+R1 src/browser/ui/sidebar/library_backend.h components/history/core/browser/history_service.h
+R1 src/browser/ui/sidebar/library_backend.h components/history/core/browser/history_service_observer.h
+R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/browser_process.h
+R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/download/download_item_model.h
+R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/download/drag_download_item.h
+R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/icon_manager.h
+R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/sidebar/library_downloads.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/sidebar/library_downloads.cc components/download/public/common/download_item.h
+R1 src/browser/ui/sidebar/library_downloads.cc net/traffic_annotation/network_traffic_annotation.h
+R1 src/browser/ui/sidebar/library_downloads.h components/download/content/public/all_download_item_notifier.h
+R1 src/browser/ui/sidebar/library_media.cc chrome/browser/platform_util.h
+R1 src/browser/ui/sidebar/library_media_mac.mm skia/ext/skia_utils_mac.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/favicon/favicon_service_factory.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/lifetime/application_lifetime.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/browser_commands.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/tabs/tab_enums.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/tabs/tab_strip_api/tab_strip_model_impl/converters/tab_converters.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/browser/ui/tabs/tab_strip_model.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/common/webui_url_constants.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc chrome/grit/cromarc_resources_map.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/bookmarks/browser/bookmark_node.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/browser_apis/tab_strip/types/node_id.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/favicon/core/favicon_service.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/favicon_base/favicon_types.h
+R1 src/browser/ui/sidebar/sidebar_page_handler.cc components/tabs/public/tab_interface.h
+R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/exclusive_access/exclusive_access_manager.h
+R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/exclusive_access/fullscreen_controller.h
+R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/views/frame/browser_view.h
+R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/views/frame/multi_contents_view.h
+R1 src/browser/ui/sidebar/sidebar_view.cc chrome/browser/ui/webui/webui_embedding_context.h
+R1 src/browser/ui/sidebar/space_input_mac.mm chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/sidebar/space_input_mac.mm components/sessions/core/session_id.h
+R1 src/browser/ui/sidebar/window_background.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h
+R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/views/bookmarks/bookmark_bar_view.h
+R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/views/frame/browser_view.h
+R1 src/browser/ui/sidebar/window_background.cc chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h
+R1 src/browser/ui/sidebar/window_background.cc chrome/grit/cromarc_resources.h
+R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/profiles/profile.h
+R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/shell_integration.h
+R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/themes/theme_service.h
+R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/themes/theme_service_factory.h
+R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/ui/browser_window/public/browser_window_interface.h
+R1 src/browser/ui/welcome/welcome_page_handler.cc chrome/browser/ui/webui/webui_embedding_context.h
+R1 src/browser/ui/welcome/welcome_page_handler.cc components/tabs/public/tab_interface.h
+R2 src/browser/ui/little/little_window.cc BrowserView x2
+R2 src/browser/ui/little/little_window.cc GetBrowserViewForBrowser
+R2 src/browser/ui/little/little_window.cc toolbar()
+R2 src/browser/ui/sidebar/compact_mode.cc view-by-class<VerticalTabStripRegionView>
+R2 src/browser/ui/sidebar/cromarc_sidebar.cc BrowserView x2
+R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<FrameSeparator>
+R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<TabStripComboButton>
+R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<VerticalTabStripBottomContainer>
+R2 src/browser/ui/sidebar/cromarc_sidebar.cc view-by-class<VerticalTabStripTopContainer>
+R2 src/browser/ui/sidebar/cromarc_sidebar.h BrowserView x8
+R2 src/browser/ui/sidebar/sidebar_view.cc BrowserView x3
+R2 src/browser/ui/sidebar/sidebar_view.cc multi_contents_view() x2
+R2 src/browser/ui/sidebar/sidebar_view.cc view-by-class<BrowserView> x2
+R2 src/browser/ui/sidebar/window_background.cc BrowserView x11
+R2 src/browser/ui/sidebar/window_background.cc GetBrowserViewForBrowser
+R2 src/browser/ui/sidebar/window_background.cc non_client_view()
+R2 src/browser/ui/sidebar/window_background.cc view-by-class<BookmarkBarView>
+R2 src/browser/ui/sidebar/window_background.cc view-by-class<VerticalTabStripRegionView> x2
+R3 H1 logic-line
+R3 H1 removed-line
+R3 H10 include-not-hooks-h
+R3 H10 logic-line
+R3 H11 include-not-hooks-h
+R3 H11 logic-line x3
+R3 H11 removed-line
+R3 H12 logic-line
+R3 H12 removed-line
+R3 H13 logic-line
+R3 H13 removed-line
+R3 H14 include-not-hooks-h x4
+R3 H14 logic-line x16
+R3 H14 removed-line
+R3 H15 include-not-hooks-h
+R3 H15 logic-line x5
+R3 H15 removed-line x4
+R3 H16 logic-line
+R3 H17 logic-line x6
+R3 H18 include-not-hooks-h x3
+R3 H18 logic-line x14
+R3 H18 removed-line x3
+R3 H2 include-not-hooks-h
+R3 H2 logic-line x2
+R3 H2 removed-line
+R3 H3 logic-line
+R3 H3 removed-line
+R3 H4 include-not-hooks-h x2
+R3 H4 logic-line x2
+R3 H5 include-not-hooks-h
+R3 H5 logic-line x3
+R3 H6 include-not-hooks-h
+R3 H6 logic-line x12
+R3 H8 include-not-hooks-h
+R3 H8 logic-line x5

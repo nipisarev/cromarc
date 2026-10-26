@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+"""Whether every Chromium header Cromarc's code includes is still there at a
+Chromium tag, without a checkout: Gitiles lists each directory at the tag.
+With tooling/check-patches, the cheap forecast of a bump: a header gone means
+an adapter to fix (AGENTS.md, "Updating Chromium").
+
+Usage: tooling/check-headers [TAG]   (default: the pin in CHROMIUM_VERSION)
+"""
+
+import collections
+import json
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+GITILES = 'https://chromium.googlesource.com/chromium/src/+/refs/tags/{tag}/{dir}/?format=JSON'
+
+# Headers in Chromium's own repository (not DEPS) that exist before a build.
+IN_REPO = ('base/', 'build/', 'cc/', 'chrome/', 'components/', 'content/', 'mojo/',
+           'net/', 'services/', 'ui/', 'url/', 'third_party/blink/')
+GENERATED = re.compile(r'(^chrome/grit/|^gen/|\.mojom[-\w]*\.h$|\.pb\.h$|vector_icons\.h$|'
+                       r'_resources(_map)?\.h$|(?<!^build/)buildflags?\.h$|_strings\.h$|'
+                       r'^ui/base/l10n/|grit/)')
+
+
+def pin():
+    with open(os.path.join(ROOT, 'CHROMIUM_VERSION')) as f:
+        return re.search(r'^CHROMIUM_TAG=(\S+)', f.read(), re.M).group(1)
+
+
+def headers():
+    found = set()
+    for dirpath, _, names in os.walk(os.path.join(ROOT, 'src')):
+        for name in names:
+            if not name.endswith(('.cc', '.h', '.mm')):
+                continue
+            with open(os.path.join(dirpath, name), encoding='utf-8', errors='replace') as f:
+                for h in re.findall(r'^\s*#\s*(?:include|import)\s+"([^"]+)"', f.read(), re.M):
+                    if h.startswith(IN_REPO) and not GENERATED.search(h):
+                        found.add(h)
+    return found
+
+
+def listing(tag, directory):
+    url = GITILES.format(tag=tag, dir=directory)
+    for attempt in range(6):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                body = r.read().decode()
+            return {e['name'] for e in json.loads(body.split('\n', 1)[1])['entries']}
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            time.sleep(2 ** attempt)
+        except (urllib.error.URLError, TimeoutError):
+            time.sleep(2 ** attempt)
+    sys.exit(f'check-headers: Gitiles did not answer for {directory} at {tag}; try again later')
+
+
+def main():
+    tag = sys.argv[1] if len(sys.argv) > 1 else pin()
+    if not re.fullmatch(r'[0-9.]+', tag):
+        sys.exit(f"check-headers: a Chromium version tag like 156.0.8078.70, got '{tag}'")
+    by_dir = collections.defaultdict(set)
+    for h in headers():
+        by_dir[os.path.dirname(h)].add(os.path.basename(h))
+    gone = []
+    for directory, names in sorted(by_dir.items()):
+        entries = listing(tag, directory)
+        gone += [f'{directory}/{n}' for n in sorted(names) if entries is None or n not in entries]
+    total = sum(len(v) for v in by_dir.values())
+    if gone:
+        print(f'check-headers: {len(gone)} of {total} included Chromium headers are not in {tag}:')
+        for h in gone:
+            print(f'  {h}')
+        return 1
+    print(f'check-headers: all {total} included Chromium headers are in {tag}')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -48,4 +48,7 @@ add_depot_tools_to_path
 log "depot_tools: $(git -C "$DEPOT_TOOLS_DIR" rev-parse --short HEAD) ($(git -C "$DEPOT_TOOLS_DIR" log -1 --format=%cs))"
 
 create_signing_identity
+# The architecture rules stop a commit that breaks them (AGENTS.md).
+git -C "$CROMARC_ROOT" config core.hooksPath tooling/git-hooks
+log "git hooks: tooling/git-hooks (architecture check, System-Change: lines)"
 log "next: tooling/sync"

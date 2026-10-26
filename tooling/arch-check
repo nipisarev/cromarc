@@ -1,0 +1,619 @@
+#!/usr/bin/env python3
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+"""Cromarc's architecture rules (AGENTS.md), checked on the repository alone.
+
+R1 layers: feature code includes only stable APIs; Chromium internals only in
+   adapters (src/browser/chromium/, src/hooks/, WebUI controllers, service
+   factories).
+R2 views: finding Chromium views by class, or touching BrowserView, only in
+   adapters.
+R3 hooks: every hook in patches/hooks is registered in patches/hooks/README.md;
+   in Chromium code each statement it adds is a call, a wrapped value or a
+   guard on cromarc::hooks::, and a line it changes only wraps one of
+   Chromium's values in such a call (build and branding hooks excepted).
+R4 system changes: feature flags, Chrome prefs, AppKit-wide tricks, default
+   browser, keychain, files outside the profile, network: only in files listed
+   with that category in docs/system-changes.md.
+
+Violations already present are listed in tooling/arch/baseline.txt; a new one,
+or one more of a listed kind, fails. The baseline only shrinks.
+
+Usage:
+  tooling/arch-check                  the whole repository
+  tooling/arch-check --strict         also fail on baseline entries now fixed (CI)
+  tooling/arch-check --files F...     only these files
+  tooling/arch-check --staged         files staged for commit (pre-commit)
+  tooling/arch-check --claude-hook    a Claude Code PostToolUse event on stdin
+  tooling/arch-check --baseline-grew REF  fail if the baseline gained entries since REF
+  tooling/arch-check --system-files   staged files whose commit needs System-Change:
+  tooling/arch-check --check-commits RANGE  each commit there touching a system
+                                      change says System-Change: (CI)
+  tooling/arch-check --update-baseline    rewrite the baseline (it may only shrink)
+  --root DIR                          another repository (tests)
+"""
+
+import argparse
+import collections
+import fnmatch
+import functools
+import json
+import os
+import re
+import subprocess
+import sys
+
+# Chromium's own frameworks we subclass or register with, and composition roots.
+ADAPTER = re.compile(
+    r'^src/(?:hooks|browser/chromium)/'
+    r'|^src/browser/ui/[^/]+/[^/]+_ui\.(?:h|cc)$'
+    r'|^src/browser/ui/webui_registration\.(?:h|cc)$'
+    r'|^src/browser/[^/]+/[^/]+_service_factory\.(?:h|cc)$')
+
+# What feature code may include: stable APIs and our own code.
+STABLE_INCLUDES = (
+    'base/', 'build/', 'url/', 'mojo/public/', 'net/base/',
+    'ui/gfx/', 'ui/base/', 'ui/views/', 'ui/compositor/', 'ui/events/',
+    'ui/color/', 'ui/menus/', 'ui/display/', 'ui/accessibility/',
+    'ui/native_theme/', 'ui/shell_dialogs/', 'cc/paint/',
+    'content/public/', 'components/prefs/', 'components/pref_registry/',
+    'components/keyed_service/', 'third_party/skia/', 'third_party/abseil-cpp/',
+    'third_party/blink/public/', 'testing/', 'cromarc/',
+)
+# Top-level directories of Chromium's tree: an angle-bracket include of one of
+# these is a Chromium include, not a system header.
+CHROMIUM_DIRS = ('base', 'build', 'cc', 'chrome', 'components', 'content', 'mojo',
+                 'net', 'services', 'third_party', 'ui', 'url', 'testing', 'gpu',
+                 'media', 'skia', 'cromarc')
+
+VIEW_BY_CLASS = re.compile(r'\b(?:IsViewClass|AsViewClass)\s*<\s*([\w:]+)\s*>')
+BROWSER_VIEW = re.compile(r'\bBrowserView\b')
+BROWSER_VIEW_REACHES = {
+    'GetBrowserViewForBrowser': re.compile(r'\bGetBrowserViewForBrowser\b'),
+    'non_client_view()': re.compile(r'\bnon_client_view\s*\(\s*\)'),
+    'multi_contents_view()': re.compile(r'\bmulti_contents_view\s*\(\s*\)'),
+    'toolbar()': re.compile(r'->\s*toolbar\s*\(\s*\)'),
+}
+
+SYSTEM_PATTERNS = {
+    'feature-flags': re.compile(r'\b(?:FeatureList|AppendSwitch\w*)\b'),
+    'chrome-prefs': re.compile(r'\b(?:syncer::)?prefs::k\w+'),
+    'appkit-global': re.compile(
+        r'\b(?:addGlobalMonitorForEvents\w*|addLocalMonitorForEvents\w*|'
+        r'method_exchangeImplementations|class_replaceMethod|alphaValue|'
+        r'ignoresMouseEvents)\b'),
+    'user-defaults': re.compile(r'\bNSUserDefaults\b'),
+    'default-browser': re.compile(
+        r'\b(?:LSSetDefault\w*|LSRegisterURL|DefaultBrowserWorker|'
+        r'StartSetAsDefault)\b'),
+    'keychain': re.compile(r'\b(?:SecKeychain\w*|SecItem\w*)\b'),
+    'outside-profile': re.compile(
+        r'\b(?:DIR_HOME|NSHomeDirectory)\b|Mobile Documents'),
+    'network': re.compile(r'\b(?:SimpleURLLoader|NSURLSession|URLLoaderFactory)\b'),
+}
+
+# Files whose every change is a system change (commit-msg wants System-Change:).
+SYSTEM_FILE_GLOBS = (
+    'tooling/args/*', 'DEPS', 'branding/*', 'patches/hooks/*', 'CHROMIUM_VERSION',
+    '.github/workflows/*', 'docs/system-changes.md', 'tooling/arch/*',
+    'tooling/arch-check', 'tooling/git-hooks/*', '.claude/settings.json',
+)
+
+BUILD_FILE = re.compile(r'(\.gn|\.gni|\.grd|\.grdp|\.spec|\.xml|\.json|BRANDING)$')
+HOOKS_HEADER = '#include "cromarc/hooks/hooks.h"'
+HOOK_CALL = re.compile(r'cromarc\s*::\s*hooks\s*::\s*\w+\s*\(')
+# A dependency on //cromarc in a Chromium build file, for a code hook.
+CROMARC_DEP = re.compile(r'^\s*"//cromarc[^"]*",?\s*(#.*)?$')
+GUARD_BODY = re.compile(r'return\b.*|break|continue')
+
+EXPLAIN = {
+    'R1': 'feature code includes a Chromium internal; put that call behind a port '
+          '(src/browser/ports) implemented in an adapter (src/browser/chromium). '
+          'AGENTS.md, "Layers".',
+    'R2': 'finding Chromium views by class or touching BrowserView belongs in an '
+          'adapter. AGENTS.md, "Layers".',
+    'R3': 'a hook must be registered in patches/hooks/README.md and, in Chromium '
+          'code, add only calls, wrapped values or guards on cromarc::hooks::, '
+          'changing no Chromium line but to wrap a value. AGENTS.md, "Hooks".',
+    'R4': 'a system change outside the files registered for it in '
+          'docs/system-changes.md. AGENTS.md, "System changes".',
+}
+
+
+def run_git(root, *args, check=True):
+    return subprocess.run(['git', '-C', root, *args], capture_output=True, text=True,
+                          check=check).stdout
+
+
+class Repo:
+    def __init__(self, root, staged=False):
+        self.root = root
+        self.staged = staged
+
+    def read(self, rel):
+        if self.staged:
+            try:
+                return run_git(self.root, 'show', ':' + rel)
+            except subprocess.CalledProcessError:
+                return None
+        path = os.path.join(self.root, rel)
+        if not os.path.isfile(path):
+            return None
+        with open(path, encoding='utf-8', errors='replace') as f:
+            return f.read()
+
+    def files(self, prefix):
+        out = []
+        for dirpath, _, names in os.walk(os.path.join(self.root, prefix)):
+            for name in names:
+                out.append(os.path.relpath(os.path.join(dirpath, name), self.root))
+        return sorted(out)
+
+
+def matches(rel, globs):
+    return any(fnmatch.fnmatch(rel, g) for g in globs)
+
+
+def is_cpp(rel):
+    return rel.startswith('src/') and rel.endswith(('.cc', '.h', '.mm'))
+
+
+def is_adapter(rel):
+    return bool(ADAPTER.search(rel))
+
+
+def strip_comments(text):
+    """Text with comments removed and string and char literals emptied."""
+    out = []
+    i = 0
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c == '/' and i + 1 < n and text[i + 1] == '/':
+            while i < n and text[i] != '\n':
+                i += 1
+        elif c == '/' and i + 1 < n and text[i + 1] == '*':
+            end = text.find('*/', i + 2)
+            i = n if end < 0 else end + 2
+            out.append(' ')
+        elif c in '"\'':
+            end = i + 1
+            while end < n and text[end] not in (c, '\n'):
+                end += 2 if text[end] == '\\' else 1
+            out.append(c + c)
+            i = end + 1
+        else:
+            out.append(c)
+            i += 1
+    return ''.join(out)
+
+
+CLASS_DEF = re.compile(r'\bclass\s+(?:\w+_EXPORT\s+)?(\w+)\b[^;{]*\{')
+
+
+def our_classes(repo):
+    if repo.staged:
+        names = set()
+        listed = run_git(repo.root, 'ls-files', '--cached', '--', 'src', check=False).split()
+        for rel in listed:
+            if is_cpp(rel):
+                names.update(CLASS_DEF.findall(repo.read(rel) or ''))
+        return names
+    names = set()
+    for rel in repo.files('src'):
+        if is_cpp(rel):
+            names.update(CLASS_DEF.findall(repo.read(rel) or ''))
+    return names
+
+
+def includes(text):
+    found = re.findall(r'^\s*#\s*(?:include|import)\s+"([^"]+)"', text, re.M)
+    for h in re.findall(r'^\s*#\s*(?:include|import)\s+<([^>]+)>', text, re.M):
+        if '/' in h and h.split('/', 1)[0] in CHROMIUM_DIRS:
+            found.append(h)
+    return found
+
+
+def check_r1_r2(rel, text, classes):
+    found = []
+    if is_adapter(rel):
+        return found
+    for header in includes(text):
+        if '..' in header.split('/') or not header.startswith(STABLE_INCLUDES):
+            found.append(f'R1 {rel} {header}')
+    code = strip_comments(text)
+    for cls in VIEW_BY_CLASS.findall(code):
+        if cls.split('::')[-1] not in classes:
+            found.append(f'R2 {rel} view-by-class<{cls}>')
+    for name, pattern in BROWSER_VIEW_REACHES.items():
+        found += [f'R2 {rel} {name}'] * len(pattern.findall(code))
+    found += [f'R2 {rel} BrowserView'] * len(BROWSER_VIEW.findall(code))
+    return found
+
+
+def registry_entries(repo):
+    """docs/system-changes.md table rows: | `path` | categories | why |"""
+    allowed = set()
+    text = repo.read('docs/system-changes.md') or ''
+    for path, cats in re.findall(r'^\|\s*`([^`]+)`\s*\|([^|]*)\|', text, re.M):
+        for cat in re.findall(r'[\w-]+', cats):
+            allowed.add((path.strip(), cat))
+    return allowed
+
+
+def check_r4(rel, text, allowed):
+    found = []
+    if rel.endswith('_unittest.cc'):
+        return found
+    # Whole lines: a path in a string is as much a system change as a call.
+    for line in text.splitlines():
+        if line.lstrip().startswith('//'):
+            continue
+        for cat, pattern in SYSTEM_PATTERNS.items():
+            if pattern.search(line) and (rel, cat) not in allowed:
+                found.append(f'R4 {rel} {cat}')
+    return found
+
+
+def hook_registry(repo):
+    """patches/hooks/README.md: '### H<n> …' sections; 'Kind: build' marks
+    build and branding hooks."""
+    text = repo.read('patches/hooks/README.md') or ''
+    hooks = {}
+    for m in re.finditer(r'^###\s+(H\d+)\b(.*?)(?=^###\s|\Z)', text, re.M | re.S):
+        hooks[m.group(1)] = 'build' if re.search(r'^Kind:\s*build', m.group(2), re.M) \
+            else 'code'
+    return hooks
+
+
+def patch_hunks(text):
+    """(file, removed lines, added lines) per hunk; file headers skipped."""
+    hunks = []
+    current = None
+    in_hunk = False
+    for line in text.splitlines():
+        if line.startswith('diff --git '):
+            current = line.split(' b/', 1)[-1]
+            in_hunk = False
+            continue
+        if line.startswith('@@'):
+            in_hunk = True
+            hunks.append((current, [], []))
+            continue
+        if not in_hunk or current is None:
+            continue
+        if line.startswith('-'):
+            hunks[-1][1].append(line[1:])
+        elif line.startswith('+'):
+            hunks[-1][2].append(line[1:])
+    return hunks
+
+
+def call_end(s, start):
+    """Index just past the parenthesis closing the first one from `start`."""
+    open_at = s.find('(', start)
+    if open_at < 0:
+        return -1
+    depth = 0
+    for i in range(open_at, len(s)):
+        depth += {'(': 1, ')': -1}.get(s[i], 0)
+        if depth == 0:
+            return i + 1
+    return -1
+
+
+def is_hook_call(expr):
+    """`expr` is exactly one call to cromarc::hooks::, nothing around it."""
+    expr = expr.strip()
+    m = HOOK_CALL.match(expr)
+    return bool(m) and call_end(expr, m.start()) == len(expr)
+
+
+def guard_condition(text):
+    """What follows `if (<!>cromarc::hooks::X(...))`, or None if not a guard."""
+    m = re.match(r'if\s*\(', text)
+    if not m:
+        return None
+    end = call_end(text, m.start())
+    if end < 0:
+        return None
+    cond = text[m.end():end - 1].strip()
+    if not is_hook_call(cond.lstrip('!').strip()):
+        return None
+    return text[end:].strip()
+
+
+def is_pure_hook_statement(text):
+    if is_hook_call(text):
+        return True
+    m = re.fullmatch(r'return\s+(.*)', text, re.S)
+    if m and is_hook_call(m.group(1)):
+        return True
+    m = re.fullmatch(r'(?:[\w:<>,*&\s]+\s)?[\w.:\->\[\]*&]+\s*=(?!=)\s*(.*)', text, re.S)
+    return bool(m) and is_hook_call(m.group(1))
+
+
+def statements(code):
+    """(text, delimiter) per statement; delimiters ; { } at paren depth 0."""
+    out = []
+    buf = []
+    depth = 0
+    for ch in code:
+        depth += {'(': 1, ')': -1}.get(ch, 0)
+        if depth == 0 and ch in ';{}':
+            out.append((' '.join(''.join(buf).split()), ch))
+            buf = []
+        else:
+            buf.append(ch)
+    rest = ' '.join(''.join(buf).split())
+    if rest:
+        out.append((rest, ''))
+    return out
+
+
+TOKEN = re.compile(r'\w+|\S')
+
+
+def wraps(removed, added):
+    """`added` keeps every token of `removed` in order and all it adds lies in
+    its one cromarc::hooks:: call: Chromium's value wrapped, nothing else."""
+    calls = list(HOOK_CALL.finditer(added))
+    if len(calls) != 1:
+        return False
+    start, end = calls[0].start(), call_end(added, calls[0].start())
+    want = [t.group() for t in TOKEN.finditer(removed)]
+    have = [(t.group(), start <= t.start() < end) for t in TOKEN.finditer(added)]
+
+    # Can want[i:] be matched in order within have[j:], every unmatched token
+    # of `added` lying inside the hook call?
+    @functools.lru_cache(maxsize=None)
+    def fits(i, j):
+        if j == len(have):
+            return i == len(want)
+        token, inside = have[j]
+        if i < len(want) and token == want[i] and fits(i + 1, j + 1):
+            return True
+        return inside and fits(i, j + 1)
+
+    return fits(0, 0)
+
+
+def hook_code_kinds(removed_lines, added_lines):
+    """Kinds of rule breaks in one hunk of a code hook's C++."""
+    kinds = []
+    added_code = []
+    for line in added_lines:
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            if stripped == HOOKS_HEADER:
+                continue
+            kinds.append('include-not-hooks-h' if stripped.startswith('#include')
+                         else 'logic-line')
+        else:
+            added_code.append(line)
+    kinds += ['removed-line'] * sum(1 for l in removed_lines if l.strip().startswith('#'))
+    removed = [s for s, _ in statements(strip_comments('\n'.join(
+        l for l in removed_lines if not l.strip().startswith('#')))) if s]
+    in_guard = False
+    for text, delim in statements(strip_comments('\n'.join(added_code))):
+        if in_guard:
+            if not text and delim == '}':
+                in_guard = False
+            elif not (delim == ';' and GUARD_BODY.fullmatch(text)):
+                kinds.append('logic-line')
+                in_guard = delim != '}'
+            continue
+        if not text:
+            if delim:
+                kinds.append('logic-line')
+            continue
+        rest = guard_condition(text)
+        if rest is not None:
+            if rest == '' and delim == '{':
+                in_guard = True
+            elif not (delim == ';' and GUARD_BODY.fullmatch(rest)):
+                kinds.append('logic-line')
+            continue
+        # A Chromium statement with one of its values wrapped in a hook call.
+        match = next((r for r in removed if wraps(r, text)), None)
+        if match is not None:
+            removed.remove(match)
+            continue
+        if delim == ';' and is_pure_hook_statement(text):
+            continue
+        kinds.append('logic-line')
+    kinds += ['removed-line'] * len(removed)
+    return kinds
+
+
+def check_r3(rel, text, registry):
+    m = re.search(r'Cromarc[- ](H\d+)', os.path.basename(rel)) or \
+        re.search(r'^Subject:.*?\b(H\d+)\b', text, re.M)
+    hook = m.group(1) if m else os.path.basename(rel)
+    if hook not in registry:
+        return [f'R3 {hook} unregistered']
+    if registry[hook] == 'build':
+        return []
+    found = []
+    for path, removed, added in patch_hunks(text):
+        if BUILD_FILE.search(path or ''):
+            found += [f'R3 {hook} removed-line'] * len(removed)
+            found += [f'R3 {hook} build-edit' for l in added
+                      if l.strip() and not l.strip().startswith('#')
+                      and not CROMARC_DEP.match(l)]
+            continue
+        found += [f'R3 {hook} {kind}' for kind in hook_code_kinds(removed, added)]
+    return found
+
+
+def system_files(repo, rels):
+    registered = {path for path, _ in registry_entries(repo)}
+    return [r for r in rels if matches(r, SYSTEM_FILE_GLOBS) or r in registered]
+
+
+def scan(repo, rels):
+    classes = our_classes(repo)
+    allowed = registry_entries(repo)
+    registry = hook_registry(repo)
+    found = []
+    for rel in rels:
+        text = repo.read(rel)
+        if text is None:
+            continue
+        if is_cpp(rel):
+            found += check_r1_r2(rel, text, classes)
+            found += check_r4(rel, text, allowed)
+        elif rel.startswith('patches/hooks/') and rel.endswith('.patch'):
+            found += check_r3(rel, text, registry)
+    return collections.Counter(found)
+
+
+def all_files(repo):
+    return [r for r in repo.files('src') if is_cpp(r)] + \
+        [r for r in repo.files('patches/hooks') if r.endswith('.patch')]
+
+
+def load_baseline(text):
+    counts = collections.Counter()
+    for line in (text or '').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        key, _, n = line.rpartition(' x')
+        if key and n.isdigit():
+            counts[key] = int(n)
+        else:
+            counts[line] = 1
+    return counts
+
+
+def format_baseline(counts):
+    head = ('# Architecture violations present when tooling/arch-check came in (AGENTS.md).\n'
+            '# Only shrinks: fix one, then run tooling/arch-check --update-baseline.\n')
+    return head + ''.join(f'{k} x{n}\n' if n > 1 else f'{k}\n' for k, n in sorted(counts.items()))
+
+
+def report(new, out):
+    for key in sorted(new):
+        print(f'  {key}' + (f'  (+{new[key]})' if new[key] > 1 else ''), file=out)
+    for rule in sorted({k.split(' ', 1)[0] for k in new}):
+        print(f'{rule}: {EXPLAIN[rule]}', file=out)
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument('--root', default=os.path.join(os.path.dirname(__file__), '..'))
+    p.add_argument('--files', nargs='*')
+    p.add_argument('--staged', action='store_true')
+    p.add_argument('--strict', action='store_true')
+    p.add_argument('--claude-hook', action='store_true')
+    p.add_argument('--baseline-grew')
+    p.add_argument('--system-files', action='store_true')
+    p.add_argument('--check-commits')
+    p.add_argument('--update-baseline', action='store_true')
+    a = p.parse_args()
+    root = os.path.realpath(a.root)
+    repo = Repo(root, staged=a.staged)
+    baseline_rel = 'tooling/arch/baseline.txt'
+
+    if a.system_files:
+        rels = run_git(root, 'diff', '--cached', '--name-only').split()
+        print('\n'.join(system_files(Repo(root, staged=True), rels)))
+        return 0
+
+    if a.check_commits:
+        bad = []
+        for commit in run_git(root, 'rev-list', '--no-merges', a.check_commits).split():
+            files = run_git(root, 'diff-tree', '--no-commit-id', '--name-only', '-r',
+                            commit).split()
+            touched = system_files(repo, files)
+            message = run_git(root, 'log', '-1', '--format=%B', commit)
+            if touched and not re.search(r'^System-Change: .{8,}', message, re.M):
+                bad.append(f'  {commit[:12]} {", ".join(touched)}')
+        if bad:
+            print('arch-check: commits touching system changes without System-Change:',
+                  file=sys.stderr)
+            print('\n'.join(bad), file=sys.stderr)
+            return 1
+        return 0
+
+    if a.baseline_grew is not None:
+        try:
+            before = load_baseline(run_git(root, 'show', f'{a.baseline_grew}:{baseline_rel}'))
+        except subprocess.CalledProcessError:
+            return 0
+        now = load_baseline(repo.read(baseline_rel))
+        grew = {k: n - before[k] for k, n in now.items() if n > before[k]}
+        if grew:
+            print('arch-check: the baseline grew; it may only shrink:', file=sys.stderr)
+            report(collections.Counter(grew), sys.stderr)
+            return 1
+        return 0
+
+    if a.update_baseline and (a.files is not None or a.staged or a.claude_hook):
+        print('arch-check: --update-baseline works on the whole repository only',
+              file=sys.stderr)
+        return 1
+
+    hook_file = None
+    if a.claude_hook:
+        try:
+            event = json.load(sys.stdin)
+        except ValueError:
+            return 0
+        path = (event.get('tool_input') or {}).get('file_path') or ''
+        if not path:
+            return 0
+        path = os.path.realpath(os.path.join(event.get('cwd') or os.getcwd(), path))
+        rel = os.path.relpath(path, root)
+        if rel == '..' or rel.startswith('../'):
+            return 0
+        hook_file = rel
+        rels = [rel]
+    elif a.staged:
+        rels = run_git(root, 'diff', '--cached', '--name-only', '--diff-filter=ACMR').split()
+    elif a.files is not None:
+        rels = [os.path.relpath(os.path.realpath(f), root) for f in a.files]
+    else:
+        rels = all_files(repo)
+
+    current = scan(repo, rels)
+    baseline = load_baseline(repo.read(baseline_rel))
+
+    if a.update_baseline:
+        grew = {k: n for k, n in current.items() if n > baseline.get(k, 0)}
+        if baseline and grew:
+            print('arch-check: refusing to add to the baseline; fix these instead:',
+                  file=sys.stderr)
+            report(collections.Counter(grew), sys.stderr)
+            return 1
+        os.makedirs(os.path.join(root, 'tooling/arch'), exist_ok=True)
+        with open(os.path.join(root, baseline_rel), 'w') as f:
+            f.write(format_baseline(current))
+        print(f'arch-check: baseline has {sum(current.values())} entries')
+        return 0
+
+    new = collections.Counter({k: n - baseline.get(k, 0) for k, n in current.items()
+                               if n > baseline.get(k, 0)})
+    status = 0
+    if new:
+        print(f'arch-check: {sum(new.values())} new architecture violation(s):',
+              file=sys.stderr)
+        report(new, sys.stderr)
+        status = 2 if hook_file else 1
+    if a.strict and a.files is None and not a.staged and not hook_file:
+        fixed = {k: baseline[k] - current.get(k, 0) for k in baseline
+                 if baseline[k] > current.get(k, 0)}
+        if fixed:
+            print('arch-check: fixed, now take them off the baseline '
+                  '(tooling/arch-check --update-baseline):', file=sys.stderr)
+            for k in sorted(fixed):
+                print(f'  {k}', file=sys.stderr)
+            status = status or 1
+    return status
+
+
+if __name__ == '__main__':
+    sys.exit(main())

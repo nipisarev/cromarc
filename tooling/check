@@ -3,8 +3,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# Repository checks that need no Chromium checkout: shell syntax, shellcheck, tooling
-# unit tests, unit tests of the WebUI code that runs without a browser (node --test).
+# Repository checks that need no Chromium checkout: shell syntax, shellcheck, the
+# architecture rules (tooling/arch-check), tooling unit tests, unit tests of the
+# WebUI code that runs without a browser (node --test).
 # CI runs this same script.
 # Usage: tooling/check
 
@@ -13,7 +14,7 @@ cd "$(dirname "$0")/.."
 
 scripts=(tooling/lib.sh tooling/bootstrap tooling/sync tooling/apply tooling/export-patches tooling/build
   tooling/check-patches tooling/bump tooling/zen-diff tooling/test-browser tooling/install branding/build_icons
-  tooling/check tooling/tests/*.sh)
+  tooling/check tooling/git-hooks/pre-commit tooling/git-hooks/commit-msg tooling/tests/*.sh)
 
 echo "==> bash -n"
 for f in "${scripts[@]}"; do bash -n "$f"; done
@@ -25,6 +26,14 @@ else
   echo "shellcheck not installed (brew install shellcheck); skipped" >&2
   [ -z "${CI:-}" ] || exit 1
 fi
+
+echo "==> python syntax"
+for f in tooling/arch-check tooling/check-headers; do
+  python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$f"
+done
+
+echo "==> architecture (AGENTS.md)"
+tooling/arch-check --strict
 
 echo "==> tests"
 for t in tooling/tests/test_*.sh; do "$t"; done

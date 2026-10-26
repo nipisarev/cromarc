@@ -36,7 +36,10 @@ for arg in "$@"; do
     *) suites+=("$arg") ;;
   esac
 done
+# Only a run of every suite stamps the build for tooling/install.
+full=false
 if [ ${#suites[@]} -eq 0 ] && ! $sites; then
+  full=true
   for file in "$tests"/suites/*.mjs; do
     suites+=("$(basename "$file" .mjs)")
   done
@@ -156,7 +159,8 @@ run() {
   fatal="$(grep -m1 -E 'FATAL|dangling raw_ptr|dangling pointer' "$log" || true)"
   local passed
   passed="$(grep -c '^PASS' "$out" || true)"
-  if [ "$status" -eq 0 ] && ! grep -q '^FAIL' "$out" && [ -z "$fatal" ]; then
+  # A suite that checked nothing did not pass.
+  if [ "$status" -eq 0 ] && [ "$passed" -gt 0 ] && ! grep -q '^FAIL' "$out" && [ -z "$fatal" ]; then
     echo "PASS  $name ($passed checks)"
     return 0
   fi
@@ -183,3 +187,24 @@ if $sites; then
 fi
 log "logs: $work"
 [ "$failed" -eq 0 ] || die "$failed suite(s) failed"
+# The release gate (tooling/install) wants every suite green on this very
+# build: the stamp names the build and what it was built from.
+out_dir="$(dirname "$app")"
+if $full && [ -n "${CROMARC_APP:-}" ]; then
+  warn "not stamped: CROMARC_APP picks another app"
+elif $full; then
+  rm -f "$out_dir/.cromarc-tested"
+  # The rest of the tests, so the stamp means every test (AGENTS.md).
+  "$out_dir/cromarc_unittests" >"$work/cromarc_unittests.log" 2>&1 ||
+    die "cromarc_unittests failed: $work/cromarc_unittests.log"
+  node --test "$CROMARC_ROOT"/src/webui/*/tests/*_test.ts >"$work/node_tests.log" 2>&1 ||
+    die "WebUI unit tests failed: $work/node_tests.log"
+  log "cromarc_unittests and WebUI unit tests passed"
+  built="$(cat "$out_dir/.cromarc-built" 2>/dev/null || true)"
+  if [ "$(sed -n 's/^build=//p' <<<"$built")" = "$(build_identity "$app")" ]; then
+    printf '%s\n' "$built" > "$out_dir/.cromarc-tested"
+    log "stamped: every suite passed on this build ($out_dir/.cromarc-tested)"
+  else
+    warn "not stamped: this build has no record of what it was built from (tooling/build makes it)"
+  fi
+fi

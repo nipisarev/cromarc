@@ -18,6 +18,23 @@ lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchSe
 
 [ -d "$build" ] || die "no $build (tooling/build release)"
 codesign --verify --deep "$build" 2>/dev/null || die "$build is not signed (tooling/build signs it)"
+
+# The release gate (AGENTS.md, "Release"): only committed code that passes the
+# architecture check, built from that code and with every suite green on that
+# very build, with Chromium's tree holding exactly the hooks in patches/hooks.
+[ -z "$(git -C "$CROMARC_ROOT" status --porcelain)" ] ||
+  die "uncommitted changes in $CROMARC_ROOT: commit, tooling/build, tooling/test-browser, then install"
+"$CROMARC_ROOT/tooling/arch-check" --root "$CROMARC_ROOT" --strict ||
+  die "the architecture check fails (AGENTS.md)"
+tested="$(dirname "$build")/.cromarc-tested"
+[ -f "$tested" ] || die "no record that every suite passed on this build: tooling/test-browser (all suites)"
+[ "$(sed -n 's/^build=//p' "$tested")" = "$(build_identity "$build")" ] ||
+  die "the build changed since the suites passed: tooling/test-browser again"
+[ "$(sed -n 's/^inputs=//p' "$tested")" = "$(build_inputs HEAD)" ] ||
+  die "this build is not of the committed code: tooling/build, tooling/test-browser, then install"
+require_clean_chromium_tree
+require_exported_patches "refs/tags/$CHROMIUM_TAG"
+require_hooks_in_chromium "refs/tags/$CHROMIUM_TAG"
 if pgrep -f "^$app/Contents/MacOS/Cromarc" >/dev/null; then
   die "Cromarc is running: quit it (Cmd+Q) first"
 fi

@@ -23,6 +23,9 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The pushed commits, for their System-Change: lines and the baseline.
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -30,16 +33,38 @@ jobs:
         run: brew install shellcheck
       - name: Shell, tooling and WebUI unit tests
         run: tooling/check
+      - name: Architecture rules (AGENTS.md)
+        run: |
+          tooling/arch-check --strict
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = 0000000000000000000000000000000000000000 ] ||
+             ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            # A new branch, a force push or another trigger: at least the head.
+            echo "::warning::no previous commit to compare with; checking ${{ github.sha }} alone"
+            before="$(git rev-parse "${{ github.sha }}^" 2>/dev/null || true)"
+          fi
+          if [ -n "$before" ]; then
+            tooling/arch-check --baseline-grew "$before"
+            tooling/arch-check --check-commits "$before..${{ github.sha }}"
+          fi
       - name: Hooks apply to the pin
         run: tooling/check-patches
 
-  newest-stable:
+  # The forecast of the next bumps: do the hooks apply and are the Chromium
+  # headers our code includes still there? Beta and Dev say it 4-8 weeks
+  # before a Stable needs it; they warn, Stable fails.
+  newest:
     runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [Stable, Beta, Dev]
+    continue-on-error: ${{ matrix.channel != 'Stable' }}
     steps:
       - uses: actions/checkout@v5
-      - name: Hooks against Chrome's newest stable for Mac
+      - name: Hooks and headers against Chrome's newest ${{ matrix.channel }} for Mac
         run: |
-          latest="$(curl -sf 'https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Mac&num=1' |
+          latest="$(curl -sf 'https://chromiumdash.appspot.com/fetch_releases?channel=${{ matrix.channel }}&platform=Mac&num=1' |
             python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["version"])')"
           . ./CHROMIUM_VERSION
           echo "pin $CHROMIUM_TAG, newest stable $latest"
@@ -50,6 +75,12 @@ jobs:
             # A tag can be pinned before Mac stable gets it.
             echo "the pin is ahead of Mac stable"
           else
-            echo "::notice::Chrome $latest is out; bump with tooling/bump $latest"
-            tooling/check-patches "$latest"
+            echo "::notice::Chrome ${{ matrix.channel }} $latest is out"
+            status=0
+            tooling/check-patches "$latest" || status=1
+            tooling/check-headers "$latest" || status=1
+            if [ "$status" -ne 0 ] && [ "${{ matrix.channel }}" != Stable ]; then
+              echo "::warning::hooks or headers need work before Chrome $latest (see this job's log)"
+            fi
+            exit "$status"
           fi

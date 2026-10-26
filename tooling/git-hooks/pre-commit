@@ -1,0 +1,14 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Stops a commit whose staged code breaks Cromarc's architecture rules
+# (AGENTS.md): tooling/arch-check on the staged files, and the baseline of
+# known violations only shrinks. Installed by tooling/bootstrap
+# (core.hooksPath = tooling/git-hooks).
+
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+"$root/tooling/arch-check" --root "$root" --staged
+"$root/tooling/arch-check" --root "$root" --staged --baseline-grew HEAD
