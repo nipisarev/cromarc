@@ -182,6 +182,22 @@ TEST_F(SpaceControllerTest, AfterStartupTheLastActiveSpacesWindowStays) {
   EXPECT_EQ(gfx::Rect(50, 60, 800, 600), windows_.BoundsOf(personal_window_));
 }
 
+TEST_F(SpaceControllerTest, OtherSpacesGetHiddenWindowsHalfAMinuteAfterStartup) {
+  windows_.popups = {work_window_};
+  controller_->OnWindowCreated(personal_window_);
+  task_environment_.FastForwardBy(base::Seconds(29));
+  EXPECT_EQ(1u, windows_.popups.size());
+  task_environment_.FastForwardBy(base::Seconds(1));
+  // Work had no window: now one waits, hidden, in Personal's frame, with a
+  // tab. Personal keeps its own and stays on screen.
+  EXPECT_TRUE(windows_.popups.empty());
+  EXPECT_EQ(work_.get(), windows_.ProfileOf(work_window_));
+  EXPECT_FALSE(windows_.IsOnScreen(work_window_));
+  EXPECT_EQ(gfx::Rect(10, 20, 1000, 700), windows_.BoundsOf(work_window_));
+  EXPECT_EQ(1u, tabs_.List(work_window_).size());
+  EXPECT_TRUE(windows_.IsOnScreen(personal_window_));
+}
+
 TEST_F(SpaceControllerTest, OnlyAKnownSpaceGoes) {
   EXPECT_FALSE(controller_->DeleteSpace(personal_window_, "Profile 9"));
   EXPECT_TRUE(profiles_.deleted.empty());
