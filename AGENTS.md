@@ -117,9 +117,11 @@ adapter, never an exception.
 1. Forecast without a checkout: `tooling/check-patches <tag>` (do the hooks
    apply?) and `tooling/check-headers <tag>` (are the headers our code includes
    still there?). CI runs both daily against Stable, Beta and Dev.
-2. `tooling/bump <tag>`. A hook that does not apply: find the place again from
-   its contract in `patches/hooks/README.md`, put the same one-line call there,
-   re-export.
+2. `tooling/bump <tag>`. When a hook does not apply, the bump stops after the
+   sync with `git am` at that hook in `~/chromium/src`: find the place again
+   from its contract in `patches/hooks/README.md`, put the same one-line call
+   there, `git add`, `git am --continue`. After the last one,
+   `tooling/bump --continue` exports the moved hooks and goes on.
 3. Build. Compile errors from Chromium's API changes are fixed in the adapters
    (`src/browser/chromium/`); feature code should not need a change. If it
    does, the port leaked, so fix the port.

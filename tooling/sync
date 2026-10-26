@@ -12,7 +12,9 @@
 # Safe to re-run; moves an existing vanilla tree to the pin.
 #
 # Usage: tooling/sync [--nohooks]
-#   CROMARC_SYNC_MIN_FREE_GB  free-disk floor, default 100 (checkout ~65 GB + release ~10 GB)
+#   CROMARC_SYNC_MIN_FREE_GB  free-disk floor, default 100 for a new checkout (~65 GB +
+#                             release ~10 GB), 30 to move an existing one to another tag
+#                             (the new objects, dependencies and a rebuild over the old)
 
 # shellcheck source=tooling/lib.sh
 . "$(cd "$(dirname "$0")" && pwd)/lib.sh"
@@ -21,7 +23,7 @@ run_hooks=1
 for arg in "$@"; do
   case "$arg" in
     --nohooks) run_hooks=0 ;;
-    -h|--help) sed -n '9,16p' "$0"; exit 0 ;;
+    -h|--help) sed -n '9,18p' "$0"; exit 0 ;;
     *) die "unknown argument: $arg" ;;
   esac
 done
@@ -29,7 +31,9 @@ done
 require_macos_arm64 "$@"
 add_depot_tools_to_path
 
-min_free="${CROMARC_SYNC_MIN_FREE_GB:-100}"
+default_free=100
+[ -d "$CHROMIUM_SRC/.git" ] && default_free=30
+min_free="${CROMARC_SYNC_MIN_FREE_GB:-$default_free}"
 case "$min_free" in ''|*[!0-9]*) die "CROMARC_SYNC_MIN_FREE_GB takes whole GB, got '$min_free'" ;; esac
 require_free_gb "$CHROMIUM_ROOT" "$min_free"
 require_no_ancestor_node_modules "$CHROMIUM_ROOT"

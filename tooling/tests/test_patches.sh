@@ -56,10 +56,72 @@ run() {
   CROMARC_ROOT="$repo" CHROMIUM_SRC="$src" "$repo/tooling/$1" 2>&1
 }
 
+# tooling/bump with the fake tree as all of ~/chromium (its stopped-bump state too).
+run_bump() {
+  CROMARC_ROOT="$repo" CHROMIUM_SRC="$src" CHROMIUM_ROOT="$(dirname "$src")" \
+    "$repo/tooling/bump" "$@" 2>&1
+}
+
 # Commits a one-line change to upstream.cc on cromarc-work, as the personal identity.
 hook_commit() {
   sed -i '' "s/^$1\$/$1 (cromarc)/" "$src/upstream.cc"
   git -C "$src" commit -q -am "Hook: $1"
+}
+
+# A stopped bump to $1, as tooling/bump leaves it.
+stopped_bump() {
+  printf 'from=0.9.0.0\ntag=%s\nstarted=0\nsync_s=0\nmoved="H1"\n' "$1" \
+    > "$(dirname "$src")/.cromarc-bump"
+}
+
+test_bump_continue_needs_a_stopped_bump() {
+  local out status
+  setup
+  out="$(run_bump --continue)"; status=$?
+  [[ "$status" -eq 1 && "$out" == *"no bump to continue"* ]]
+  expect "bump --continue: refuses when no bump stopped for its hooks" "status=$status out=$out" $?
+  teardown
+}
+
+test_bump_continue_takes_no_tag() {
+  local out status
+  setup
+  stopped_bump 1.0.0.0
+  out="$(run_bump --continue 2.0.0.0)"; status=$?
+  [[ "$status" -eq 1 && "$out" == *"takes no tag"* ]]
+  expect "bump --continue: takes no tag" "status=$status out=$out" $?
+  teardown
+}
+
+test_bump_refuses_a_new_bump_over_a_stopped_one() {
+  local out status
+  setup
+  stopped_bump 2.0.0.0
+  out="$(run_bump 3.0.0.0)"; status=$?
+  [[ "$status" -eq 1 && "$out" == *"tooling/bump --continue"* ]]
+  expect "bump: a stopped bump is finished first" "status=$status out=$out" $?
+  teardown
+}
+
+test_bump_continue_is_to_the_pin() {
+  local out status
+  setup
+  stopped_bump 2.0.0.0
+  out="$(run_bump --continue)"; status=$?
+  [[ "$status" -eq 1 && "$out" == *"but the pin is 1.0.0.0"* ]]
+  expect "bump --continue: the stopped bump is to the pin" "status=$status out=$out" $?
+  teardown
+}
+
+test_bump_continue_waits_for_git_am() {
+  local out status
+  setup
+  stopped_bump 1.0.0.0
+  mkdir -p "$src/.git/rebase-apply"
+  out="$(run_bump --continue)"; status=$?
+  [[ "$status" -eq 1 && "$out" == *"git am is still going"* ]]
+  expect "bump --continue: waits for git am to finish" "status=$status out=$out" $?
+  teardown
 }
 
 test_apply_mirrors_src_and_branches_from_the_pin() {
@@ -163,6 +225,11 @@ test_apply_refuses_unexported_commits
 test_apply_refuses_a_dirty_tree
 test_apply_drops_files_removed_from_src
 test_export_refuses_a_foreign_author
+test_bump_continue_needs_a_stopped_bump
+test_bump_continue_takes_no_tag
+test_bump_refuses_a_new_bump_over_a_stopped_one
+test_bump_continue_is_to_the_pin
+test_bump_continue_waits_for_git_am
 
 printf '\n%d passed, %d failed\n' "$passes" "$failures"
 [ "$failures" -eq 0 ]

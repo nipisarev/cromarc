@@ -9,60 +9,124 @@
 # in docs/maintenance-log.md. Stops at the first step that fails; the pin
 # change and the log entry are left for review, not committed.
 #
+# Hooks that do not apply to the tag (a new major) stop the bump after the
+# sync, with `git am` in $CHROMIUM_SRC at the first of them. Put the same
+# one-line call where its contract in patches/hooks/README.md says, `git add`,
+# `git am --continue`, and so on to the end; then `tooling/bump --continue`
+# exports the moved hooks and goes on from there.
+#
 # Usage: tooling/bump TAG [--check]
-#   --check  only whether the hooks apply to TAG (tooling/check-patches)
+#        tooling/bump --continue
+#   --check     only whether the hooks apply to TAG (tooling/check-patches)
+#   --continue  go on after the hooks that did not apply were moved
 
 # shellcheck source=tooling/lib.sh
 . "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
-tag="" check_only=0
+tag="" check_only=0 continuing=0
 for arg in "$@"; do
   case "$arg" in
     --check) check_only=1 ;;
-    -h|--help) sed -n '5,14p' "$0"; exit 0 ;;
+    --continue) continuing=1 ;;
+    -h|--help) sed -n '5,21p' "$0"; exit 0 ;;
     -*) die "unknown argument: $arg" ;;
     *) tag="$arg" ;;
   esac
 done
-case "$tag" in
-  *[!0-9.]*|'') die "a Chromium version tag like 156.0.8078.70 is required" ;;
-esac
-[ "$tag" != "$CHROMIUM_TAG" ] || die "already at $tag"
 
 tooling="$CROMARC_ROOT/tooling"
-log "1/6 hooks against $tag"
-"$tooling/check-patches" "$tag" ||
-  die "resolve the conflicts first: rebase cromarc-work onto $tag by hand, then tooling/export-patches"
-[ "$check_only" -eq 0 ] || exit 0
+# What a bump stopped for its hooks needs to finish: from, to, when it
+# started, how long the sync took, which hooks did not apply.
+state="$CHROMIUM_ROOT/.cromarc-bump"
 
-require_macos_arm64 "$@"
-commit="$(git ls-remote "$CHROMIUM_URL" "refs/tags/$tag^{}" "refs/tags/$tag" |
-  awk 'NR==1 || /\^\{\}$/ {c=$1} END {print c}')"
-[ -n "$commit" ] || die "no tag $tag at $CHROMIUM_URL"
+if [ "$continuing" -eq 1 ]; then
+  [ -z "$tag" ] || die "--continue takes no tag: it goes on with the bump in $state"
+  [ -f "$state" ] || die "no bump to continue ($state)"
+  # shellcheck source=/dev/null
+  . "$state"
+  [ "$tag" = "$CHROMIUM_TAG" ] || die "$state is a bump to $tag, but the pin is $CHROMIUM_TAG"
+  [ ! -d "$CHROMIUM_SRC/.git/rebase-apply" ] ||
+    die "git am is still going in $CHROMIUM_SRC: move the hook it stopped at, git add, git am --continue"
+  [ "$(git -C "$CHROMIUM_SRC" rev-parse --abbrev-ref HEAD)" = cromarc-work ] ||
+    die "$CHROMIUM_SRC is not on cromarc-work"
+  [ "$(git -C "$CHROMIUM_SRC" rev-list --count "refs/tags/$tag..HEAD")" -eq \
+    "$(find "$CROMARC_ROOT/patches/hooks" -name '*.patch' | wc -l | tr -d ' ')" ] ||
+    die "cromarc-work on $tag does not have one commit per hook in patches/hooks"
+  require_macos_arm64 "$@"
+  log "4/6 hooks moved: $moved"
+  "$tooling/export-patches"
+  # Rebuilt from the tag and the exported hooks: they now apply as they are.
+  "$tooling/apply"
+  notes="hooks moved by hand: $moved"
+else
+  case "$tag" in
+    *[!0-9.]*|'') die "a Chromium version tag like 156.0.8078.70 is required" ;;
+  esac
+  [ "$tag" != "$CHROMIUM_TAG" ] || die "already at $tag"
+  [ ! -f "$state" ] || die "a bump is stopped for its hooks ($state): tooling/bump --continue"
 
-from="$CHROMIUM_TAG"
-started=$SECONDS
+  log "1/6 hooks against $tag"
+  moved="" status=0
+  report="$("$tooling/check-patches" "$tag" 2>&1)" || status=$?
+  printf '%s\n' "$report"
+  if [ "$status" -ne 0 ]; then
+    [ "$check_only" -eq 0 ] || exit 1
+    moved="$(sed -n 's/.*CONFLICT .*-Cromarc-\(H[0-9]*\)-.*/\1/p' <<<"$report" | paste -sd' ' -)"
+    [ -n "$moved" ] || die "tooling/check-patches failed without a conflicting hook"
+    warn "hooks to move by hand after the sync: $moved"
+  fi
+  [ "$check_only" -eq 0 ] || exit 0
 
-log "2/6 pin: $from -> $tag ($commit)"
-version_file="$CROMARC_ROOT/CHROMIUM_VERSION"
-sed -i '' \
-  -e "s/^CHROMIUM_TAG=.*/CHROMIUM_TAG=$tag/" \
-  -e "s/^CHROMIUM_MILESTONE=.*/CHROMIUM_MILESTONE=${tag%%.*}/" \
-  -e "s/^CHROMIUM_COMMIT=.*/CHROMIUM_COMMIT=$commit/" \
-  -e "s/^CHROMIUM_PIN_DATE=.*/CHROMIUM_PIN_DATE=$(date +%F)/" \
-  "$version_file"
+  require_macos_arm64 "$@"
+  commit="$(git ls-remote "$CHROMIUM_URL" "refs/tags/$tag^{}" "refs/tags/$tag" |
+    awk 'NR==1 || /\^\{\}$/ {c=$1} END {print c}')"
+  [ -n "$commit" ] || die "no tag $tag at $CHROMIUM_URL"
 
-log "3/6 sync"
-# Off cromarc-work, which tooling/apply rebuilds on the new tag, once every
-# commit on it is in patches/hooks.
-require_exported_patches "refs/tags/$from"
-require_clean_chromium_tree
-git -C "$CHROMIUM_SRC" checkout -q --detach "refs/tags/$from"
-t=$SECONDS
-"$tooling/sync"
-sync_s=$((SECONDS - t))
-log "4/6 apply"
-"$tooling/apply"
+  from="$CHROMIUM_TAG"
+  started="$(date +%s)"
+
+  log "2/6 pin: $from -> $tag ($commit)"
+  version_file="$CROMARC_ROOT/CHROMIUM_VERSION"
+  sed -i '' \
+    -e "s/^CHROMIUM_TAG=.*/CHROMIUM_TAG=$tag/" \
+    -e "s/^CHROMIUM_MILESTONE=.*/CHROMIUM_MILESTONE=${tag%%.*}/" \
+    -e "s/^CHROMIUM_COMMIT=.*/CHROMIUM_COMMIT=$commit/" \
+    -e "s/^CHROMIUM_PIN_DATE=.*/CHROMIUM_PIN_DATE=$(date +%F)/" \
+    "$version_file"
+
+  log "3/6 sync"
+  # Off cromarc-work, which is rebuilt on the new tag, once every commit on
+  # it is in patches/hooks.
+  require_exported_patches "refs/tags/$from"
+  require_clean_chromium_tree
+  git -C "$CHROMIUM_SRC" checkout -q --detach "refs/tags/$from"
+  t=$SECONDS
+  "$tooling/sync"
+  sync_s=$((SECONDS - t))
+
+  if [ -z "$moved" ]; then
+    log "4/6 apply"
+    "$tooling/apply"
+    notes="hooks applied as they were"
+  else
+    log "4/6 hooks: $moved do not apply to $tag"
+    printf 'from=%s\ntag=%s\nstarted=%s\nsync_s=%s\nmoved="%s"\n' \
+      "$from" "$tag" "$started" "$sync_s" "$moved" > "$state"
+    use_cromarc_identity
+    git -C "$CHROMIUM_SRC" checkout -q -B cromarc-work "refs/tags/$tag"
+    git -C "$CHROMIUM_SRC" am -q -3 "$CROMARC_ROOT"/patches/hooks/*.patch ||
+      die "git am stopped at a hook that does not apply, in $CHROMIUM_SRC.
+     For each: put the same one-line call where its contract in
+     patches/hooks/README.md says (\"If it moved\"), git add, git am --continue.
+     Then: tooling/bump --continue"
+    # git -3 merged them all after all.
+    log "4/6 the hooks merged on their own"
+    "$tooling/export-patches"
+    "$tooling/apply"
+    notes="hooks merged by git am -3: $moved"
+  fi
+fi
+
 log "5/6 build"
 t=$SECONDS
 "$tooling/build" release chrome cromarc_unittests
@@ -73,7 +137,8 @@ log "6/6 tests"
 
 log_file="$CROMARC_ROOT/docs/maintenance-log.md"
 [ -f "$log_file" ] || printf '# Maintenance log\n\nBumps of the Chromium pin (design, "Цикл обновлений Chromium").\n\n| Date | From | To | Sync | Build | Total | Notes |\n|---|---|---|---|---|---|---|\n' > "$log_file"
-printf '| %s | %s | %s | %d min | %d min | %d min | hooks applied as they were |\n' \
+printf '| %s | %s | %s | %d min | %d min | %d min | %s |\n' \
   "$(date +%F)" "$from" "$tag" $((sync_s / 60)) $((build_s / 60)) \
-  $(((SECONDS - started) / 60)) >> "$log_file"
-log "bumped to $tag; review and commit CHROMIUM_VERSION and docs/maintenance-log.md"
+  $((($(date +%s) - started) / 60)) "$notes" >> "$log_file"
+[ ! -f "$state" ] || rm -f "$state"
+log "bumped to $tag; review and commit CHROMIUM_VERSION, patches/hooks and docs/maintenance-log.md"
