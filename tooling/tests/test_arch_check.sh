@@ -193,6 +193,16 @@ test_r4_system_change() {
   expect "R4: the same change registered passes" "$out" $?
 }
 
+test_r4_window_material() {
+  local root out status
+  root="$(fixture r4m)"
+  echo 'NSView* v = [[NSVisualEffectView alloc] init];' >"$root/src/browser/feature/m.mm"
+  out="$(check "$root")"
+  status=$?
+  [ "$status" -eq 1 ] && [[ "$out" == *"R4 src/browser/feature/m.mm appkit-global"* ]]
+  expect "R4: a material under a window outside its registered file fails" "$status: $out" $?
+}
+
 test_baseline_ratchet() {
   local root out status
   root="$(fixture ratchet)"
@@ -370,6 +380,7 @@ test_r3_one_call_and_guard_pass
 test_r3_logic_and_removed_lines
 test_r3_build_hook_free
 test_r4_system_change
+test_r4_window_material
 test_baseline_ratchet
 test_claude_hook
 test_baseline_grew_and_system_files

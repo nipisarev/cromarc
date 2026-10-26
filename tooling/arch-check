@@ -91,7 +91,7 @@ SYSTEM_PATTERNS = {
     'appkit-global': re.compile(
         r'\b(?:addGlobalMonitorForEvents\w*|addLocalMonitorForEvents\w*|'
         r'method_exchangeImplementations|class_replaceMethod|alphaValue|'
-        r'ignoresMouseEvents)\b'),
+        r'ignoresMouseEvents|NSVisualEffectView)\b'),
     'user-defaults': re.compile(r'\bNSUserDefaults\b'),
     'default-browser': re.compile(
         r'\b(?:LSSetDefault\w*|LSRegisterURL|DefaultBrowserWorker|'
