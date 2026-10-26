@@ -8,7 +8,10 @@
 namespace cromarc {
 
 class AppLifecycle;
+class DefaultBrowser;
+class Favicons;
 class Profiles;
+class SelectFilePolicies;
 class StripDefaults;
 class TabStripApi;
 class Tabs;
@@ -24,6 +27,9 @@ TabStripApi& ChromiumTabStripApi();
 Profiles& ChromiumProfiles();
 Theme& ChromiumTheme();
 StripDefaults& ChromiumStripDefaults();
+Favicons& ChromiumFavicons();
+DefaultBrowser& ChromiumDefaultBrowser();
+SelectFilePolicies& ChromiumSelectFilePolicies();
 
 }  // namespace cromarc
 

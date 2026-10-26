@@ -53,8 +53,9 @@ bool OpenExternalLinks(const std::vector<StartupTab>& tabs, Profile* profile) {
     }
     urls.push_back(tab.url);
   }
-  return cromarc::OpenExternalLinks(ChromiumTabs(), ChromiumWindows(),
-                                    ChromiumAppLifecycle(), urls, profile);
+  return cromarc::OpenExternalLinks(ChromiumProfiles(), ChromiumTabs(),
+                                    ChromiumWindows(), ChromiumAppLifecycle(),
+                                    urls, profile);
 }
 
 bool ShowCommandBar(BrowserWindowInterface* browser, bool edit_current_url) {

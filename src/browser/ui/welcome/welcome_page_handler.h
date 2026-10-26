@@ -8,6 +8,7 @@
 #include <string>
 
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
 #include "cromarc/browser/ui/welcome/welcome.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
@@ -21,11 +22,22 @@ class WebContents;
 
 namespace cromarc {
 
+class DefaultBrowser;
+class Profiles;
+class Tabs;
+class Theme;
+class Windows;
+
 class WelcomePageHandler : public welcome::mojom::PageHandler {
  public:
   WelcomePageHandler(
       mojo::PendingReceiver<welcome::mojom::PageHandler> receiver,
-      content::WebContents* web_contents);
+      content::WebContents* web_contents,
+      Profiles& profiles,
+      Windows& windows,
+      Tabs& tabs,
+      Theme& theme,
+      DefaultBrowser& default_browser);
   WelcomePageHandler(const WelcomePageHandler&) = delete;
   WelcomePageHandler& operator=(const WelcomePageHandler&) = delete;
   ~WelcomePageHandler() override;
@@ -45,6 +57,11 @@ class WelcomePageHandler : public welcome::mojom::PageHandler {
 
   mojo::Receiver<welcome::mojom::PageHandler> receiver_;
   raw_ptr<content::WebContents> web_contents_;
+  const raw_ref<Profiles> profiles_;
+  const raw_ref<Windows> windows_;
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Theme> theme_;
+  const raw_ref<DefaultBrowser> default_browser_;
   base::WeakPtrFactory<WelcomePageHandler> weak_factory_{this};
 };
 

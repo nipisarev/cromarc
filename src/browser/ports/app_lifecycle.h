@@ -27,6 +27,8 @@ class AppLifecycle {
   // The user typed or edited something on the page: true when that cannot be
   // known.
   virtual bool MayHaveUserEdits(content::WebContents* contents) = 0;
+  // Quits and starts again, as Chrome's relaunch does.
+  virtual void Restart() = 0;
   // The process is about to exit with its tabs open: SIGTERM or logout.
   virtual bool IsSessionEnding() = 0;
   // Called when closing all windows starts (true) or is cancelled (false).

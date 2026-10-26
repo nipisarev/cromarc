@@ -28,7 +28,12 @@ namespace cromarc {
 // profiles in "Cromarc Routes.json", in Zen's format.
 class SpaceRouting {
  public:
+  // The browser-process singleton (chromium/space_routing_get.cc).
   static SpaceRouting* Get();
+
+  // The rules live in the file at `path`.
+  explicit SpaceRouting(const base::FilePath& path);
+  ~SpaceRouting();
 
   SpaceRouting(const SpaceRouting&) = delete;
   SpaceRouting& operator=(const SpaceRouting&) = delete;
@@ -51,11 +56,6 @@ class SpaceRouting {
       base::RepeatingClosure callback);
 
  private:
-  friend base::NoDestructor<SpaceRouting>;
-
-  SpaceRouting();
-  ~SpaceRouting();
-
   void OnRead(std::optional<Routes> routes);
   void Save();
 

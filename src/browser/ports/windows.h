@@ -92,6 +92,9 @@ class Windows {
   // its window, as Chrome's top chrome WebUIs have it.
   virtual void AttachWebUI(BrowserWindowInterface* window,
                            content::WebContents* contents) = 0;
+  // The window a WebUI of its chrome, or a tab, is in; null for none.
+  virtual BrowserWindowInterface* WindowOfWebUI(
+      content::WebContents* contents) = 0;
   // Adds `view` at the end of the window's toolbar.
   virtual void AddToToolbar(BrowserWindowInterface* window,
                             std::unique_ptr<views::View> view) = 0;

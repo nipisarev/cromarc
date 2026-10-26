@@ -19,14 +19,7 @@ source_set("routing") {
     "space_routing.cc",
     "space_routing.h",
   ]
-  public_deps = [
-    ":routes",
-    "//chrome/browser:browser_public_dependencies",
-  ]
-  deps = [
-    "//chrome/browser:browser_process",
-    "//chrome/browser/profiles:profile_manager",
-  ]
+  public_deps = [ ":routes" ]
 }
 
 source_set("unit_tests") {

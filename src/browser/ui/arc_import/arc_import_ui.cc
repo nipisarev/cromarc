@@ -13,6 +13,7 @@
 #include "content/public/browser/web_ui.h"
 #include "content/public/browser/web_ui_data_source.h"
 #include "content/public/common/url_constants.h"
+#include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/ui/arc_import/arc_import_page_handler.h"
 #include "ui/webui/webui_util.h"
 
@@ -40,8 +41,9 @@ void ArcImportUI::BindInterface(
 void ArcImportUI::CreatePageHandler(
     mojo::PendingReceiver<arc_import::mojom::PageHandler> handler) {
   page_handler_ = std::make_unique<ArcImportPageHandler>(
-      std::move(handler), Profile::FromWebUI(web_ui()),
-      web_ui()->GetWebContents());
+      std::move(handler), web_ui()->GetWebContents(), ChromiumProfiles(),
+      ChromiumWindows(), ChromiumTabs(), ChromiumTheme(),
+      ChromiumSelectFilePolicies());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(ArcImportUI)

@@ -8,13 +8,14 @@
 #include <Carbon/Carbon.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "base/functional/bind.h"
+#include "base/memory/raw_ptr.h"
 #include "base/no_destructor.h"
 #include "base/time/time.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "components/sessions/core/session_id.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/spaces/swipe_tracker.h"
 #include "cromarc/browser/ui/sidebar/compact_mode.h"
@@ -38,12 +39,23 @@ constexpr NSEventModifierFlags kModifierMask =
 struct Swipe {
   SwipeTracker tracker;
   // The window whose sidebar the swipe began over.
-  SessionID browser_id = SessionID::InvalidValue();
+  std::optional<WindowId> browser_id;
 };
 
 Swipe& CurrentSwipe() {
   static base::NoDestructor<Swipe> swipe;
   return *swipe;
+}
+
+// The browser's, from InstallSpaceInputMonitor() on.
+raw_ptr<Windows>& TheWindows() {
+  static base::NoDestructor<raw_ptr<Windows>> windows;
+  return *windows;
+}
+
+// Null once the swipe's window is gone, or without one.
+BrowserWindowInterface* SwipeWindow(const Swipe& swipe) {
+  return swipe.browser_id ? TheWindows()->FromId(*swipe.browser_id) : nullptr;
 }
 
 SwipeTracker::Phase PhaseOf(NSEventPhase phase) {
@@ -121,8 +133,7 @@ NSEvent* HandleScroll(NSEvent* event) {
     // gesture.
     const std::vector<SwipeTracker::Event> ended = swipe.tracker.Process(
         {SwipeTracker::Phase::kNone, false, 0, 0, base::TimeTicks::Now()});
-    if (BrowserWindowInterface* browser =
-            BrowserWindowInterface::FromSessionID(swipe.browser_id)) {
+    if (BrowserWindowInterface* browser = SwipeWindow(swipe)) {
       for (const SwipeTracker::Event& e : ended) {
         SpaceController::Get()->OnSwipe(browser, e);
       }
@@ -147,12 +158,12 @@ NSEvent* HandleScroll(NSEvent* event) {
   if (event.phase == NSEventPhaseBegan) {
     const bool fullscreen =
         (window.styleMask & NSWindowStyleMaskFullScreen) != 0;
-    swipe.browser_id = sidebar && !fullscreen
-                           ? sidebar->browser()->GetSessionID()
-                           : SessionID::InvalidValue();
+    swipe.browser_id =
+        sidebar && !fullscreen
+            ? std::make_optional(TheWindows()->IdOf(sidebar->browser()))
+            : std::nullopt;
   }
-  BrowserWindowInterface* browser =
-      BrowserWindowInterface::FromSessionID(swipe.browser_id);
+  BrowserWindowInterface* browser = SwipeWindow(swipe);
   if (!browser) {
     return event;
   }
@@ -229,12 +240,13 @@ base::ScopedClosureRunner WatchMouseEverywhere(
       [](std::unique_ptr<Monitors>) {}, std::move(monitors)));
 }
 
-void InstallSpaceInputMonitor() {
+void InstallSpaceInputMonitor(Windows& windows) {
   static bool installed = false;
   if (installed) {
     return;
   }
   installed = true;
+  TheWindows() = &windows;
   [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
                                         handler:^NSEvent*(NSEvent* event) {
                                           return HandleKeyDown(event);

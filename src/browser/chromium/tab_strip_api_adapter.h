@@ -20,6 +20,8 @@ class TabStripApiAdapter : public TabStripApi {
   // TabStripApi:
   tabs_api::NodeId NodeIdOf(TabId tab) override;
   std::optional<TabId> TabOf(const tabs_api::NodeId& node) override;
+  std::vector<tabs_api::mojom::TabPtr> Snapshot(
+      BrowserWindowInterface* window) override;
 };
 
 }  // namespace cromarc

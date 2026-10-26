@@ -97,6 +97,14 @@ std::vector<Profile*> FakeProfiles::Loaded() {
   return loaded;
 }
 
+Profile* FakeProfiles::FromBrowserContext(content::BrowserContext* context) {
+  return nullptr;
+}
+
+base::FilePath FakeProfiles::UserDataDir() {
+  return base::FilePath();
+}
+
 std::string FakeProfiles::IdOf(Profile* profile) {
   Space* space = Find(profile);
   return space ? space->id : std::string();

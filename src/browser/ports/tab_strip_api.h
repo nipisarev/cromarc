@@ -6,11 +6,19 @@
 #define CROMARC_BROWSER_PORTS_TAB_STRIP_API_H_
 
 #include <optional>
+#include <vector>
 
 #include "cromarc/browser/ports/tabs.h"
+#include "mojo/public/cpp/bindings/struct_ptr.h"
+
+class BrowserWindowInterface;
 
 namespace tabs_api {
 class NodeId;
+namespace mojom {
+class Tab;
+using TabPtr = mojo::StructPtr<Tab>;
+}  // namespace mojom
 }  // namespace tabs_api
 
 namespace cromarc {
@@ -25,6 +33,9 @@ class TabStripApi {
   virtual tabs_api::NodeId NodeIdOf(TabId tab) = 0;
   // Nullopt for a node that is not a tab.
   virtual std::optional<TabId> TabOf(const tabs_api::NodeId& node) = 0;
+  // `window`'s tabs as TabStripService describes them, in their order.
+  virtual std::vector<tabs_api::mojom::TabPtr> Snapshot(
+      BrowserWindowInterface* window) = 0;
 };
 
 }  // namespace cromarc

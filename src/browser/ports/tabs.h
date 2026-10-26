@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "base/callback_list.h"
@@ -77,6 +78,11 @@ class Tabs {
   // link is followed. Nullopt when nothing opened.
   virtual std::optional<TabId> OpenPinned(BrowserWindowInterface* window,
                                           const GURL& url) = 0;
+  // `url` at the end of `window` as a session restore brings a tab back: not
+  // selected, loading once it is, `title` shown until then.
+  virtual void AddUnloaded(BrowserWindowInterface* window,
+                           const GURL& url,
+                           const std::u16string& title) = 0;
   // `contents` as a new active tab right after `window`'s active one, opened
   // from it.
   virtual std::optional<TabId> InsertAfterActive(

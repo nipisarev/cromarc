@@ -32,6 +32,8 @@ class ProfilesAdapter : public Profiles,
   void Load(const std::string& id,
             base::OnceCallback<void(Profile*)> then) override;
   std::vector<Profile*> Loaded() override;
+  Profile* FromBrowserContext(content::BrowserContext* context) override;
+  base::FilePath UserDataDir() override;
   std::string IdOf(Profile* profile) override;
   bool IsOffTheRecord(Profile* profile) override;
   PrefService* PrefsOf(Profile* profile) override;

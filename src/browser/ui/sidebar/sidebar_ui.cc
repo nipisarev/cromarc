@@ -108,7 +108,8 @@ void SidebarUI::CreatePageHandler(
   page_handler_ = std::make_unique<SidebarPageHandler>(
       std::move(handler), std::move(page), browser, tree_service,
       lifecycle_service, archive_service, ChromiumTabs(), ChromiumWindows(),
-      ChromiumTabStripApi());
+      ChromiumTabStripApi(), ChromiumProfiles(), ChromiumFavicons(),
+      ChromiumAppLifecycle());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(SidebarUI)

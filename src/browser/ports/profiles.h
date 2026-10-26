@@ -16,6 +16,10 @@
 class PrefService;
 class Profile;
 
+namespace content {
+class BrowserContext;
+}  // namespace content
+
 namespace cromarc {
 
 // The browser's profiles, which are Cromarc's spaces (design, premise 1).
@@ -41,6 +45,10 @@ class Profiles {
                     base::OnceCallback<void(Profile*)> then) = 0;
   virtual std::vector<Profile*> Loaded() = 0;
 
+  // The profile `context` is.
+  virtual Profile* FromBrowserContext(content::BrowserContext* context) = 0;
+  // Where the profiles' directories are, and Cromarc's own files.
+  virtual base::FilePath UserDataDir() = 0;
   // The id of `profile`, or of the profile it is off the record of.
   virtual std::string IdOf(Profile* profile) = 0;
   virtual bool IsOffTheRecord(Profile* profile) = 0;

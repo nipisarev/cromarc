@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "base/memory/weak_ptr.h"
+#include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/lifetime/application_lifetime_desktop.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
 #include "chrome/browser/sessions/session_restore.h"
@@ -30,6 +31,10 @@ bool AppLifecycleAdapter::MayHaveUserEdits(content::WebContents* contents) {
       performance_manager::PerformanceManager::GetPrimaryPageNodeForWebContents(
           contents);
   return !page || page->HadUserEdits();
+}
+
+void AppLifecycleAdapter::Restart() {
+  chrome::AttemptRestart();
 }
 
 bool AppLifecycleAdapter::IsSessionEnding() {

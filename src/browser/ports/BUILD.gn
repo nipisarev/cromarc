@@ -8,7 +8,10 @@ source_set("ports") {
   sources = [
     "app_lifecycle.h",
     "browser_frame.h",
+    "default_browser.h",
+    "favicons.h",
     "profiles.h",
+    "select_file_policies.h",
     "strip_defaults.h",
     "tab_strip_api.h",
     "tabs.h",
@@ -18,6 +21,7 @@ source_set("ports") {
   ]
   public_deps = [
     "//base",
+    "//mojo/public/cpp/bindings",
     "//ui/base",
     "//ui/gfx",
     "//ui/gfx/geometry",

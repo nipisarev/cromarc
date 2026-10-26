@@ -20,6 +20,7 @@ class AppLifecycleAdapter : public AppLifecycle {
   // AppLifecycle:
   bool IsRestoringSession(Profile* profile) override;
   bool MayHaveUserEdits(content::WebContents* contents) override;
+  void Restart() override;
   bool IsSessionEnding() override;
   base::CallbackListSubscription OnClosingAllWindows(
       base::RepeatingCallback<void(bool closing)> callback) override;

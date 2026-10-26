@@ -18,25 +18,18 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
-#include "chrome/browser/browser_process.h"
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/profiles/profile_avatar_icon_util.h"
-#include "chrome/browser/profiles/profile_manager.h"
-#include "chrome/browser/themes/theme_service.h"
-#include "chrome/browser/themes/theme_service_factory.h"
-#include "chrome/browser/ui/browser_tabrestore.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
-#include "chrome/browser/ui/select_file_policy/chrome_select_file_policy.h"
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: as above
 #include "components/prefs/pref_service.h"
-#include "components/sessions/core/serialized_navigation_entry.h"
-#include "components/sessions/core/serialized_user_agent_override.h"
 #include "content/public/browser/web_contents.h"
 #include "cromarc/browser/arc_import/arc_import.h"
+#include "cromarc/browser/ports/profiles.h"
+#include "cromarc/browser/ports/select_file_policies.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/theme.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/spaces/space_prefs.h"
 #include "cromarc/browser/tree/tree_service.h"
+#include "ui/shell_dialogs/select_file_policy.h"
 #include "ui/shell_dialogs/selected_file_info.h"
 
 namespace cromarc {
@@ -88,18 +81,19 @@ void Count(const std::vector<ArcNode>& nodes, int& folders, int& pinned) {
 // Arc's Today tabs open in Today as restored tabs do, loading once selected,
 // Arc's top one on top (Today lists the newest tab first). A URL pinned in
 // the tree or open in the space already is left out.
-void OpenTodayTabs(Profile* profile,
+void OpenTodayTabs(Windows& windows,
+                   Tabs& tabs,
+                   Profile* profile,
                    const std::vector<ArcSpace>& spaces,
                    TreeService& service,
                    ImportCounts& counts) {
   std::set<std::string> open;
-  for (BrowserWindowInterface* window : GetAllBrowserWindowInterfaces()) {
-    if (window->GetProfile() != profile) {
+  for (BrowserWindowInterface* window : windows.All()) {
+    if (windows.ProfileOf(window) != profile) {
       continue;
     }
-    TabStripModel* tabs = window->GetTabStripModel();
-    for (int i = 0; i < tabs->count(); ++i) {
-      open.insert(UrlKey(tabs->GetWebContentsAt(i)->GetLastCommittedURL()));
+    for (TabId tab : tabs.List(window)) {
+      open.insert(UrlKey(tabs.GetContents(tab)->GetLastCommittedURL()));
     }
   }
   std::vector<const ArcNode*> today;
@@ -122,19 +116,7 @@ void OpenTodayTabs(Profile* profile,
     return;
   }
   for (auto it = today.rbegin(); it != today.rend(); ++it) {
-    sessions::SerializedNavigationEntry entry;
-    entry.set_virtual_url((*it)->url);
-    entry.set_title((*it)->title);
-    entry.set_timestamp(base::Time::Now());
-    chrome::AddRestoredTab(
-        window, base::span_from_ref(entry),
-        /*tab_index=*/window->GetTabStripModel()->count(),
-        /*selected_navigation=*/0, /*extension_app_id=*/std::string(),
-        /*group=*/std::nullopt, /*select=*/false, /*pin=*/false,
-        base::TimeTicks::Now(), base::Time::Now(),
-        /*storage_namespace=*/nullptr, sessions::SerializedUserAgentOverride(),
-        /*extra_data=*/{}, /*from_session_restore=*/false,
-        /*is_active_browser=*/std::nullopt);
+    tabs.AddUnloaded(window, (*it)->url, (*it)->title);
     ++counts.today;
   }
 }
@@ -180,11 +162,20 @@ ArcImportPageHandler::Wait::~Wait() = default;
 
 ArcImportPageHandler::ArcImportPageHandler(
     mojo::PendingReceiver<arc_import::mojom::PageHandler> receiver,
-    Profile* profile,
-    content::WebContents* web_contents)
+    content::WebContents* web_contents,
+    Profiles& profiles,
+    Windows& windows,
+    Tabs& tabs,
+    Theme& theme,
+    SelectFilePolicies& select_file_policies)
     : receiver_(this, std::move(receiver)),
-      profile_(profile),
-      web_contents_(web_contents) {}
+      profile_(profiles.FromBrowserContext(web_contents->GetBrowserContext())),
+      web_contents_(web_contents),
+      profiles_(profiles),
+      windows_(windows),
+      tabs_(tabs),
+      theme_(theme),
+      select_file_policies_(select_file_policies) {}
 
 ArcImportPageHandler::~ArcImportPageHandler() {
   if (select_file_dialog_) {
@@ -214,7 +205,7 @@ void ArcImportPageHandler::ChooseExportFile(
     return;
   }
   select_file_dialog_ = ui::SelectFileDialog::Create(
-      this, std::make_unique<ChromeSelectFilePolicy>(web_contents_));
+      this, select_file_policies_->For(web_contents_));
   ui::SelectFileDialog::FileTypeInfo file_types;
   file_types.extensions = {{FILE_PATH_LITERAL("md")}};
   select_file_dialog_->SelectFile(
@@ -331,7 +322,6 @@ void ArcImportPageHandler::Import(
     return spaces;
   };
 
-  ProfileManager* const profile_manager = g_browser_process->profile_manager();
   for (const SpaceController::Space& target :
        SpaceController::Get()->GetSpaces()) {
     auto it = by_target.find(target.id);
@@ -342,17 +332,15 @@ void ArcImportPageHandler::Import(
                                  weak_factory_.GetWeakPtr(), target.name,
                                  copy(it->second), essentials_for(it->second),
                                  batch);
-    if (Profile* profile = profile_manager->GetProfileByPath(target.path)) {
+    if (Profile* profile = profiles_->GetLoaded(target.id)) {
       std::move(import).Run(profile);
     } else {
-      profile_manager->LoadProfileByPath(target.path, /*incognito=*/false,
-                                         std::move(import));
+      profiles_->Load(target.id, std::move(import));
     }
   }
   for (const ArcSpace* space : new_spaces) {
-    ProfileManager::CreateMultiProfileAsync(
-        base::UTF8ToUTF16(space->title), profiles::GetPlaceholderAvatarIndex(),
-        /*is_hidden=*/false,
+    profiles_->Create(
+        base::UTF8ToUTF16(space->title),
         base::BindOnce(&ArcImportPageHandler::OnNewSpaceCreated,
                        weak_factory_.GetWeakPtr(), *space,
                        essentials_for({space}), batch));
@@ -367,12 +355,10 @@ void ArcImportPageHandler::OnNewSpaceCreated(ArcSpace space,
     return;
   }
   if (!space.icon.empty()) {
-    profile->GetPrefs()->SetString(kSpaceIconPref, space.icon);
+    profiles_->PrefsOf(profile)->SetString(kSpaceIconPref, space.icon);
   }
   if (space.color) {
-    ThemeServiceFactory::GetForProfile(profile)
-        ->SetUserColorAndBrowserColorVariant(
-            *space.color, ui::mojom::BrowserColorVariant::kTonalSpot);
+    theme_->SetColor(profile, *space.color);
   }
   const std::u16string name = base::UTF8ToUTF16(space.title);
   std::vector<ArcSpace> spaces;
@@ -390,19 +376,21 @@ void ArcImportPageHandler::ImportInto(std::u16string name,
   if (!service) {
     return;
   }
+  // The ports outlive the import: they are the browser's.
   base::OnceClosure import = base::BindOnce(
-      [](Profile* profile, TreeService* service, std::u16string name,
-         std::vector<ArcSpace> spaces, std::vector<ArcNode> essentials,
-         scoped_refptr<Batch> batch) {
+      [](Windows* windows, Tabs* tabs, Profile* profile, TreeService* service,
+         std::u16string name, std::vector<ArcSpace> spaces,
+         std::vector<ArcNode> essentials, scoped_refptr<Batch> batch) {
         std::vector<const ArcSpace*> pointers;
         for (const ArcSpace& space : spaces) {
           pointers.push_back(&space);
         }
         ImportCounts counts =
             ImportIntoTree(pointers, essentials, service->tree());
-        OpenTodayTabs(profile, spaces, *service, counts);
+        OpenTodayTabs(*windows, *tabs, profile, spaces, *service, counts);
         batch->Add(name, counts);
       },
+      base::Unretained(&windows_.get()), base::Unretained(&tabs_.get()),
       base::Unretained(profile), base::Unretained(service), std::move(name),
       std::move(spaces), std::move(essentials), std::move(batch));
   if (service->loaded()) {

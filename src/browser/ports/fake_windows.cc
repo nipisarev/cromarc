@@ -164,6 +164,11 @@ BrowserWindowInterface* FakeWindows::OpenPopup(Profile* profile,
 void FakeWindows::AttachWebUI(BrowserWindowInterface* window,
                               content::WebContents* contents) {}
 
+BrowserWindowInterface* FakeWindows::WindowOfWebUI(
+    content::WebContents* contents) {
+  return nullptr;
+}
+
 void FakeWindows::AddToToolbar(BrowserWindowInterface* window,
                                std::unique_ptr<views::View> view) {
   ++toolbar_views[window];

@@ -35,6 +35,7 @@ class BrowserFrame;
 class CompactMode;
 class Tabs;
 class VerticalStrip;
+class Windows;
 
 // Hosts chrome://cromarc-sidebar.top-chrome for one browser window. Fills the
 // space the native tab list had in the vertical tab strip region.
@@ -56,6 +57,7 @@ class SidebarView : public views::WebView {
     std::unique_ptr<BrowserFrame> frame;
     std::unique_ptr<VerticalStrip> strip;
     raw_ptr<Tabs> tabs;
+    raw_ptr<Windows> windows;
   };
 
   explicit SidebarView(Host host);

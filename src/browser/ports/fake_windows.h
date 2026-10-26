@@ -67,6 +67,8 @@ class FakeWindows : public Windows {
                                     const GURL& url) override;
   void AttachWebUI(BrowserWindowInterface* window,
                    content::WebContents* contents) override;
+  BrowserWindowInterface* WindowOfWebUI(
+      content::WebContents* contents) override;
   void AddToToolbar(BrowserWindowInterface* window,
                     std::unique_ptr<views::View> view) override;
 

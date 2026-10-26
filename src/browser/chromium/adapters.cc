@@ -6,6 +6,8 @@
 
 #include "base/no_destructor.h"
 #include "cromarc/browser/chromium/app_lifecycle_adapter.h"
+#include "cromarc/browser/chromium/default_browser_adapter.h"
+#include "cromarc/browser/chromium/favicons_adapter.h"
 #include "cromarc/browser/chromium/profiles_adapter.h"
 #include "cromarc/browser/chromium/strip_defaults_adapter.h"
 #include "cromarc/browser/chromium/tab_strip_api_adapter.h"
@@ -43,6 +45,21 @@ Profiles& ChromiumProfiles() {
 Theme& ChromiumTheme() {
   static base::NoDestructor<ThemeAdapter> theme;
   return *theme;
+}
+
+DefaultBrowser& ChromiumDefaultBrowser() {
+  static base::NoDestructor<DefaultBrowserAdapter> default_browser;
+  return *default_browser;
+}
+
+SelectFilePolicies& ChromiumSelectFilePolicies() {
+  static base::NoDestructor<SelectFilePoliciesAdapter> policies;
+  return *policies;
+}
+
+Favicons& ChromiumFavicons() {
+  static base::NoDestructor<FaviconsAdapter> favicons;
+  return *favicons;
 }
 
 StripDefaults& ChromiumStripDefaults() {

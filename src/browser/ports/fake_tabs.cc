@@ -153,6 +153,13 @@ std::optional<TabId> FakeTabs::OpenPinned(BrowserWindowInterface* window,
   return tab;
 }
 
+void FakeTabs::AddUnloaded(BrowserWindowInterface* window,
+                           const GURL& url,
+                           const std::u16string& title) {
+  opened.emplace_back(window, url);
+  Add(window);
+}
+
 std::optional<TabId> FakeTabs::InsertAfterActive(
     BrowserWindowInterface* window,
     std::unique_ptr<content::WebContents> contents) {

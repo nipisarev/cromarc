@@ -28,5 +28,5 @@ monitors, swizzling, window alpha and mouse pass-through), `user-defaults`,
 | `src/browser/sync/icloud_sync.cc` | chrome-prefs outside-profile | Chromium's local sync backend in iCloud Drive (decision D12): `syncer::prefs::kEnableLocalSyncBackend`, `kLocalSyncBackendDir` = `~/Library/Mobile Documents/com~apple~CloudDocs/Cromarc`. Opt-in per space. |
 | `src/browser/spaces/space_window_mac.mm` | appkit-global | A space window prepared under the visible one at 1% opacity, mouse passing through, so the swap at the end of a switch shows it painted. |
 | `src/browser/ui/sidebar/space_input_mac.mm` | appkit-global | NSEvent local monitors (keys, scroll, mouse moves) for switching spaces; a global mouse monitor only while the compact sidebar is out (Zen's mouse tracker). |
-| `src/browser/ui/welcome/welcome_page_handler.cc` | default-browser | The welcome page's button that asks macOS to make Cromarc the default browser. |
+| `src/browser/chromium/default_browser_adapter.cc` | default-browser | The welcome page's button that asks macOS to make Cromarc the default browser (WelcomePageHandler, through DefaultBrowser). |
 | `src/browser/ui/sidebar/library_media.cc` | outside-profile | The Library's media section reads the user's folders, after the user opts in. |

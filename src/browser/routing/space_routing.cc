@@ -15,8 +15,6 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/token.h"
-#include "chrome/browser/browser_process.h"
-#include "chrome/browser/profiles/profile_manager.h"
 
 namespace cromarc {
 
@@ -39,17 +37,11 @@ void Write(const base::FilePath& path, std::string json) {
 }  // namespace
 
 // static
-SpaceRouting* SpaceRouting::Get() {
-  static base::NoDestructor<SpaceRouting> instance;
-  return instance.get();
-}
-
-SpaceRouting::SpaceRouting()
+SpaceRouting::SpaceRouting(const base::FilePath& path)
     : file_task_runner_(base::ThreadPool::CreateSequencedTaskRunner(
           {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
            base::TaskShutdownBehavior::BLOCK_SHUTDOWN})),
-      path_(g_browser_process->profile_manager()->user_data_dir().AppendASCII(
-          "Cromarc Routes.json")) {
+      path_(path) {
   file_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE, base::BindOnce(&Read, path_),
       base::BindOnce(&SpaceRouting::OnRead, weak_factory_.GetWeakPtr()));

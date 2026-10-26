@@ -13,6 +13,7 @@
 #include "base/callback_list.h"
 #include "base/files/file_path.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/raw_ref.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
 #include "cromarc/browser/arc_import/arc_sidebar.h"
@@ -29,7 +30,12 @@ class WebContents;
 
 namespace cromarc {
 
+class Profiles;
+class SelectFilePolicies;
+class Tabs;
+class Theme;
 class TreeService;
+class Windows;
 
 // chrome://cromarc-import: reads Arc's sidebar, or the file Arc's Export Data
 // writes, and brings the Arc spaces the user picks into Cromarc spaces,
@@ -39,8 +45,12 @@ class ArcImportPageHandler : public arc_import::mojom::PageHandler,
  public:
   ArcImportPageHandler(
       mojo::PendingReceiver<arc_import::mojom::PageHandler> receiver,
-      Profile* profile,
-      content::WebContents* web_contents);
+      content::WebContents* web_contents,
+      Profiles& profiles,
+      Windows& windows,
+      Tabs& tabs,
+      Theme& theme,
+      SelectFilePolicies& select_file_policies);
   ArcImportPageHandler(const ArcImportPageHandler&) = delete;
   ArcImportPageHandler& operator=(const ArcImportPageHandler&) = delete;
   ~ArcImportPageHandler() override;
@@ -89,6 +99,11 @@ class ArcImportPageHandler : public arc_import::mojom::PageHandler,
   mojo::Receiver<arc_import::mojom::PageHandler> receiver_;
   raw_ptr<Profile> profile_;
   raw_ptr<content::WebContents> web_contents_;
+  const raw_ref<Profiles> profiles_;
+  const raw_ref<Windows> windows_;
+  const raw_ref<Tabs> tabs_;
+  const raw_ref<Theme> theme_;
+  const raw_ref<SelectFilePolicies> select_file_policies_;
   scoped_refptr<ui::SelectFileDialog> select_file_dialog_;
   ChooseExportFileCallback export_callback_;
   std::optional<ArcSidebar> sidebar_;

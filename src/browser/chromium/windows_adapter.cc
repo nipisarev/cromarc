@@ -178,6 +178,11 @@ void WindowsAdapter::AttachWebUI(BrowserWindowInterface* window,
   webui::SetBrowserWindowInterface(contents, window);
 }
 
+BrowserWindowInterface* WindowsAdapter::WindowOfWebUI(
+    content::WebContents* contents) {
+  return webui::GetBrowserWindowInterface(contents);
+}
+
 void WindowsAdapter::AddToToolbar(BrowserWindowInterface* window,
                                   std::unique_ptr<views::View> view) {
   if (BrowserView* browser_view =

@@ -10,14 +10,12 @@
 #include "base/functional/bind.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
-#include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/shell_integration.h"
-#include "chrome/browser/themes/theme_service.h"
-#include "chrome/browser/themes/theme_service_factory.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/webui/webui_embedding_context.h"
-#include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/web_contents.h"
+#include "cromarc/browser/ports/default_browser.h"
+#include "cromarc/browser/ports/profiles.h"
+#include "cromarc/browser/ports/tabs.h"
+#include "cromarc/browser/ports/theme.h"
+#include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/arc_import/arc_import_ui.h"
 #include "third_party/skia/include/core/SkColor.h"
@@ -37,13 +35,24 @@ bool ArcFound() {
 
 WelcomePageHandler::WelcomePageHandler(
     mojo::PendingReceiver<welcome::mojom::PageHandler> receiver,
-    content::WebContents* web_contents)
-    : receiver_(this, std::move(receiver)), web_contents_(web_contents) {}
+    content::WebContents* web_contents,
+    Profiles& profiles,
+    Windows& windows,
+    Tabs& tabs,
+    Theme& theme,
+    DefaultBrowser& default_browser)
+    : receiver_(this, std::move(receiver)),
+      web_contents_(web_contents),
+      profiles_(profiles),
+      windows_(windows),
+      tabs_(tabs),
+      theme_(theme),
+      default_browser_(default_browser) {}
 
 WelcomePageHandler::~WelcomePageHandler() = default;
 
 Profile* WelcomePageHandler::profile() {
-  return Profile::FromBrowserContext(web_contents_->GetBrowserContext());
+  return profiles_->FromBrowserContext(web_contents_->GetBrowserContext());
 }
 
 void WelcomePageHandler::GetState(GetStateCallback callback) {
@@ -59,22 +68,22 @@ void WelcomePageHandler::GetState(GetStateCallback callback) {
   base::ThreadPool::PostTaskAndReplyWithResult(
       FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
       base::BindOnce(&ArcFound),
+      // The port outlives the page: it is the browser's.
       base::BindOnce(
-          [](welcome::mojom::WelcomeStatePtr state, GetStateCallback callback,
+          [](DefaultBrowser* default_browser,
+             welcome::mojom::WelcomeStatePtr state, GetStateCallback callback,
              bool arc_found) {
             state->arc_found = arc_found;
-            auto worker = base::MakeRefCounted<shell_integration::DefaultBrowserWorker>();
-            worker->StartCheckIsDefault(base::BindOnce(
+            default_browser->CheckIsDefault(base::BindOnce(
                 [](welcome::mojom::WelcomeStatePtr state,
-                   GetStateCallback callback,
-                   shell_integration::DefaultWebClientState is_default) {
-                  state->is_default_browser =
-                      is_default == shell_integration::IS_DEFAULT;
+                   GetStateCallback callback, bool is_default) {
+                  state->is_default_browser = is_default;
                   std::move(callback).Run(std::move(state));
                 },
                 std::move(state), std::move(callback)));
           },
-          std::move(state), std::move(callback)));
+          base::Unretained(&default_browser_.get()), std::move(state),
+          std::move(callback)));
 }
 
 void WelcomePageHandler::SetupSpace(const std::string& name,
@@ -86,17 +95,13 @@ void WelcomePageHandler::SetupSpace(const std::string& name,
   }
   SpaceController::Get()->SetSpaceIcon(id, icon);
   if (color) {
-    ThemeServiceFactory::GetForProfile(profile())
-        ->SetUserColorAndBrowserColorVariant(
-            static_cast<SkColor>(color),
-            ui::mojom::BrowserColorVariant::kTonalSpot);
+    theme_->SetColor(profile(), static_cast<SkColor>(color));
   }
 }
 
 void WelcomePageHandler::AddSpace(const std::string& name,
                                   const std::string& icon) {
-  BrowserWindowInterface* browser =
-      webui::GetBrowserWindowInterface(web_contents_);
+  BrowserWindowInterface* browser = windows_->WindowOfWebUI(web_contents_);
   if (browser && !name.empty()) {
     SpaceController::Get()->CreateSpace(browser, base::UTF8ToUTF16(name), icon,
                                         {}, /*switch_to_it=*/false);
@@ -105,20 +110,14 @@ void WelcomePageHandler::AddSpace(const std::string& name,
 
 void WelcomePageHandler::SetAsDefaultBrowser(
     SetAsDefaultBrowserCallback callback) {
-  base::MakeRefCounted<shell_integration::DefaultBrowserWorker>()
-      ->StartSetAsDefault(base::BindOnce(
-          [](SetAsDefaultBrowserCallback callback,
-             shell_integration::DefaultWebClientState state) {
-            std::move(callback).Run(state == shell_integration::IS_DEFAULT);
-          },
-          std::move(callback)));
+  default_browser_->SetAsDefault(std::move(callback));
 }
 
 void WelcomePageHandler::OpenArcImport() {
   if (BrowserWindowInterface* browser =
-          webui::GetBrowserWindowInterface(web_contents_)) {
-    browser->OpenGURL(GURL(kArcImportURL),
-                      WindowOpenDisposition::NEW_FOREGROUND_TAB);
+          windows_->WindowOfWebUI(web_contents_)) {
+    tabs_->Open(browser, GURL(kArcImportURL),
+                WindowOpenDisposition::NEW_FOREGROUND_TAB);
   }
 }
 

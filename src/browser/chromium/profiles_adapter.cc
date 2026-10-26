@@ -66,6 +66,14 @@ std::vector<Profile*> ProfilesAdapter::Loaded() {
   return Manager()->GetLoadedProfiles();
 }
 
+Profile* ProfilesAdapter::FromBrowserContext(content::BrowserContext* context) {
+  return Profile::FromBrowserContext(context);
+}
+
+base::FilePath ProfilesAdapter::UserDataDir() {
+  return Manager()->user_data_dir();
+}
+
 std::string ProfilesAdapter::IdOf(Profile* profile) {
   return profile->GetOriginalProfile()->GetBaseName().AsUTF8Unsafe();
 }

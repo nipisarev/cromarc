@@ -10,29 +10,21 @@
 #include <utility>
 
 #include "base/barrier_callback.h"
-#include "base/base64.h"
 #include "base/functional/bind.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
 #include "build/build_config.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
-#include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_model_impl/converters/tab_converters.h"  // nogncheck: //chrome/browser/ui links //cromarc
-#include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/grit/cromarc_resources_map.h"
-#include "chrome/browser/favicon/favicon_service_factory.h"
-#include "chrome/browser/lifetime/application_lifetime.h"
-#include "chrome/browser/profiles/profile.h"
 #include "components/bookmarks/browser/bookmark_node.h"
-#include "components/favicon/core/favicon_service.h"
-#include "components/favicon_base/favicon_types.h"
-#include "components/keyed_service/core/service_access_type.h"
 #include "components/prefs/pref_service.h"
-#include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
+#include "cromarc/browser/ports/app_lifecycle.h"
+#include "cromarc/browser/ports/favicons.h"
+#include "cromarc/browser/ports/profiles.h"
 #include "cromarc/browser/ports/tab_strip_api.h"
 #include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ports/windows.h"
@@ -199,7 +191,10 @@ SidebarPageHandler::SidebarPageHandler(
     ArchiveService* archive_service,
     Tabs& tabs,
     Windows& windows,
-    TabStripApi& tab_strip_api)
+    TabStripApi& tab_strip_api,
+    Profiles& profiles,
+    Favicons& favicons,
+    AppLifecycle& app_lifecycle)
     : receiver_(this, std::move(receiver)),
       page_(std::move(page)),
       browser_(browser),
@@ -209,6 +204,9 @@ SidebarPageHandler::SidebarPageHandler(
       tabs_(tabs),
       windows_(windows),
       tab_strip_api_(tab_strip_api),
+      profiles_(profiles),
+      favicons_(favicons),
+      app_lifecycle_(app_lifecycle),
       tree_subscription_(tree_service_->RegisterOnChanged(
           base::BindRepeating(&SidebarPageHandler::OnTreeChanged,
                               base::Unretained(this)))),
@@ -482,7 +480,8 @@ void SidebarPageHandler::ReopenTabs(const std::vector<GURL>& urls) {
 }
 
 std::vector<mojom::SpacePtr> SidebarPageHandler::BuildSpaces() {
-  const std::string current = SpaceController::IdOf(browser_->GetProfile());
+  const std::string current =
+      SpaceController::IdOf(windows_->ProfileOf(browser_));
   std::vector<mojom::SpacePtr> result;
   for (const SpaceController::Space& space :
        SpaceController::Get()->GetSpaces()) {
@@ -517,19 +516,11 @@ void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
   snapshot->tree = BuildChildren(tree_service, *tab_strip_api_,
                                  tree_service->tree().Root());
   if (BrowserWindowInterface* window = SpaceController::GetWindowFor(profile)) {
-    TabStripModel* model = window->GetTabStripModel();
-    for (int i = 0; i < model->count(); ++i) {
-      tabs::TabInterface* tab = model->GetTabAtIndex(i);
-      snapshot->tabs.push_back(tabs_api::converters::BuildMojoTab(
-          tab, tab->GetContents()->GetColorProvider(),
-          {.is_active = tab->IsActivated(), .is_selected = tab->IsSelected()}));
-    }
+    snapshot->tabs = tab_strip_api_->Snapshot(window);
   }
   std::set<GURL> home_urls;
   CollectHomeUrls(snapshot->tree, home_urls);
-  favicon::FaviconService* favicons = FaviconServiceFactory::GetForProfile(
-      profile, ServiceAccessType::EXPLICIT_ACCESS);
-  if (home_urls.empty() || !favicons) {
+  if (home_urls.empty()) {
     std::move(callback).Run(std::move(snapshot));
     return;
   }
@@ -548,18 +539,11 @@ void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
           },
           std::move(snapshot), std::move(callback)));
   for (const GURL& url : home_urls) {
-    favicons->GetRawFaviconForPageURL(
-        url, {favicon_base::IconType::kFavicon}, kSnapshotFaviconPx,
-        /*fallback_to_host=*/true,
+    favicons_->GetForPage(
+        profile, url, kSnapshotFaviconPx,
         base::BindOnce(
-            [](std::string url,
-               const favicon_base::FaviconRawBitmapResult& result) {
-              return std::make_pair(
-                  std::move(url),
-                  result.is_valid()
-                      ? "data:image/png;base64," +
-                            base::Base64Encode(*result.bitmap_data)
-                      : std::string());
+            [](std::string url, std::string data_url) {
+              return std::make_pair(std::move(url), std::move(data_url));
             },
             url.spec())
             .Then(found),
@@ -752,7 +736,7 @@ void SidebarPageHandler::ScanMedia(const std::vector<std::string>& folders,
 }
 
 void SidebarPageHandler::DoMedia(uint32_t id, mojom::MediaCommand command) {
-  LibraryMedia::Do(browser_->GetProfile(), id, command);
+  LibraryMedia::Do(windows_->ProfileOf(browser_), id, command);
 }
 
 void SidebarPageHandler::GetMediaOpener(uint32_t id,
@@ -854,7 +838,7 @@ void SidebarPageHandler::FindICloudSpaces(FindICloudSpacesCallback callback) {
   for (const SpaceController::Space& space :
        SpaceController::Get()->GetSpaces()) {
     if (Profile* profile = SpaceController::Get()->GetLoadedProfile(space.id)) {
-      local.insert(profile->GetPrefs()->GetString(kSpaceUuidPref));
+      local.insert(profiles_->PrefsOf(profile)->GetString(kSpaceUuidPref));
     }
   }
   ICloudSync::FindSpaces(base::BindOnce(
@@ -886,7 +870,7 @@ void SidebarPageHandler::ConnectICloudSpace(mojom::ICloudSpacePtr space) {
 }
 
 void SidebarPageHandler::RestartBrowser() {
-  chrome::AttemptRestart();
+  app_lifecycle_->Restart();
 }
 
 void SidebarPageHandler::OnSpacesChanged() {

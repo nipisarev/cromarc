@@ -62,6 +62,7 @@ void InstallSidebar(views::View* parent,
   host.frame = std::make_unique<BrowserFrameAdapter>(browser);
   host.strip = std::make_unique<VerticalStripAdapter>(browser, parent);
   host.tabs = &ChromiumTabs();
+  host.windows = &ChromiumWindows();
   parent->AddChildViewAt(std::make_unique<SidebarView>(std::move(host)),
                          *index + 1);
 }

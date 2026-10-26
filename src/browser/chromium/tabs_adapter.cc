@@ -8,6 +8,7 @@
 
 #include "base/functional/bind.h"
 #include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser/ui links //cromarc
+#include "chrome/browser/ui/browser_tabrestore.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/navigator/browser_navigator.h"  // nogncheck: //chrome/browser/ui links //cromarc
@@ -16,6 +17,8 @@
 #include "chrome/browser/ui/tabs/tab_strip_model.h"  // nogncheck: as above
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"  // nogncheck: as above
 #include "chrome/common/webui_url_constants.h"
+#include "components/sessions/core/serialized_navigation_entry.h"
+#include "components/sessions/core/serialized_user_agent_override.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/web_contents.h"
 #include "ui/base/page_transition_types.h"
@@ -210,6 +213,24 @@ std::optional<TabId> TabsAdapter::OpenPinned(BrowserWindowInterface* window,
   params.tabstrip_add_types = AddTabTypes::ADD_ACTIVE | AddTabTypes::ADD_PINNED;
   Navigate(&params);
   return FromContents(params.navigated_or_inserted_contents);
+}
+
+void TabsAdapter::AddUnloaded(BrowserWindowInterface* window,
+                              const GURL& url,
+                              const std::u16string& title) {
+  sessions::SerializedNavigationEntry entry;
+  entry.set_virtual_url(url);
+  entry.set_title(title);
+  entry.set_timestamp(base::Time::Now());
+  chrome::AddRestoredTab(
+      window, base::span_from_ref(entry),
+      /*tab_index=*/window->GetTabStripModel()->count(),
+      /*selected_navigation=*/0, /*extension_app_id=*/std::string(),
+      /*group=*/std::nullopt, /*select=*/false, /*pin=*/false,
+      base::TimeTicks::Now(), base::Time::Now(),
+      /*storage_namespace=*/nullptr, sessions::SerializedUserAgentOverride(),
+      /*extra_data=*/{}, /*from_session_restore=*/false,
+      /*is_active_browser=*/std::nullopt);
 }
 
 std::optional<TabId> TabsAdapter::InsertAfterActive(

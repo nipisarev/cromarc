@@ -111,7 +111,7 @@ SidebarView::SidebarView(Host host)
   compact_mode_ = std::make_unique<CompactMode>(
       *strip_, *frame_, *tabs_, browser_,
       base::BindRepeating(&WatchMouseEverywhere));
-  InstallSpaceInputMonitor();
+  InstallSpaceInputMonitor(*host.windows);
   SpaceController::Get()->OnWindowCreated(browser_);
   MaybeShowWelcome(browser_);
   // Takes all the height left in the region's content area. Should the

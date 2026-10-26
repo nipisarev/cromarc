@@ -32,8 +32,11 @@ class BookmarkNode;
 
 namespace cromarc {
 
+class AppLifecycle;
 class ArchiveService;
+class Favicons;
 class LifecycleService;
+class Profiles;
 class TabStripApi;
 class Tabs;
 class TreeService;
@@ -51,7 +54,10 @@ class SidebarPageHandler : public mojom::PageHandler,
                      ArchiveService* archive_service,
                      Tabs& tabs,
                      Windows& windows,
-                     TabStripApi& tab_strip_api);
+                     TabStripApi& tab_strip_api,
+                     Profiles& profiles,
+                     Favicons& favicons,
+                     AppLifecycle& app_lifecycle);
   SidebarPageHandler(const SidebarPageHandler&) = delete;
   SidebarPageHandler& operator=(const SidebarPageHandler&) = delete;
   ~SidebarPageHandler() override;
@@ -177,6 +183,9 @@ class SidebarPageHandler : public mojom::PageHandler,
   const raw_ref<Tabs> tabs_;
   const raw_ref<Windows> windows_;
   const raw_ref<TabStripApi> tab_strip_api_;
+  const raw_ref<Profiles> profiles_;
+  const raw_ref<Favicons> favicons_;
+  const raw_ref<AppLifecycle> app_lifecycle_;
   base::CallbackListSubscription tree_subscription_;
   base::CallbackListSubscription lifecycle_subscription_;
   std::unique_ptr<ContextMenu> context_menu_;

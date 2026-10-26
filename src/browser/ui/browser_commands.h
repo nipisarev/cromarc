@@ -18,6 +18,7 @@ class WebContents;
 namespace cromarc {
 
 class AppLifecycle;
+class Profiles;
 class Tabs;
 class Windows;
 
@@ -27,7 +28,8 @@ class Windows;
 // H5, from AppController: links from other apps open in Little windows of
 // `profile` (not for off-the-record profiles; untrusted launches never get
 // here).
-bool OpenExternalLinks(Tabs& tabs,
+bool OpenExternalLinks(Profiles& profiles,
+                       Tabs& tabs,
                        Windows& windows,
                        AppLifecycle& app_lifecycle,
                        const std::vector<GURL>& urls,

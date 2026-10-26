@@ -52,6 +52,9 @@ class FakeTabs : public Tabs {
                      bool keep_window_hidden) override;
   std::optional<TabId> OpenPinned(BrowserWindowInterface* window,
                                   const GURL& url) override;
+  void AddUnloaded(BrowserWindowInterface* window,
+                   const GURL& url,
+                   const std::u16string& title) override;
   std::optional<TabId> InsertAfterActive(
       BrowserWindowInterface* window,
       std::unique_ptr<content::WebContents> contents) override;

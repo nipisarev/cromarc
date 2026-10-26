@@ -14,11 +14,13 @@ class Point;
 
 namespace cromarc {
 
+class Windows;
+
 // Space switching input, Zen's triggers (design, component 4): a two-finger
 // horizontal swipe over the sidebar, Ctrl+1…9 / Ctrl+0, Cmd+Alt+← / →, and
 // Ctrl + mouse wheel over the sidebar. Installed once, process-wide, ahead of
 // Chrome's own event handling, so no upstream accelerator table changes.
-void InstallSpaceInputMonitor();
+void InstallSpaceInputMonitor(Windows& windows);
 
 // zen:compact-mode/ZenMouseTracker: while the result lives, `on_move` gets
 // the cursor's screen point for every move, over any window of any app.

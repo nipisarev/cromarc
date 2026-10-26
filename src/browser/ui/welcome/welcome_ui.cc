@@ -22,6 +22,7 @@
 #include "content/public/browser/web_ui.h"
 #include "content/public/browser/web_ui_data_source.h"
 #include "content/public/common/url_constants.h"
+#include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/ui/welcome/welcome_page_handler.h"
 #include "ui/base/window_open_disposition.h"
 #include "ui/webui/webui_util.h"
@@ -66,7 +67,9 @@ void WelcomeUI::BindInterface(
 void WelcomeUI::CreatePageHandler(
     mojo::PendingReceiver<welcome::mojom::PageHandler> handler) {
   page_handler_ = std::make_unique<WelcomePageHandler>(
-      std::move(handler), web_ui()->GetWebContents());
+      std::move(handler), web_ui()->GetWebContents(), ChromiumProfiles(),
+      ChromiumWindows(), ChromiumTabs(), ChromiumTheme(),
+      ChromiumDefaultBrowser());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(WelcomeUI)

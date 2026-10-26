@@ -4,10 +4,10 @@
 
 #include "cromarc/browser/ui/browser_commands.h"
 
-#include "chrome/browser/profiles/profile.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ref.h"
 #include "url/gurl.h"
+#include "cromarc/browser/ports/profiles.h"
 #include "cromarc/browser/routing/space_routing.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/glance/hovered_link.h"
@@ -54,12 +54,13 @@ void RouteExternalLink(LittlePorts ports,
 
 }  // namespace
 
-bool OpenExternalLinks(Tabs& tabs,
+bool OpenExternalLinks(Profiles& profiles,
+                       Tabs& tabs,
                        Windows& windows,
                        AppLifecycle& app_lifecycle,
                        const std::vector<GURL>& urls,
                        Profile* profile) {
-  if (profile->IsOffTheRecord()) {
+  if (profiles.IsOffTheRecord(profile)) {
     return false;
   }
   // The routing rules choose the space; `profile` (the one used last) takes
