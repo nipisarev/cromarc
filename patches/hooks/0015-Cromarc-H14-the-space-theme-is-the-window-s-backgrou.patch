@@ -6,12 +6,13 @@ Subject: [PATCH] Cromarc H14: the space theme is the window's background
 Zen draws the space theme, its gradient and grain, under the whole window,
 and the toolbar and the space round the page stay clear over it. In Cromarc
 windows (normal ones, with the sidebar) the frame view paints the theme
-through cromarc::PaintWindowBackground, over the glass or the frame colour;
-the glass covers the whole window without Chrome's tint;
-MultiContentsBackgroundView leaves its area clear; and
-CustomCornersBackground (toolbar, top container, tab strip region) lets
-Cromarc paint instead: nothing, but Zen's compact toolbar background for the
-sidebar floating over the page.
+through cromarc::PaintWindowBackground, over the window material or the
+frame colour; once Chrome has made the window non-opaque for its glass
+frame, Cromarc puts Zen's window material under it instead of Chrome's
+glass, tint and opaque backing; MultiContentsBackgroundView leaves its area
+clear; and CustomCornersBackground (toolbar, top container, tab strip
+region) lets Cromarc paint instead: nothing, but Zen's compact toolbar
+background for the sidebar floating over the page.
 
 diff --git a/chrome/browser/ui/views/frame/browser_frame_view_mac.mm b/chrome/browser/ui/views/frame/browser_frame_view_mac.mm
 index 09c735790df77..0e49ef22bfe75 100644
@@ -46,7 +47,7 @@ index 09c735790df77..0e49ef22bfe75 100644
  
  void BrowserFrameViewMac::Layout(PassKey) {
 diff --git a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
-index 73a8db26c25b7..bb64e6b1a1b90 100644
+index 73a8db26c25b7..095c972ac0e04 100644
 --- a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
 +++ b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
 @@ -77,6 +77,7 @@
@@ -57,31 +58,17 @@ index 73a8db26c25b7..bb64e6b1a1b90 100644
  
  namespace {
  
-@@ -317,6 +318,10 @@ std::optional<int> BrowserNativeWidgetMac::GetGlassFrameHeight() const {
- }
+@@ -1035,6 +1036,10 @@ void BrowserNativeWidgetMac::UpdateGlassEligibility(bool is_glass_eligible) {
+                                       colorWithAlphaComponent:0.001]];
  
- std::optional<int> BrowserNativeWidgetMac::GetGlassFrameWidth() const {
-+  // Cromarc: glass under the whole window, as Zen's vibrancy.
-+  if (cromarc::hooks::ThemesWindow(browser_view_)) {
-+    return std::nullopt;
-+  }
-   // If vertical tabs are not being drawn (e.g. horizontal tab strip mode,
-   // popup/app windows, or window too narrow to render vertical tabs), the glass
-   // effect view spans the full window width without horizontal restriction.
-@@ -1178,9 +1183,11 @@ void BrowserNativeWidgetMac::UpdateBackgroundColor() {
-   last_is_vertical_tabs_ = is_vertical_tabs;
-   has_multiple_profiles_open_ = are_multiple_profiles_open;
+     if (!glass_background_view_) {
++      // Cromarc: Zen's window material under a space window instead.
++      if (cromarc::hooks::InstallWindowMaterial(browser_view_)) {
++        return;
++      }
+       NSView* const content_view = [ns_window contentView];
  
--  const double tint_opacity =
-+  // Cromarc: the space theme is the tint.
-+  const double tint_opacity = cromarc::hooks::GlassTint(
-+      browser_view_,
-       GetGlassFrameTintOpacity(color_utils::IsDark(theme_color),
--                               is_vertical_tabs, has_multiple_profiles_open_);
-+                               is_vertical_tabs, has_multiple_profiles_open_));
- 
-   const CGFloat r = SkColorGetR(theme_color) / 255.0;
-   const CGFloat g = SkColorGetG(theme_color) / 255.0;
+       NSGlassEffectView* const glass_view =
 diff --git a/chrome/browser/ui/views/frame/custom_corners_background.cc b/chrome/browser/ui/views/frame/custom_corners_background.cc
 index bff97f7c0be49..41725c07e5b06 100644
 --- a/chrome/browser/ui/views/frame/custom_corners_background.cc

@@ -135,14 +135,16 @@ If it moved: the glass frame feature's definition.
 ### H14 the space theme is the window's background
 Kind: code
 Where: `chrome/browser/ui/views/frame/browser_frame_view_mac.mm` (`OnPaint`),
-`browser_native_widget_mac.mm` (`GetGlassFrameWidth`, `UpdateBackgroundColor`),
+`browser_native_widget_mac.mm` (`UpdateGlassEligibility`),
 `custom_corners_background.cc` (`Paint`), `multi_contents_background_view.cc`.
 Calls: `cromarc::hooks::PaintWindowBackground`; guards on `ThemesWindow`,
-`PaintChromeBackground` and `ClearSolidLayer`; `GlassTint(...)` wrapping
-Chrome's tint.
+`PaintChromeBackground`, `ClearSolidLayer` and `InstallWindowMaterial`.
 Contract: in a space window Cromarc paints the theme under the whole window and
-Chrome's frame, toolbar and page backgrounds let it show.
-If it moved: the Mac browser frame's painting and the glass frame's tint.
+Chrome's frame, toolbar and page backgrounds let it show. Once Chrome has made
+a space window non-opaque for its glass frame, Cromarc puts Zen's window
+material under it instead of Chrome's glass, tint and opaque backing.
+If it moved: the Mac browser frame's painting; where the glass frame creates
+its background views.
 
 ### H15 space windows keep their glass
 Kind: code

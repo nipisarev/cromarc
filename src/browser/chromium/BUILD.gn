@@ -79,7 +79,12 @@ source_set("chromium") {
     "space_routing_get.cc",
     "vertical_strip_adapter.cc",
     "vertical_strip_adapter.h",
+    "window_material.h",
   ]
+  if (is_mac) {
+    sources += [ "window_material_mac.mm" ]
+    frameworks = [ "AppKit.framework" ]
+  }
   public_deps = [
     ":adapters",
     "//chrome/browser:browser_public_dependencies",

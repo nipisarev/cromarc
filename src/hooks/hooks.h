@@ -106,7 +106,9 @@ void PaintWindowBackground(gfx::Canvas* canvas,
                            const gfx::Rect& bounds,
                            BrowserView* browser_view);
 bool ThemesWindow(const BrowserView* browser_view);
-double GlassTint(const BrowserView* browser_view, double chrome_tint);
+// Instead of Chrome's glass, Zen's window material under a space window; true
+// then.
+bool InstallWindowMaterial(BrowserView* browser_view);
 bool PaintChromeBackground(gfx::Canvas* canvas,
                            const views::View* view,
                            const SkPath& path,
