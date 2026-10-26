@@ -73,6 +73,15 @@ std::vector<Profiles::Entry> FakeProfiles::List() {
   return entries;
 }
 
+std::u16string FakeProfiles::NameOf(const std::string& id) {
+  for (const Space& space : spaces_) {
+    if (space.id == id) {
+      return space.name;
+    }
+  }
+  return std::u16string();
+}
+
 Profile* FakeProfiles::GetLoaded(const std::string& id) {
   Space* space = Find(id);
   return space && space->loaded ? HandleOf(id) : nullptr;

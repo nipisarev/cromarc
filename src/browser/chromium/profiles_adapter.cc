@@ -52,6 +52,13 @@ std::vector<Profiles::Entry> ProfilesAdapter::List() {
   return entries;
 }
 
+std::u16string ProfilesAdapter::NameOf(const std::string& id) {
+  ProfileAttributesEntry* entry =
+      Manager()->GetProfileAttributesStorage().GetProfileAttributesWithPath(
+          PathOf(id));
+  return entry ? entry->GetLocalProfileName() : std::u16string();
+}
+
 Profile* ProfilesAdapter::GetLoaded(const std::string& id) {
   return Manager()->GetProfileByPath(PathOf(id));
 }
@@ -110,9 +117,11 @@ void ProfilesAdapter::Delete(const std::string& id) {
 
 base::CallbackListSubscription ProfilesAdapter::OnChanged(
     base::RepeatingClosure callback) {
-  if (!profile_manager_observation_.IsObserving()) {
-    storage_observation_.Observe(&Manager()->GetProfileAttributesStorage());
-    profile_manager_observation_.Observe(Manager());
+  // After OnProfileManagerDestroying() there is nothing left to observe.
+  ProfileManager* manager = Manager();
+  if (manager && !profile_manager_observation_.IsObserving()) {
+    storage_observation_.Observe(&manager->GetProfileAttributesStorage());
+    profile_manager_observation_.Observe(manager);
   }
   return on_changed_.Add(std::move(callback));
 }

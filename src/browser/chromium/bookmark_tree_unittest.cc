@@ -104,6 +104,36 @@ TYPED_TEST(TreeContractTest, MoveReordersAndReparents) {
   EXPECT_EQ((std::vector<std::string>{"Item", "A"}), Titles(tree.Root()));
 }
 
+TYPED_TEST(TreeContractTest, AnIndexInTheSameFolderCountsTheItemWhereItIs) {
+  Tree& tree = this->tree();
+  const std::optional<std::string> a = tree.CreateFolder("", 0, u"A");
+  tree.CreateFolder("", 1, u"B");
+  tree.CreateFolder("", 2, u"C");
+  ASSERT_TRUE(tree.Move(*a, "", 2));
+  EXPECT_EQ((std::vector<std::string>{"B", "A", "C"}), Titles(tree.Root()));
+  ASSERT_TRUE(tree.Move(*a, "", 99));
+  EXPECT_EQ((std::vector<std::string>{"B", "C", "A"}), Titles(tree.Root()));
+}
+
+TYPED_TEST(TreeContractTest, WhatChangesNothingIsNotReported) {
+  Tree& tree = this->tree();
+  const std::optional<std::string> folder = tree.CreateFolder("", 0, u"F");
+  const std::optional<std::string> item =
+      tree.AddPinned("", 1, u"I", GURL("https://home"));
+  tree.SetEssential(*item, true);
+  int changes = 0;
+  base::CallbackListSubscription subscription = tree.RegisterOnChanged(
+      base::BindRepeating([](int* count) { ++*count; }, &changes));
+  EXPECT_TRUE(tree.Move(*folder, "", 0));
+  EXPECT_TRUE(tree.Move(*folder, "", 1));
+  EXPECT_TRUE(tree.Rename(*item, u"I"));
+  EXPECT_TRUE(tree.SetHomeUrl(*item, GURL("https://home")));
+  EXPECT_TRUE(tree.SetCollapsed(*folder, false));
+  EXPECT_TRUE(tree.SetEssential(*item, true));
+  EXPECT_EQ(0, changes);
+  EXPECT_EQ((std::vector<std::string>{"F", "I"}), Titles(tree.Root()));
+}
+
 TYPED_TEST(TreeContractTest, AFolderCannotMoveIntoItselfNorTheRootMove) {
   Tree& tree = this->tree();
   const std::optional<std::string> a = tree.CreateFolder("", 0, u"A");

@@ -136,8 +136,19 @@ bool FakeTree::Move(const std::string& id,
       return false;
     }
   }
+  index = std::min(index, parent->children.size());
   std::vector<std::unique_ptr<Item>>& siblings = item->parent->children;
   auto it = std::ranges::find(siblings, item, &std::unique_ptr<Item>::get);
+  // As in BookmarkModel::Move, the index counts the item where it is now.
+  const size_t old_index = static_cast<size_t>(it - siblings.begin());
+  if (item->parent == parent) {
+    if (index == old_index || index == old_index + 1) {
+      return true;
+    }
+    if (index > old_index) {
+      --index;
+    }
+  }
   std::unique_ptr<Item> moved = std::move(*it);
   siblings.erase(it);
   Insert(parent, index, std::move(moved));
@@ -149,8 +160,10 @@ bool FakeTree::Rename(const std::string& id, const std::u16string& title) {
   if (!item || item == root_.get()) {
     return false;
   }
-  item->title = title;
-  Changed();
+  if (item->title != title) {
+    item->title = title;
+    Changed();
+  }
   return true;
 }
 
@@ -170,8 +183,10 @@ bool FakeTree::SetHomeUrl(const std::string& id, const GURL& url) {
   if (!item || item->is_folder || !url.is_valid()) {
     return false;
   }
-  item->home_url = url;
-  Changed();
+  if (item->home_url != url) {
+    item->home_url = url;
+    Changed();
+  }
   return true;
 }
 
@@ -180,8 +195,10 @@ bool FakeTree::SetCollapsed(const std::string& id, bool collapsed) {
   if (!item || !item->is_folder) {
     return false;
   }
-  item->collapsed = collapsed;
-  Changed();
+  if (item->collapsed != collapsed) {
+    item->collapsed = collapsed;
+    Changed();
+  }
   return true;
 }
 
@@ -193,8 +210,10 @@ bool FakeTree::SetEssential(const std::string& id, bool essential) {
   if (essential && !item->essential && EssentialCount() >= kMaxEssentials) {
     return false;
   }
-  item->essential = essential;
-  Changed();
+  if (item->essential != essential) {
+    item->essential = essential;
+    Changed();
+  }
   return true;
 }
 

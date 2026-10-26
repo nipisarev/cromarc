@@ -120,13 +120,7 @@ void ICloudSync::SetEnabled(bool enabled) {
 }
 
 std::string ICloudSync::Name() const {
-  const std::string id = profiles_->IdOf(profile_);
-  for (const Profiles::Entry& entry : profiles_->List()) {
-    if (entry.id == id) {
-      return base::UTF16ToUTF8(entry.name);
-    }
-  }
-  return std::string();
+  return base::UTF16ToUTF8(profiles_->NameOf(profiles_->IdOf(profile_)));
 }
 
 std::string ICloudSync::Uuid() {

@@ -38,6 +38,8 @@ class Profiles {
 
   // Every profile but the omitted and ephemeral ones, loaded or not.
   virtual std::vector<Entry> List() = 0;
+  // Any profile's name, omitted and ephemeral ones too; empty for none.
+  virtual std::u16string NameOf(const std::string& id) = 0;
   // Null when that profile is not loaded.
   virtual Profile* GetLoaded(const std::string& id) = 0;
   // Loads the profile; null for none.
