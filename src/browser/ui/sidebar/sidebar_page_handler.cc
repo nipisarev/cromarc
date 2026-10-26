@@ -597,6 +597,16 @@ void SidebarPageHandler::SetLibraryWidth(int32_t width) {
   }
 }
 
+void SidebarPageHandler::GetColumnInsets(GetColumnInsetsCallback callback) {
+  SidebarView* sidebar = SidebarView::ForBrowser(browser_);
+  if (!sidebar) {
+    std::move(callback).Run(0, 0);
+    return;
+  }
+  const gfx::Insets insets = sidebar->ColumnInsets();
+  std::move(callback).Run(insets.top(), insets.bottom());
+}
+
 void SidebarPageHandler::BlendSpaceTheme(const std::string& theme,
                                          float progress) {
   if (SidebarView* sidebar = SidebarView::ForBrowser(browser_)) {

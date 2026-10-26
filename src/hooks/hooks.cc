@@ -157,6 +157,20 @@ gfx::Size RegionSize(BrowserWindowInterface* browser, const gfx::Size& size) {
   return gfx::Size(cromarc::RegionWidth(browser, size.width()), size.height());
 }
 
+gfx::Size RegionTopRowSize(BrowserWindowInterface* browser,
+                           const gfx::Size& size) {
+  return cromarc::LibraryTakesRegion(browser) ? gfx::Size(size.width(), 0)
+                                              : size;
+}
+
+bool RegionTopRowVisible(BrowserWindowInterface* browser, bool visible) {
+  return visible && !cromarc::LibraryTakesRegion(browser);
+}
+
+int RegionBottomPadding(BrowserWindowInterface* browser, int padding) {
+  return cromarc::LibraryTakesRegion(browser) ? 0 : padding;
+}
+
 bool SetChromeBackgroundBlur(const views::View* view,
                              const BrowserView* browser_view,
                              ui::Layer* layer,

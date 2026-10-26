@@ -29,6 +29,12 @@ inline constexpr float kPageCornerRadius = 7;
 // 418px and moves the page aside), otherwise `width`.
 int RegionWidth(BrowserWindowInterface* browser, int width);
 
+// Hook H19, from the vertical tab strip region's layout: while the Library is
+// out it takes the region's whole height, as Zen's (zen-library.css): Chrome's
+// row of top buttons and its padding below the sidebar go, and the window
+// buttons sit in the Library's column.
+bool LibraryTakesRegion(BrowserWindowInterface* browser);
+
 // The space round the page where it is a card on the window's background
 // (Zen's element separation): margin on its far sides, none toward the
 // sidebar and the toolbar; in compact mode, where the sidebar is not there,

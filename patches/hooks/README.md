@@ -192,3 +192,19 @@ row when it is hidden (`InstallSidebar` hides it), so the hook in
 `UpdateControlsVisibility()` shows the combo button again; it runs only with
 `kOrganizerPanel`, off by default in 157. When that ships enabled, the
 combo button and the segmented control come back: hook there.
+
+### H19 the Library takes the region's whole height
+Kind: code
+Where: `chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc`,
+`VerticalTabStripRegionView::CalculateProposedLayout`.
+Calls: `button_size = cromarc::hooks::RegionTopRowSize(browser, <Chrome's top
+row preferred size>)`, `.visible = cromarc::hooks::RegionTopRowVisible(browser,
+true)` for the top row's layout and `vertical_padding =
+cromarc::hooks::RegionBottomPadding(browser, <Chrome's padding constant>)`, each
+wrapping Chrome's value.
+Contract: while the Library is out, the row of top buttons is hidden with no
+height and there is no padding under the content, so the sidebar runs from the
+window's top to its bottom edge with only the window buttons over it, as Zen's
+Library does; otherwise Chrome's values.
+If it moved: the vertical tab strip region's layout of its top button row and
+the padding at its bottom.

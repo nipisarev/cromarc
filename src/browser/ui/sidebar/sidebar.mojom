@@ -293,6 +293,10 @@ interface PageHandler {
   // As the Library slides out and back, the width the window's sidebar
   // column takes for it; 0 once it is shut.
   SetLibraryWidth(int32 width);
+  // Chrome's row of top buttons above the sidebar and its padding below it,
+  // in DIPs: the Library takes both while it is out, so the page holds the
+  // sidebar still under it by as much.
+  GetColumnInsets() => (int32 top, int32 bottom);
 
   // The Library's archive (design, UI section 10): this space's closed tabs
   // matching `query`, newest first.

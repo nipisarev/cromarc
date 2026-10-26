@@ -126,6 +126,7 @@ export class SidebarAppElement extends CrLitElement {
       icloud_: {type: Object},
       remoteSpaces_: {type: Array},
       libraryShown_: {type: Boolean},
+      columnGrown_: {type: Boolean},
       libraryOpen_: {type: Boolean},
       libraryDrag_: {type: Number},
       libraryProgress_: {type: Number},
@@ -181,6 +182,10 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor remoteSpaces_: ICloudSpace[] = [];
   // The Library: rendered while open, dragged in or closing.
   protected accessor libraryShown_: boolean = false;
+  // The page is taller by Chrome's row of top buttons and its padding while
+  // the Library takes the region (hook H19). Set from the page's own resizes,
+  // so the sidebar's padding changes in the frame the page does, both ways.
+  protected accessor columnGrown_: boolean = false;
   protected accessor libraryOpen_: boolean = false;
   // How far a swipe has pulled the Library in, 0–1; -1 when no swipe does.
   // How far open the Library is while a swipe moves it.
@@ -218,6 +223,24 @@ export class SidebarAppElement extends CrLitElement {
   // The sidebar's width as the Library came out: the sidebar keeps it under
   // the Library while the column widens.
   private toolboxWidth_ = 0;
+  // Its height then, and Chrome's row above it and padding below it, which the
+  // Library takes while it is out: the sidebar keeps its place under it.
+  private toolboxHeight_ = 0;
+  private height_ = 0;
+  private columnInsets_ = {top: 0, bottom: 0};
+  private readonly resizeObserver_ = new ResizeObserver(() => {
+    const height = this.offsetHeight;
+    if (this.libraryShown_) {
+      this.columnGrown_ = height > this.toolboxHeight_;
+    } else if (this.columnGrown_ && height < this.height_) {
+      this.columnGrown_ = false;
+    }
+    this.height_ = height;
+    if (!this.libraryShown_ && !this.columnGrown_) {
+      this.proxy_.handler.getColumnInsets().then(
+          insets => this.columnInsets_ = insets);
+    }
+  });
   // A tab opening closes the Library (Zen's onTabOpen), but not one it opens
   // in the background itself (keepOpenWhile).
   private keepLibraryOpenUntil_ = 0;
@@ -284,6 +307,7 @@ export class SidebarAppElement extends CrLitElement {
     router.onSwipe.addListener((swipe: Swipe) => this.onSwipe_(swipe));
     this.proxy_.handler.getSpaces().then(({spaces}) => this.setSpaces_(spaces));
     this.connectTabs_();
+    this.resizeObserver_.observe(this);
     downloadsStore().subscribe(downloads => this.onDownloads_(downloads));
     this.addEventListener('dragover', e => this.moveGhost_(e));
     this.addEventListener('dragleave', e => {
@@ -732,12 +756,18 @@ export class SidebarAppElement extends CrLitElement {
   // Zen's toolbox under the Library: it fades and shrinks a little as the
   // Library comes over it, keeping its width while the column widens.
   protected toolboxStyle_(): string {
+    // Still while the page is taller, also in the frames after the Library
+    // shut and before Chrome gives the row back.
+    const grown = this.columnGrown_ ?
+        `padding-top: ${this.columnInsets_.top}px; ` +
+            `padding-bottom: ${this.columnInsets_.bottom}px; ` :
+        '';
     if (!this.libraryShown_) {
-      return '';
+      return grown;
     }
     const progress = Math.min(1, Math.max(0, this.libraryProgress_) * 3);
-    return `width: ${this.toolboxWidth_}px; opacity: ${1 - progress}; ` +
-        `scale: ${1 - progress * 0.04}`;
+    return `width: ${this.toolboxWidth_}px; ${grown}opacity: ${
+        1 - progress}; scale: ${1 - progress * 0.04}`;
   }
 
   protected addSwipeArc_(): string {
@@ -762,6 +792,7 @@ export class SidebarAppElement extends CrLitElement {
   private setLibraryProgress_(progress: number) {
     if (!this.libraryShown_) {
       this.toolboxWidth_ = this.offsetWidth;
+      this.toolboxHeight_ = this.offsetHeight;
       this.libraryShown_ = true;
     }
     this.libraryProgress_ = progress;

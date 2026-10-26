@@ -4,6 +4,7 @@
 
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 
+#include <algorithm>
 #include <memory>
 #include <set>
 #include <string>
@@ -172,6 +173,16 @@ void SidebarView::SetLibraryWidth(int width) {
   library_width_ = width;
   // The region asks for it from its preferred size.
   PreferredSizeChanged();
+}
+
+gfx::Insets SidebarView::ColumnInsets() const {
+  const std::optional<gfx::Rect> region = strip_->BoundsInScreen();
+  if (!region || library_width_ > 0) {
+    return gfx::Insets();
+  }
+  const gfx::Rect own = GetBoundsInScreen();
+  return gfx::Insets::TLBR(std::max(0, own.y() - region->y()), 0,
+                           std::max(0, region->bottom() - own.bottom()), 0);
 }
 
 bool SidebarView::HandleKeyboardEvent(
