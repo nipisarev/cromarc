@@ -5,6 +5,7 @@
 // Space settings: create (Zen's form, a Zen icon), edit, reorder, sleep, delete.
 
 import {execSync} from 'node:child_process';
+import {texts} from '../strings.mjs';
 const [port, pid] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -52,7 +53,8 @@ console.log('first space:', firstName);
 
 // Create through the form, with an icon from Zen's set.
 // Zen's "+" menu (a native menu, chosen through testMenuChoice).
-await evaluate(first, `${APP}.testMenuChoice = 'Создать пространство'; ${APP}.shadowRoot.querySelector('#create-new').click()`);
+const {newSpace} = await texts(evaluate, first, ['newSpace']);
+await evaluate(first, `${APP}.testMenuChoice = ${JSON.stringify(newSpace)}; ${APP}.shadowRoot.querySelector('#create-new').click()`);
 const formOpen = await until(() => evaluate(first, `!!${APP}.shadowRoot.querySelector('cromarc-space-editor')`));
 check('"+" opens the space form', !!formOpen);
 await evaluate(first, `(async () => {

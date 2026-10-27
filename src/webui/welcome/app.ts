@@ -7,6 +7,7 @@ import '../sidebar/icon_picker.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 
 import {PageHandlerFactory, PageHandlerRemote} from '../welcome.mojom-webui.js';
+import {s} from '../i18n/i18n.js';
 import {iconMask} from '../sidebar/space_icon.js';
 
 import {getCss} from './app.css.js';
@@ -45,7 +46,7 @@ export class WelcomeAppElement extends CrLitElement {
 
   protected accessor step_: Step = 'hello';
   protected accessor steps_: Step[] = stepsFor(false);
-  protected accessor name_: string = 'Personal';
+  protected accessor name_: string = s('welcomePersonal');
   protected accessor icon_: string = '🏠';
   protected accessor color_: number = 0;
   protected accessor colors_: readonly number[] = COLORS;
@@ -61,8 +62,9 @@ export class WelcomeAppElement extends CrLitElement {
     const {state} = await this.handler_.getState();
     this.steps_ = stepsFor(state.arcFound);
     this.isDefault_ = state.isDefaultBrowser;
-    // A space with a name of its own keeps it.
-    if (state.spaceName && !/^(Person \d+|Your Chromium|Cromarc)$/.test(state.spaceName)) {
+    // A space with a name of its own keeps it (Chromium's own name for a new
+    // profile comes empty).
+    if (state.spaceName && state.spaceName !== 'Cromarc') {
       this.name_ = state.spaceName;
     }
   }
@@ -81,7 +83,7 @@ export class WelcomeAppElement extends CrLitElement {
 
   protected onNextClick_() {
     if (this.step_ === 'space') {
-      this.handler_.setupSpace(this.name_.trim() || 'Personal', this.icon_,
+      this.handler_.setupSpace(this.name_.trim() || s('welcomePersonal'), this.icon_,
                                this.color_);
     }
     this.step_ = nextStep(this.steps_, this.step_);
@@ -105,7 +107,7 @@ export class WelcomeAppElement extends CrLitElement {
   }
 
   protected onAddWorkClick_() {
-    this.addSpace_('Work', '💼');
+    this.addSpace_(s('welcomeWork'), '💼');
   }
 
   protected onAddOwnClick_() {

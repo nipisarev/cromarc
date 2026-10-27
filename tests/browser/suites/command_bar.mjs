@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {texts} from '../strings.mjs';
+
 // The command bar: one field over the window that finds open tabs, pinned
 // items and archived pages, driven from the keyboard, and opens what is
 // chosen where it already is rather than a second time.
@@ -90,9 +92,11 @@ const rowsFor = (text, ready) => until(async () => {
   const r = await rows();
   return ready(r) ? r : null;
 });
-const TAB = 'Перейти к вкладке';
-const PINNED = 'Закреплено';
-const ARCHIVE = 'Из архива';
+const T = await texts(evaluate, sidebar,
+    ['commandBarKindTab', 'commandBarKindPinned', 'commandBarKindArchive']);
+const TAB = T.commandBarKindTab;
+const PINNED = T.commandBarKindPinned;
+const ARCHIVE = T.commandBarKindArchive;
 const url = q => `${site}/icon.html?${q}`;
 
 // A sleeping pinned item, an archived page, and five tabs that match. Clear
@@ -127,9 +131,9 @@ check('typed text lists at most 4 open tabs', tabRows.length === 4, JSON.stringi
 check('…each holding every typed word, case ignored', tabRows.length > 0 &&
     tabRows.every(r => /icon/i.test(r.title + r.url) && /bar/i.test(r.title + r.url)) &&
     !(found ?? []).some(r => r.url === url('other')), JSON.stringify(found));
-check('the pinned item is listed, labelled «Закреплено»',
+check('the pinned item is listed, with the pinned label',
     (found ?? []).filter(r => r.url === url('bar-pin')).map(r => r.kind).join() === PINNED, JSON.stringify(found));
-check('the archived page is listed, labelled «Из архива»',
+check('the archived page is listed, with the archive label',
     (found ?? []).filter(r => r.url === url('bar-old')).map(r => r.kind).join() === ARCHIVE, JSON.stringify(found));
 check('each address is listed once', !!found && new Set(found.map(r => r.url)).size === found.length,
     JSON.stringify(found));

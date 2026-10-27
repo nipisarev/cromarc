@@ -4,6 +4,8 @@
 
 import {html, nothing} from '//resources/lit/v3_0/lit.rollup.js';
 
+import {s} from '../i18n/i18n.js';
+
 import type {SpaceEditorElement} from './space_editor.js';
 
 export function getHtml(this: SpaceEditorElement) {
@@ -11,21 +13,19 @@ export function getHtml(this: SpaceEditorElement) {
   return html`<!--_html_template_start_-->
 <div id="form" @keydown="${this.onFormKeydown_}">
   <div class="header">
-    <h1 class="title">${this.creating ? 'Создать пространство' :
-                                        'Изменить пространство'}</h1>
+    <h1 class="title">${this.creating ? s('createSpaceTitle') :
+                                        s('editSpaceTitle')}</h1>
     ${this.creating ? html`
-      <p class="label">
-        Пространства используются для организации ваших вкладок и сеансов.
-      </p>` : nothing}
+      <p class="label">${s('createSpaceLabel')}</p>` : nothing}
   </div>
   <div class="fields">
     <div class="name-wrapper">
-      <button id="icon" title="Изменить значок" @click="${this.onIconClick_}">
+      <button id="icon" title="${s('changeIcon')}" @click="${this.onIconClick_}">
         ${this.iconMask_() ? html`
           <span class="svg" style="mask-image: ${this.iconMask_()}"></span>` :
           html`<span class="text">${this.icon}</span>`}
       </button>
-      <input id="name" placeholder="Название пространства" spellcheck="false"
+      <input id="name" placeholder="${s('spaceName')}" spellcheck="false"
           .value="${this.name}" @input="${this.onNameInput_}">
       ${this.pickerOpen ? html`
         <cromarc-icon-picker @icon-picked="${this.onIconPicked_}">
@@ -33,12 +33,12 @@ export function getHtml(this: SpaceEditorElement) {
     </div>
     ${!this.creating ? html`
       <button id="theme" class="field-button" @click="${this.onThemeClick_}">
-        Изменить тему
+        ${s('editTheme')}
       </button>` : nothing}
   </div>
   ${this.creating && this.remoteSpaces.length ? html`
     <div id="remote">
-      <div class="label">Есть в iCloud Drive — подключить с этого Mac:</div>
+      <div class="label">${s('remoteSpaces')}</div>
       ${this.remoteSpaces.map(space => html`
         <button class="remote-space field-button" data-uuid="${space.uuid}"
             @click="${this.onConnectClick_}">
@@ -48,9 +48,9 @@ export function getHtml(this: SpaceEditorElement) {
   <div class="buttons">
     <button id="done" class="primary" ?disabled="${!this.name.trim()}"
         @click="${this.onDoneClick_}">
-      ${this.creating ? 'Создать пространство' : 'Сохранить'}
+      ${this.creating ? s('newSpace') : s('save')}
     </button>
-    <button id="cancel" @click="${this.onCancelClick_}">Отмена</button>
+    <button id="cancel" @click="${this.onCancelClick_}">${s('cancel')}</button>
   </div>
 </div>
 <!--_html_template_end_-->`;

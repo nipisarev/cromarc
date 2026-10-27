@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/grit/cromarc_resources.h"
 #include "chrome/grit/cromarc_resources_map.h"
@@ -15,6 +16,7 @@
 #include "content/public/common/url_constants.h"
 #include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/ui/arc_import/arc_import_page_handler.h"
+#include "cromarc/browser/ui/webui_strings.h"
 #include "ui/webui/webui_util.h"
 
 namespace cromarc {
@@ -28,6 +30,7 @@ ArcImportUI::ArcImportUI(content::WebUI* web_ui)
       web_ui->GetWebContents()->GetBrowserContext(), kArcImportHost);
   webui::SetupWebUIDataSource(source, kCromarcResources,
                               IDR_CROMARC_ARC_IMPORT_ARC_IMPORT_HTML);
+  AddCromarcStrings(source, g_browser_process->GetApplicationLocale());
 }
 
 ArcImportUI::~ArcImportUI() = default;

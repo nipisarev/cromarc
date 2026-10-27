@@ -14,7 +14,12 @@ source_set("arc_import") {
     "//skia",
     "//url",
   ]
-  deps = [ "//cromarc/browser/ports" ]
+  deps = [
+    "//base:i18n",
+    "//cromarc/browser/ports",
+    "//cromarc/strings:cromarc_strings",
+    "//ui/base",
+  ]
 }
 
 source_set("unit_tests") {

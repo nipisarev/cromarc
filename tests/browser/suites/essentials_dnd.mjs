@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {texts} from '../strings.mjs';
+
 // Essentials by drag and drop, as Zen: the promo in empty Essentials, the
 // slot that opens in the grid, the drag image as a tile, reordering, an
 // essential dropped on the tree becoming a pinned tab. Real drag events (CDP
@@ -43,6 +45,8 @@ const evaluate = async expr => {
 };
 const root = `document.querySelector('cromarc-sidebar-app').shadowRoot`;
 const app = `document.querySelector('cromarc-sidebar-app')`;
+const T = await texts((_, expr) => evaluate(expr), null,
+                      ['addToEssentials', 'essentialsPromoSublabel', 'newFolder']);
 const rect = async expr => evaluate(`(() => { const r = (${expr}).getBoundingClientRect(); return {x: r.x, y: r.y, w: r.width, h: r.height}; })()`);
 const centerOf = r => ({x: r.x + r.w / 2, y: r.y + r.h / 2});
 const todayRow = title => `[...${root}.querySelectorAll('.row.today')].find(r => r.textContent.includes('${title}'))`;
@@ -95,7 +99,7 @@ check('a Today tab drag starts', await start(todayRow('Alpha')));
 check('the drag image is the row, not the native one', (await ghost())?.cls.includes('row'), JSON.stringify(await ghost()));
 await over(await zone());
 check('over empty Essentials the promo shows', await evaluate(`!!${root}.querySelector('.essentials-promo')`));
-check('the promo has Zen\'s text', await evaluate(`${root}.querySelector('.essentials-promo').textContent.replace(/\\s+/g, ' ').trim()`) === 'Добавить в важное Доступ к любимым вкладкам в один клик',
+check('the promo has Zen\'s text', await evaluate(`${root}.querySelector('.essentials-promo').textContent.replace(/\\s+/g, ' ').trim()`) === `${T.addToEssentials} ${T.essentialsPromoSublabel}`,
     await evaluate(`${root}.querySelector('.essentials-promo')?.textContent`));
 const promo = centerOf(await rect(`${root}.querySelector('.essentials-promo')`));
 await over(promo);
@@ -173,13 +177,13 @@ check('dropped on a row: pinned before it, not essential',
     `${JSON.stringify(await pinned())} ${JSON.stringify(await essentials())}`);
 
 // 6. The menu adds to the end of the grid (Zen appends).
-await evaluate(`${app}.testMenuChoice = 'Добавить в важное'`);
+await evaluate(`${app}.testMenuChoice = ${JSON.stringify(T.addToEssentials)}`);
 await evaluate(`${treeRow('Beta')}.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, composed: true, clientX: 50, clientY: 50}))`);
 await sleep(800);
 check('the menu adds at the end', JSON.stringify(await essentials()) === '["Alpha","Beta"]', JSON.stringify(await essentials()));
 
 // 7. Folders don't go into Essentials.
-await evaluate(`${app}.testMenuChoice = 'Новая папка'`);
+await evaluate(`${app}.testMenuChoice = ${JSON.stringify(T.newFolder)}`);
 await evaluate(`${root}.querySelector('#sidebar').dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, composed: true, clientX: 50, clientY: 400}))`);
 await sleep(800);
 await evaluate(`${root}.querySelector('input.rename')?.blur()`);

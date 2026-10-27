@@ -8,6 +8,7 @@
 // whole window over Zen's window material; it says what it painted in the
 // log (theme runs with --cromarc-test-log-background).
 import {readFileSync} from 'node:fs';
+import {texts} from '../strings.mjs';
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -47,9 +48,10 @@ const current = () => evaluate(sb, `${APP}.spaces_.find(s => s.current)`);
 
 check('the window has Zen\'s material under it', /cromarc material: installed/.test(log()));
 
+const {editTheme} = await texts(evaluate, sb, ['editTheme']);
 const openFromMenu = () => evaluate(sb, `(async () => {
   const app = ${APP};
-  app.testMenuChoice = 'тему';
+  app.testMenuChoice = ${JSON.stringify(editTheme)};
   app.openSpaceMenu_(app.spaces_.find(s => s.current), 10, 10);
   await app.updateComplete;
 })()`);

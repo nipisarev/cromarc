@@ -91,6 +91,20 @@ is_daily() {
   [ "$1" = webauthn_opaque_origin ] || [ "$1" = smoke_sites ]
 }
 
+# The language suite $1 runs in at phase $2, or nothing for the Mac's own.
+# It reaches Chromium the way macOS's per-app language does, as Cocoa's
+# -AppleLanguages for this one process (Xcode's "App Language" does the same):
+# Cromarc has no language setting of its own, and a defaults write would
+# switch the user's Cromarc too (one bundle id).
+language() {
+  case "$1:$2" in
+    language_en:*) echo en-US ;;
+    language_de:*) echo de ;;
+    language_ru:1) echo en-US ;;
+    language_ru:*) echo ru-ES ;;
+  esac
+}
+
 # Starts the browser for suite $1 on port $2 with profile $3, output to $4,
 # opening the pages after them.
 launch() {
@@ -123,6 +137,14 @@ launch() {
       args+=(--cromarc-arc-sidebar="$work/no-arc.json"
         --cromarc-arc-export="$fixtures/arc_export.md") ;;
   esac
+  local lang
+  lang="$(language "$name" "${phase:-1}")"
+  if [ -n "$lang" ]; then
+    # Chromium takes "(lang)" for a page to open too, and headless opens one
+    # page at most: it is the only one.
+    args+=(-AppleLanguages "($lang)")
+    set --
+  fi
   # Downloads go to the profile's own folder, never to ~/Downloads. A
   # restart keeps the prefs the browser saved.
   mkdir -p "$profile/Default" "$profile/downloads"
@@ -224,8 +246,11 @@ elif $full; then
   # The rest of the tests, so the stamp means every test (AGENTS.md).
   "$out_dir/cromarc_unittests" >"$work/cromarc_unittests.log" 2>&1 ||
     die "cromarc_unittests failed: $work/cromarc_unittests.log"
-  node --test "$CROMARC_ROOT"/src/webui/*/tests/*_test.ts >"$work/node_tests.log" 2>&1 ||
+  node --import "$CROMARC_ROOT/src/webui/i18n/tests/loader.mjs" \
+    --test "$CROMARC_ROOT"/src/webui/*/tests/*_test.ts >"$work/node_tests.log" 2>&1 ||
     die "WebUI unit tests failed: $work/node_tests.log"
+  "$CROMARC_ROOT/tooling/check-locale-paks" "$app" ||
+    die "Cromarc's strings are missing from the app's locale paks (hook H20)"
   log "cromarc_unittests and WebUI unit tests passed"
   built="$(cat "$out_dir/.cromarc-built" 2>/dev/null || true)"
   if [ "$(sed -n 's/^build=//p' <<<"$built")" = "$(build_identity "$app")" ]; then

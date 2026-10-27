@@ -59,6 +59,13 @@ std::u16string ProfilesAdapter::NameOf(const std::string& id) {
   return entry ? entry->GetLocalProfileName() : std::u16string();
 }
 
+bool ProfilesAdapter::HasDefaultName(const std::string& id) {
+  ProfileAttributesEntry* entry =
+      Manager()->GetProfileAttributesStorage().GetProfileAttributesWithPath(
+          PathOf(id));
+  return entry && entry->IsUsingDefaultName();
+}
+
 Profile* ProfilesAdapter::GetLoaded(const std::string& id) {
   return Manager()->GetProfileByPath(PathOf(id));
 }

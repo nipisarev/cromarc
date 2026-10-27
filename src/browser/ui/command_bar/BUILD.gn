@@ -51,6 +51,7 @@ source_set("impl") {
     "//cromarc/browser/archive:service",
     "//cromarc/browser/tree:service",
     "//cromarc/browser/ui:browser_commands",
+    "//cromarc/browser/ui:webui_strings",
     "//cromarc/webui:resources",
     "//skia",
     "//third_party/metrics_proto",

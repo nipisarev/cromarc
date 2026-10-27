@@ -13,6 +13,8 @@
 #include "cromarc/browser/routing/space_routing.h"
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/ui/little/little_window.h"
+#include "cromarc/strings/grit/cromarc_strings.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/mojom/menu_source_type.mojom.h"
 #include "ui/base/ui_base_types.h"
@@ -63,20 +65,22 @@ LittleBar::LittleBar(LittleWindow* window) : window_(window->GetWeakPtr()) {
             }
           },
           window_),
-      base::StrCat({u"Открыть в ", NameOf(window->default_space())}));
+      l10n_util::GetStringFUTF16(IDS_CROMARC_LITTLE_OPEN_IN,
+                                 NameOf(window->default_space())));
   open->SetStyle(ui::ButtonStyle::kTonal);
   AddChildView(std::move(open));
 
   auto spaces = views::CreateVectorImageButtonWithNativeTheme(
       base::BindRepeating(&LittleBar::ShowSpacesMenu, base::Unretained(this)),
       vector_icons::kKeyboardArrowDownIcon, kIconSize);
-  spaces->SetTooltipText(u"Открыть в другом space");
+  spaces->SetTooltipText(
+      l10n_util::GetStringUTF16(IDS_CROMARC_LITTLE_OPEN_IN_ANOTHER));
   menu_button_ = AddChildView(std::move(spaces));
 
   auto close = views::CreateVectorImageButtonWithNativeTheme(
       base::BindRepeating(&LittleWindow::Close, window_),
       vector_icons::kCloseIcon, kIconSize);
-  close->SetTooltipText(u"Закрыть (уйдёт в архив)");
+  close->SetTooltipText(l10n_util::GetStringUTF16(IDS_CROMARC_LITTLE_CLOSE));
   AddChildView(std::move(close));
 }
 
@@ -100,8 +104,8 @@ void LittleBar::ShowSpacesMenu() {
     for (size_t i = 0; i < spaces.size(); ++i) {
       menu_model_->AddItem(
           kAlwaysOpenCommand + static_cast<int>(i),
-          base::StrCat({u"Всегда открывать ", base::UTF8ToUTF16(host),
-                        u" в «", spaces[i].name, u"»"}));
+          l10n_util::GetStringFUTF16(IDS_CROMARC_LITTLE_ALWAYS_OPEN,
+                                     base::UTF8ToUTF16(host), spaces[i].name));
     }
   }
   menu_runner_ = std::make_unique<views::MenuRunner>(

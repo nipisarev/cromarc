@@ -4,6 +4,8 @@
 
 import {html} from '//resources/lit/v3_0/lit.rollup.js';
 
+import {s} from '../i18n/i18n.js';
+
 import type {CommandBarAppElement} from './app.js';
 
 export function getHtml(this: CommandBarAppElement) {
@@ -11,7 +13,7 @@ export function getHtml(this: CommandBarAppElement) {
   return html`<!--_html_template_start_-->
 <div id="card">
   <input id="input" .value="${this.text_}" spellcheck="false"
-      autocomplete="off" placeholder="Поиск или адрес"
+      autocomplete="off" placeholder="${s('commandBarPlaceholder')}"
       @input="${this.onInputInput_}" @keydown="${this.onInputKeydown_}">
   <div id="results" role="listbox" ?hidden="${this.results_.length === 0}">
     ${this.results_.map((result, index) => html`

@@ -1,0 +1,500 @@
+<?xml version="1.0" ?>
+<!DOCTYPE translationbundle>
+<translationbundle lang="ru">
+<!-- IDS_CROMARC_NEW_TAB -->
+<translation id="7554791636758816595">Новая вкладка</translation>
+<!-- IDS_CROMARC_NEW_FOLDER -->
+<translation id="5857090052475505287">Новая папка</translation>
+<!-- IDS_CROMARC_IMPORT_FROM_ARC -->
+<translation id="3808465175633180395">Перенести из Arc…</translation>
+<!-- IDS_CROMARC_HIDE_SIDEBAR -->
+<translation id="4466050378107788106">Скрыть сайдбар  ⌘S</translation>
+<!-- IDS_CROMARC_SPACE_ACTIONS -->
+<translation id="4119591365462996346">Действия пространства</translation>
+<!-- IDS_CROMARC_EDIT_SPACE -->
+<translation id="5900665895297265868">Переименовать</translation>
+<!-- IDS_CROMARC_CHANGE_ICON -->
+<translation id="5379981347088896681">Изменить значок</translation>
+<!-- IDS_CROMARC_EDIT_THEME -->
+<translation id="5574962800599858956">Изменить тему</translation>
+<!-- IDS_CROMARC_SLEEP_SPACE -->
+<translation id="2823608370708293875">Выгрузить пространство</translation>
+<!-- IDS_CROMARC_DELETE_SPACE -->
+<translation id="2806407377752719586">Удалить пространство</translation>
+<!-- IDS_CROMARC_DELETE_SPACE_TITLE -->
+<translation id="6821092975360920843">Удалить пространство?</translation>
+<!-- IDS_CROMARC_DELETE_SPACE_BODY -->
+<translation id="1884885971840816251">Удалить «<ph name="SPACE"/>»? Вкладки, история, расширения и данные сайтов этого пространства пропадут. Это нельзя отменить.</translation>
+<!-- IDS_CROMARC_DELETE -->
+<translation id="8261506727792406068">Удалить</translation>
+<!-- IDS_CROMARC_CANCEL -->
+<translation id="7658239707568436148">Отмена</translation>
+<!-- IDS_CROMARC_CREATE_NEW -->
+<translation id="5324811171849109936">Создать</translation>
+<!-- IDS_CROMARC_NEW_SPACE -->
+<translation id="5861530391536781162">Создать пространство</translation>
+<!-- IDS_CROMARC_CREATE_FOLDER -->
+<translation id="8436128841031849908">Создать папку</translation>
+<!-- IDS_CROMARC_LIBRARY -->
+<translation id="5580000943347215299">Библиотека</translation>
+<!-- IDS_CROMARC_ICLOUD_SYNC -->
+<translation id="8389932526818482145">Синхронизация через iCloud…</translation>
+<!-- IDS_CROMARC_ICLOUD_TITLE -->
+<translation id="2213169206270547383">iCloud Drive</translation>
+<!-- IDS_CROMARC_ICLOUD_BODY -->
+<translation id="2093703619762709738">Закладки и дерево, история, настройки, список расширений и вкладки этого пространства лежат в iCloud Drive/Cromarc и попадают на другой Mac. Пароли остаются в менеджере паролей. По одному Mac за раз: прежде чем работать на другом Mac, закройте Cromarc на этом.</translation>
+<!-- IDS_CROMARC_ICLOUD_ON -->
+<translation id="5916664084637901428">Включена</translation>
+<!-- IDS_CROMARC_ICLOUD_OFF -->
+<translation id="5860033963881614850">Выключена</translation>
+<!-- IDS_CROMARC_ICLOUD_ON_AFTER_RESTART -->
+<translation id="958951931622402440">Включится после перезапуска</translation>
+<!-- IDS_CROMARC_ICLOUD_OFF_AFTER_RESTART -->
+<translation id="1679323842963223449">Выключится после перезапуска</translation>
+<!-- IDS_CROMARC_ICLOUD_ENABLE -->
+<translation id="4930714375720679147">Включить</translation>
+<!-- IDS_CROMARC_ICLOUD_DISABLE -->
+<translation id="8105368624971345109">Выключить</translation>
+<!-- IDS_CROMARC_RESTART -->
+<translation id="5895138241574237353">Перезапустить</translation>
+<!-- IDS_CROMARC_TODAY -->
+<translation id="3077592758586289808">Today</translation>
+<!-- IDS_CROMARC_RENAME -->
+<translation id="1173894706177603556">Переименовать</translation>
+<!-- IDS_CROMARC_REMOVE -->
+<translation id="1181037720776840403">Удалить</translation>
+<!-- IDS_CROMARC_RESET_PINNED -->
+<translation id="3636703738117568799">Сбросить закрепленную вкладку</translation>
+<!-- IDS_CROMARC_RESET_ESSENTIAL -->
+<translation id="7755523186193214909">Сбросить важную вкладку</translation>
+<!-- IDS_CROMARC_REPLACE_WITH_CURRENT -->
+<translation id="5621014220284167745">Заменить текущим URL-адресом</translation>
+<!-- IDS_CROMARC_RESET_PIN_BUTTON -->
+<translation id="6887766947238723746">Сбросить и закрепить вкладку</translation>
+<!-- IDS_CROMARC_BACK_TO_PINNED -->
+<translation id="458199693704104477">Назад к закрепленному адресу</translation>
+<!-- IDS_CROMARC_SEPARATE_FROM_PINNED -->
+<translation id="3054921718693029057">Отделить от закреплённой вкладки</translation>
+<!-- IDS_CROMARC_UNPIN -->
+<translation id="6442697326824312960">Открепить</translation>
+<!-- IDS_CROMARC_PIN -->
+<translation id="21133533946938348">Закрепить</translation>
+<!-- IDS_CROMARC_COPY_LINK -->
+<translation id="8717864919010420084">Копировать ссылку</translation>
+<!-- IDS_CROMARC_ADD_TO_ESSENTIALS -->
+<translation id="6624105133509248526">Добавить в важное</translation>
+<!-- IDS_CROMARC_REMOVE_FROM_ESSENTIALS -->
+<translation id="7312728527830823316">Удалить из важного</translation>
+<!-- IDS_CROMARC_ESSENTIALS_PROMO_SUBLABEL -->
+<translation id="5418725169899294408">Доступ к любимым вкладкам в один клик</translation>
+<!-- IDS_CROMARC_CLOSE -->
+<translation id="6040143037577758943">Закрыть</translation>
+<!-- IDS_CROMARC_CLEAR -->
+<translation id="6643016212128521049">Очистить</translation>
+<!-- IDS_CROMARC_CLEAR_TOOLTIP -->
+<translation id="5152679686423422194">Закрыть все не закреплённые вкладки</translation>
+<!-- IDS_CROMARC_CLEARED -->
+<translation id="3009234644767211666">Вкладки закрыты</translation>
+<!-- IDS_CROMARC_UNDO -->
+<translation id="2079545284768500474">Отменить</translation>
+<!-- IDS_CROMARC_NEEDS_ATTENTION -->
+<translation id="6266039999629596120">Требует внимания</translation>
+<!-- IDS_CROMARC_UNSAVED_INPUT -->
+<translation id="8599087697591321814">не закрыт: несохранённые данные</translation>
+<!-- IDS_CROMARC_CLOSE_ANYWAY -->
+<translation id="4370259640222365139">Закрыть всё равно</translation>
+<!-- IDS_CROMARC_KEEP -->
+<translation id="197288927597451399">Оставить</translation>
+<!-- IDS_CROMARC_ARCHIVES_IN -->
+<translation id="1342074696509105800">уйдёт в архив через <ph name="MINUTES"/> мин</translation>
+<!-- IDS_CROMARC_CREATE_SPACE_TITLE -->
+<translation id="7339400566361936285">Создать пространство</translation>
+<!-- IDS_CROMARC_EDIT_SPACE_TITLE -->
+<translation id="9095188814789335916">Изменить пространство</translation>
+<!-- IDS_CROMARC_CREATE_SPACE_LABEL -->
+<translation id="4300178295810327688">Пространства используются для организации ваших вкладок и сеансов.</translation>
+<!-- IDS_CROMARC_SPACE_NAME -->
+<translation id="5516510866045894875">Название пространства</translation>
+<!-- IDS_CROMARC_REMOTE_SPACES -->
+<translation id="7687612042497459052">Есть в iCloud Drive — подключить с этого Mac:</translation>
+<!-- IDS_CROMARC_SAVE -->
+<translation id="5317780077021120954">Сохранить</translation>
+<!-- IDS_CROMARC_EMOJIS -->
+<translation id="65320610082834431">Эмодзи</translation>
+<!-- IDS_CROMARC_ICONS -->
+<translation id="1110022065703191351">Иконки</translation>
+<!-- IDS_CROMARC_NO_ICON -->
+<translation id="2554302215252557953">Без значка</translation>
+<!-- IDS_CROMARC_SEARCH_EMOJIS -->
+<translation id="7681501372790476863">Поиск эмодзи</translation>
+<!-- IDS_CROMARC_LIBRARY_CLOSE -->
+<translation id="3335056719024754231">Закрыть библиотеку</translation>
+<!-- IDS_CROMARC_LIBRARY_CUSTOMIZE -->
+<translation id="9013557237565423777">Выбрать разделы</translation>
+<!-- IDS_CROMARC_LIBRARY_REMOVE_TAB -->
+<translation id="535224930001394897">Убрать этот раздел</translation>
+<!-- IDS_CROMARC_LIBRARY_RESTORE_TAB -->
+<translation id="7716099333887302489">Вернуть этот раздел</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY -->
+<translation id="1644574205037202324">История</translation>
+<!-- IDS_CROMARC_LIBRARY_ARCHIVE -->
+<translation id="7433103263856598557">Архив</translation>
+<!-- IDS_CROMARC_LIBRARY_DOWNLOADS -->
+<translation id="4759238208242260848">Загрузки</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA -->
+<translation id="4275663329226226506">Медиа</translation>
+<!-- IDS_CROMARC_LIBRARY_SPACES -->
+<translation id="3326655241685890930">Пространства</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING -->
+<translation id="8677382278043312529">Маршруты</translation>
+<!-- IDS_CROMARC_LIBRARY_FILTER -->
+<translation id="6302661287897119265">Фильтр</translation>
+<!-- IDS_CROMARC_LIBRARY_DONE -->
+<translation id="8730621377337864115">Готово</translation>
+<!-- IDS_CROMARC_LIBRARY_TODAY -->
+<translation id="4437603052000490467">Сегодня</translation>
+<!-- IDS_CROMARC_LIBRARY_WEEK -->
+<translation id="1743571163192890907">На этой неделе</translation>
+<!-- IDS_CROMARC_LIBRARY_MONTH -->
+<translation id="1438153286984124655">В этом месяце</translation>
+<!-- IDS_CROMARC_LIBRARY_OPENED_IN_BACKGROUND -->
+<translation id="3353346530595165313">Вкладка открыта в фоне</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY_CLEAR -->
+<translation id="6746493157771801606">Очистить историю</translation>
+<!-- IDS_CROMARC_LIBRARY_CLEAR_LAST_HOUR -->
+<translation id="1718835860248848330">За последний час</translation>
+<!-- IDS_CROMARC_LIBRARY_CLEAR_LAST12_HOURS -->
+<translation id="1200247712345270267">За последние 12 часов</translation>
+<!-- IDS_CROMARC_LIBRARY_CLEAR_LAST_WEEK -->
+<translation id="4867297348137739678">За последнюю неделю</translation>
+<!-- IDS_CROMARC_LIBRARY_CLEAR_LAST_MONTH -->
+<translation id="57383366388012121">За последний месяц</translation>
+<!-- IDS_CROMARC_LIBRARY_CLEAR_ALL -->
+<translation id="8112223930265703044">Всё</translation>
+<!-- IDS_CROMARC_LIBRARY_CLEAR_PROMPT_TITLE -->
+<translation id="3706124370102835526">Очистить историю?</translation>
+<!-- IDS_CROMARC_LIBRARY_CLEAR_PROMPT_MESSAGE -->
+<translation id="8269541653622599878">Страницы, посещённые за это время, будут забыты. Это нельзя отменить.</translation>
+<!-- IDS_CROMARC_LIBRARY_OPEN_LEGACY_HISTORY -->
+<translation id="2775954211080172063">Открыть страницу «История»</translation>
+<!-- IDS_CROMARC_LIBRARY_OPEN_LEGACY_DOWNLOADS -->
+<translation id="2366736416356969944">Открыть страницу «Загрузки»</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY_FILTER_TITLE -->
+<translation id="5040315728170931939">Фильтр истории…</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY_FILTER_WHEN -->
+<translation id="5888898275898642699">Когда посещали?</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY_FILTER_SOURCE -->
+<translation id="2719865871417591627">Где искать</translation>
+<!-- IDS_CROMARC_LIBRARY_SOURCE_CLOSED -->
+<translation id="8046471457087241794">Закрытые вкладки</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY_FILTER_SORT -->
+<translation id="3735740477244556633">Сортировка</translation>
+<!-- IDS_CROMARC_LIBRARY_SORT_DATE -->
+<translation id="3601414719864711130">По дате</translation>
+<!-- IDS_CROMARC_LIBRARY_SORT_SITE -->
+<translation id="6438691964355003967">По сайту</translation>
+<!-- IDS_CROMARC_LIBRARY_SORT_MOST_VISITED -->
+<translation id="6707323017921795779">По числу посещений</translation>
+<!-- IDS_CROMARC_LIBRARY_SORT_LAST_VISITED -->
+<translation id="8721929003376089365">По последнему посещению</translation>
+<!-- IDS_CROMARC_LIBRARY_SITE_OTHER -->
+<translation id="7138678301420049075">Другое</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY_SEARCH -->
+<translation id="1749507028212099393">Поиск в истории…</translation>
+<!-- IDS_CROMARC_LIBRARY_HISTORY_EMPTY -->
+<translation id="7882131421121961860">История не найдена</translation>
+<!-- IDS_CROMARC_LIBRARY_CLOSED_EMPTY -->
+<translation id="4754718880681085343">Нет закрытых вкладок</translation>
+<!-- IDS_CROMARC_LIBRARY_FORGET_BUTTON -->
+<translation id="5967867314010545767">Удалить из истории</translation>
+<!-- IDS_CROMARC_LIBRARY_REOPEN_BUTTON -->
+<translation id="5329248632254221454">Открыть снова</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_REOPEN -->
+<translation id="3469495980034554264">Открыть страницу снова</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_FORGET -->
+<translation id="6298572047024665991">Забыть эту страницу</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_FORGET_SITE -->
+<translation id="7327145007696585324">Забыть об этом сайте</translation>
+<!-- IDS_CROMARC_LIBRARY_FORGET_SITE_TITLE -->
+<translation id="1214074820547256929">Забыть об этом сайте?</translation>
+<!-- IDS_CROMARC_LIBRARY_FORGET_SITE_MESSAGE -->
+<translation id="4443830810004150243">История, файлы cookie, данные и кэш сайта <ph name="SITE"/> будут удалены. Это нельзя отменить.</translation>
+<!-- IDS_CROMARC_LIBRARY_FORGET_SITE_ACCEPT -->
+<translation id="8986362086234534611">Забыть</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_SEARCH -->
+<translation id="580674040407762051">Поиск маршрутов</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_NEW -->
+<translation id="271033894570825754">Создать</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_NEW_TITLE -->
+<translation id="3948987105800532796">Новый маршрут</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_EDIT_TITLE -->
+<translation id="5499267282624397731">Изменить маршрут</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_WHEN_THE_LINK -->
+<translation id="854949812099890539">Если ссылка</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_CONTAINS -->
+<translation id="3634465560964907835">Содержит</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_EQUAL_TO -->
+<translation id="7527210041203998518">Совпадает</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_REGEX -->
+<translation id="3043310827648953527">RegEx</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_OPEN_IT_IN -->
+<translation id="6574066035715345329">Открыть её в</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_MOST_RECENT -->
+<translation id="3646538675168618560">Последнее пространство</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_ADD -->
+<translation id="779863997919848002">Добавить маршрут</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_SAVE -->
+<translation id="7075882087109860873">Сохранить маршрут</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_REMOVE -->
+<translation id="8086951179078089463">Удалить маршрут</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_EXTERNAL_LINKS -->
+<translation id="3377623732782146618">Ссылки из других приложений по умолчанию</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_EMPTY -->
+<translation id="3685365879097604959">Маршруты отправляют ссылки в пространство, где вы их держите. Добавьте маршрут для сайта, который всегда открываете в одном месте.</translation>
+<!-- IDS_CROMARC_LIBRARY_ROUTING_NO_RESULTS -->
+<translation id="2826600321627372011">Маршруты не найдены</translation>
+<!-- IDS_CROMARC_LIBRARY_DOWNLOADS_SEARCH -->
+<translation id="4475552974751346499">Поиск загрузок</translation>
+<!-- IDS_CROMARC_LIBRARY_DOWNLOADS_EMPTY -->
+<translation id="6343192674172527289">Загрузки не найдены</translation>
+<!-- IDS_CROMARC_LIBRARY_DOWNLOADS_CLEAR_ALL -->
+<translation id="7090057724673687602">Очистить все загрузки</translation>
+<!-- IDS_CROMARC_LIBRARY_DOWNLOADS_FILTER_TITLE -->
+<translation id="6618535190852718322">Фильтр загрузок…</translation>
+<!-- IDS_CROMARC_LIBRARY_DOWNLOADS_FILTER_TYPE -->
+<translation id="7359657277149375382">Тип файла</translation>
+<!-- IDS_CROMARC_LIBRARY_DOWNLOADS_FILTER_WHEN -->
+<translation id="3115812027267018974">Когда загружено?</translation>
+<!-- IDS_CROMARC_LIBRARY_TYPE_IMAGES -->
+<translation id="9219103736887031265">Изображения</translation>
+<!-- IDS_CROMARC_LIBRARY_TYPE_VIDEO -->
+<translation id="3810838688059735925">Видео</translation>
+<!-- IDS_CROMARC_LIBRARY_TYPE_AUDIO -->
+<translation id="3616113530831147358">Аудио</translation>
+<!-- IDS_CROMARC_LIBRARY_TYPE_DOCUMENTS -->
+<translation id="8250920743982581267">Документы</translation>
+<!-- IDS_CROMARC_LIBRARY_TYPE_ARCHIVES -->
+<translation id="1697820107502723922">Архивы</translation>
+<!-- IDS_CROMARC_LIBRARY_TYPE_APPS -->
+<translation id="2805756323405976993">Приложения</translation>
+<!-- IDS_CROMARC_LIBRARY_OPEN_WHEN_DONE -->
+<translation id="1683993164994096952">Откроется по завершении</translation>
+<!-- IDS_CROMARC_LIBRARY_CANCEL_DOWNLOAD -->
+<translation id="243275146591958220">Отменить загрузку</translation>
+<!-- IDS_CROMARC_LIBRARY_SHOW_IN_FINDER -->
+<translation id="1581962803218266616">Показать в Finder</translation>
+<!-- IDS_CROMARC_LIBRARY_RETRY_DOWNLOAD -->
+<translation id="3030138564564344289">Повторить загрузку</translation>
+<!-- IDS_CROMARC_LIBRARY_MORE_OPTIONS -->
+<translation id="5596627076506792578">Другие действия</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_OPEN -->
+<translation id="1065579026416682697">Открыть «<ph name="NAME"/>»</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_COPY -->
+<translation id="1061482281334977268">Копировать «<ph name="NAME"/>»</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_COPY_LINK -->
+<translation id="9113218029956030430">Копировать ссылку на загрузку</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_UNBLOCK -->
+<translation id="4951399225547766782">Разрешить загрузку</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_HIDE -->
+<translation id="4459168712739120377">Скрыть из Cromarc</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_DELETE -->
+<translation id="9015683653164090342">Удалить файл</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_PAUSE -->
+<translation id="1178581264944972037">Приостановить</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_RESUME -->
+<translation id="8200772114523450471">Возобновить</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_GO_TO_PAGE -->
+<translation id="287072940156176678">Перейти на страницу загрузки</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_REMOVE_FROM_HISTORY -->
+<translation id="7005209908119503326">Удалить из истории</translation>
+<!-- IDS_CROMARC_LIBRARY_MENU_CLEAR_PREVIEW -->
+<translation id="6266304294585897666">Очистить список загрузок</translation>
+<!-- IDS_CROMARC_LIBRARY_UNBLOCK_TITLE -->
+<translation id="5899818351520319591">Сохранить загрузку?</translation>
+<!-- IDS_CROMARC_LIBRARY_UNBLOCK_MESSAGE -->
+<translation id="1242517489326845576">Этот файл может навредить компьютеру. Сохраняйте его, только если доверяете источнику.</translation>
+<!-- IDS_CROMARC_LIBRARY_UNBLOCK_ACCEPT -->
+<translation id="8130142528515200130">Сохранить</translation>
+<!-- IDS_CROMARC_LIBRARY_SPACE_THEME -->
+<translation id="471759229191973607">Изменить тему</translation>
+<!-- IDS_CROMARC_LIBRARY_SPACE_MOVE -->
+<translation id="3317457115747192494">Перетащите, чтобы переставить</translation>
+<!-- IDS_CROMARC_LIBRARY_SPACE_ICON -->
+<translation id="6019908092180674696">Изменить значок</translation>
+<!-- IDS_CROMARC_LIBRARY_SPACE_RENAME -->
+<translation id="6763379131362816113">Переименовать пространство</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_EMPTY -->
+<translation id="4512998127880784554">Медиа не найдены</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_TURN_OFF -->
+<translation id="5114956755901281769">Выключить медиа</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_SEARCH -->
+<translation id="6888895177417623722">Поиск медиа…</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_LOADING -->
+<translation id="9030686878231082902">Ищем медиа…</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_TITLE -->
+<translation id="8494254323083582890">Ваши медиа в библиотеке</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_BODY -->
+<translation id="5843423193669606535">Быстро берите скриншоты, изображения и видео с компьютера: они будут в библиотеке Cromarc.</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_BUTTON -->
+<translation id="3625841231763911680">Показать медиа</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_NOTE -->
+<translation id="1236374917816514529">Медиа не покидают ваш компьютер и не видны никому, кроме вас.</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_FILTER_TITLE -->
+<translation id="5306122956859151586">Фильтр медиа…</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_FILTER_FOLDERS -->
+<translation id="4399352055388001095">Где искать</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_OPEN_IN -->
+<translation id="2119349053129246860">Открыть в <ph name="APP"/></translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_PREVIOUS -->
+<translation id="6710213216561001401">Назад</translation>
+<!-- IDS_CROMARC_LIBRARY_MEDIA_NEXT -->
+<translation id="6647429325214337952">Вперёд</translation>
+<!-- IDS_CROMARC_LIBRARY_OPEN -->
+<translation id="4881695831933465202">Открыть</translation>
+<!-- IDS_CROMARC_LIBRARY_COPY -->
+<translation id="6896758677409633944">Копировать</translation>
+<!-- IDS_CROMARC_UNIT_BYTES -->
+<translation id="5420752959853967987">байт</translation>
+<!-- IDS_CROMARC_UNIT_KILOBYTES -->
+<translation id="3123243061080120667">КБ</translation>
+<!-- IDS_CROMARC_UNIT_MEGABYTES -->
+<translation id="977224059380370527">МБ</translation>
+<!-- IDS_CROMARC_UNIT_GIGABYTES -->
+<translation id="8776285424728638733">ГБ</translation>
+<!-- IDS_CROMARC_UNIT_TERABYTES -->
+<translation id="9189669987942139609">ТБ</translation>
+<!-- IDS_CROMARC_UNIT_SECONDS -->
+<translation id="272398151264360449">с</translation>
+<!-- IDS_CROMARC_UNIT_MINUTES -->
+<translation id="8038740004074215974">мин</translation>
+<!-- IDS_CROMARC_UNIT_HOURS -->
+<translation id="2670849602571583088">ч</translation>
+<!-- IDS_CROMARC_UNIT_DAYS -->
+<translation id="177857623905075605">дн</translation>
+<!-- IDS_CROMARC_TIME_PAIR -->
+<translation id="1285014904631427319"><ph name="TIME"/> <ph name="UNIT"/></translation>
+<!-- IDS_CROMARC_DOWNLOAD_SPEED -->
+<translation id="2220888233454067979"><ph name="RATE"/> <ph name="UNIT"/>/с</translation>
+<!-- IDS_CROMARC_DOWNLOAD_YESTERDAY -->
+<translation id="7781829728241885113">Вчера</translation>
+<!-- IDS_CROMARC_DOWNLOAD_DANGEROUS -->
+<translation id="79446453817422139">Этот файл может быть опасен</translation>
+<!-- IDS_CROMARC_DOWNLOAD_PAUSED -->
+<translation id="7607002721634913082">Приостановлено</translation>
+<!-- IDS_CROMARC_DOWNLOAD_MISSING -->
+<translation id="4699504512423176983">Файл перемещён или отсутствует</translation>
+<!-- IDS_CROMARC_DOWNLOAD_CANCELED -->
+<translation id="1018656279737460067">Отменено</translation>
+<!-- IDS_CROMARC_DOWNLOAD_FAILED -->
+<translation id="6325525973963619867">Ошибка</translation>
+<!-- IDS_CROMARC_COMMAND_BAR_PLACEHOLDER -->
+<translation id="2356921393878314087">Поиск или адрес</translation>
+<!-- IDS_CROMARC_COMMAND_BAR_KIND_TAB -->
+<translation id="966509991412229478">Перейти к вкладке</translation>
+<!-- IDS_CROMARC_COMMAND_BAR_KIND_PINNED -->
+<translation id="4350065043422286972">Закреплено</translation>
+<!-- IDS_CROMARC_COMMAND_BAR_KIND_ARCHIVE -->
+<translation id="8251999461860663468">Из архива</translation>
+<!-- IDS_CROMARC_THEME_CLICK_TO_ADD -->
+<translation id="2498054939541926315">Щёлкните, чтобы добавить цвет</translation>
+<!-- IDS_CROMARC_WELCOME_TITLE -->
+<translation id="225777990557018852">Добро пожаловать в Cromarc</translation>
+<!-- IDS_CROMARC_WELCOME_HELLO -->
+<translation id="3289292866734587864">Браузер в духе Arc и Zen, где каждый space — отдельный профиль со своими расширениями, паролями и куками.</translation>
+<!-- IDS_CROMARC_WELCOME_START -->
+<translation id="6972754398087986839">Начать</translation>
+<!-- IDS_CROMARC_WELCOME_FIRST_SPACE -->
+<translation id="3965377214741465868">Это твой первый space</translation>
+<!-- IDS_CROMARC_WELCOME_ICON -->
+<translation id="104766043551382253">Иконка</translation>
+<!-- IDS_CROMARC_WELCOME_NEXT -->
+<translation id="1201402288615127009">Дальше</translation>
+<!-- IDS_CROMARC_WELCOME_MORE_TITLE -->
+<translation id="704468386974200269">Добавить ещё?</translation>
+<!-- IDS_CROMARC_WELCOME_MORE_BODY -->
+<translation id="6674259323498436175">Каждый space — свой профиль: расширения ставятся в него отдельно. Например, Bitwarden в личном и 1Password в рабочем.</translation>
+<!-- IDS_CROMARC_WELCOME_OWN -->
+<translation id="729140887966095328">Свой…</translation>
+<!-- IDS_CROMARC_WELCOME_ADD -->
+<translation id="7791543448312431591">Добавить</translation>
+<!-- IDS_CROMARC_WELCOME_LATER -->
+<translation id="6991128190741664836">Позже</translation>
+<!-- IDS_CROMARC_WELCOME_PERSONAL -->
+<translation id="1751249301761991853">Личное</translation>
+<!-- IDS_CROMARC_WELCOME_WORK -->
+<translation id="1122068467107743258">Работа</translation>
+<!-- IDS_CROMARC_WELCOME_ARC_TITLE -->
+<translation id="4733223412782996206">Перенести из Arc?</translation>
+<!-- IDS_CROMARC_WELCOME_ARC_BODY -->
+<translation id="7496125430089710272">Нашёлся сайдбар Arc: папки, закреплённые вкладки и essentials можно перенести в spaces Cromarc.</translation>
+<!-- IDS_CROMARC_IMPORT_BUTTON -->
+<translation id="8275038454117074363">Перенести</translation>
+<!-- IDS_CROMARC_WELCOME_SKIP -->
+<translation id="8281886186245836920">Пропустить</translation>
+<!-- IDS_CROMARC_WELCOME_DEFAULT_TITLE -->
+<translation id="1066028596346796118">Сделать Cromarc браузером по умолчанию?</translation>
+<!-- IDS_CROMARC_WELCOME_DEFAULT_BODY -->
+<translation id="6865575748899770449">Тогда ссылки из других приложений открываются в маленьком окне, как Little Arc, и правила «ссылка → space» работают.</translation>
+<!-- IDS_CROMARC_WELCOME_IS_DEFAULT -->
+<translation id="6152088904419699663">Cromarc уже браузер по умолчанию.</translation>
+<!-- IDS_CROMARC_WELCOME_MAKE_DEFAULT -->
+<translation id="6349678711452810642">Сделать</translation>
+<!-- IDS_CROMARC_WELCOME_NOT_NOW -->
+<translation id="1008557486741366299">Не сейчас</translation>
+<!-- IDS_CROMARC_WELCOME_DONE_TITLE -->
+<translation id="5811750797187914944">Готово</translation>
+<!-- IDS_CROMARC_WELCOME_DONE_BODY -->
+<translation id="8947356934122381585">⌘T — командная строка, ⌘S — скрыть сайдбар, Ctrl+1…9 — spaces, свайп двумя пальцами по сайдбару — соседний space, ⌥-клик по ссылке — Glance.</translation>
+<!-- IDS_CROMARC_WELCOME_FINISH -->
+<translation id="5536318715533689627">Начать работу</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_TITLE -->
+<translation id="7470825315963330257">Перенести из Arc</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_HINT -->
+<translation id="3239504794190414206">Папки, закреплённые и важные вкладки, вкладки Today (откроются, не загружаясь). Можно запускать снова: уже перенесённое не дублируется.</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_EXPORT_HINT -->
+<translation id="5451641699546065315">Из файла экспорта Arc: в нём только ссылки. Favorites закрепятся в корне space, названия вкладок появятся, когда вы их откроете.</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_LOADING -->
+<translation id="1521462586581967859">Читаю сайдбар Arc…</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_MISSING -->
+<translation id="5796952436029418571">Не нашёл данные Arc (~/Library/Application Support/Arc/StorableSidebar.json). Если Arc уже удалён, перенесите из его файла экспорта: Arc → Settings → Advanced → Export Data.</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_OR_FROM_EXPORT -->
+<translation id="591328745561330295">Или из файла экспорта Arc…</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_CHOOSE_EXPORT -->
+<translation id="1512193809901192316">Выбрать файл экспорта…</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_EXPORT_FAILED -->
+<translation id="4775138145490473477">Файл не выбран или это не экспорт Arc.</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_NEW_SPACE -->
+<translation id="8298695361254434964">Новый space</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_SKIP -->
+<translation id="9207872922225241842">Не переносить</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_IMPORTING -->
+<translation id="5930749448918189991">Переношу…</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_THIS_SPACE -->
+<translation id="503160337731886566">(этот)</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_NOTHING -->
+<translation id="7269464950068041663">Нечего переносить.</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_EXPORT_FILE -->
+<translation id="7967888593098923567">Файл экспорта Arc</translation>
+<!-- IDS_CROMARC_ARC_IMPORT_FOLDERS -->
+<translation id="1535692545428156216">Папки <ph name="COUNT"/></translation>
+<!-- IDS_CROMARC_ARC_IMPORT_PINNED -->
+<translation id="8844366982315849002">Закреплённые <ph name="COUNT"/></translation>
+<!-- IDS_CROMARC_ARC_IMPORT_ESSENTIALS -->
+<translation id="1329955294242524581">Важные <ph name="COUNT"/></translation>
+<!-- IDS_CROMARC_ARC_IMPORT_TODAY -->
+<translation id="8910764320307061166">Today <ph name="COUNT"/></translation>
+<!-- IDS_CROMARC_ARC_IMPORT_SKIPPED -->
+<translation id="178780028814010798">Уже были <ph name="COUNT"/></translation>
+<!-- IDS_CROMARC_LITTLE_OPEN_IN -->
+<translation id="7042519442204120027">Открыть в <ph name="SPACE"/></translation>
+<!-- IDS_CROMARC_LITTLE_OPEN_IN_ANOTHER -->
+<translation id="6087204033151452905">Открыть в другом space</translation>
+<!-- IDS_CROMARC_LITTLE_CLOSE -->
+<translation id="3262198027729110870">Закрыть (уйдёт в архив)</translation>
+<!-- IDS_CROMARC_LITTLE_ALWAYS_OPEN -->
+<translation id="2211223404266253191">Всегда открывать <ph name="HOST"/> в «<ph name="SPACE"/>»</translation>
+<!-- IDS_CROMARC_GLANCE_OPEN_AS_TAB -->
+<translation id="96068224134230333">Открыть как вкладку</translation>
+<!-- IDS_CROMARC_GLANCE_CLOSE -->
+<translation id="8823213626364929502">Закрыть (Esc)</translation>
+</translationbundle>

@@ -67,6 +67,7 @@ build_webui("build") {
     "arc_import/choices.ts",
     "command_bar/app.html.ts",
     "command_bar/app.ts",
+    "i18n/i18n.ts",
     "sidebar/app.html.ts",
     "sidebar/app.ts",
     "sidebar/browser_proxy.ts",

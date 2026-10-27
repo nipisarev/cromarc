@@ -7,6 +7,7 @@
 //   phase "build" (default): pin, folder, drag, sleep/wake, away/reset, essentials
 //   phase "restart": checks the tree after a relaunch of the same profile
 import {execSync} from 'node:child_process';
+import {texts} from '../strings.mjs';
 
 const [port = '9334', pid, phase = 'build'] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
@@ -82,8 +83,10 @@ if (phase === 'build') {
   }
   await sleep(1500);
 
+  const T = await texts(evaluate, await sidebarTarget(),
+      ['pin', 'newFolder', 'backToPinned', 'separateFromPinned', 'addToEssentials']);
   // Pin A from Today.
-  await inSidebar(`await menu(rowByTitle('#today .row', 'Cromarc A'), 'Закрепить');`);
+  await inSidebar(`await menu(rowByTitle('#today .row', 'Cromarc A'), ${JSON.stringify(T.pin)});`);
   await sleep(800);
   let s = await inSidebar('return state();');
   check('pin: A leaves Today and appears in the tree, live',
@@ -93,7 +96,7 @@ if (phase === 'build') {
   // New folder at the root, renamed to Git.
   await inSidebar(`
     const bg = root.querySelector('#sidebar');
-    app.testMenuChoice = 'Новая папка';
+    app.testMenuChoice = ${JSON.stringify(T.newFolder)};
     bg.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, composed: true, clientX: 50, clientY: 400}));
     await app.updateComplete;
   `);
@@ -158,8 +161,8 @@ if (phase === 'build') {
     b.dispatchEvent(new MouseEvent('mousemove', {metaKey: false, bubbles: true}));
     return {button: !!b, old: !!row.querySelector('.reset'), before, cmd};`);
   check('away: the icon is a reset button, no ↩', sub.button && !sub.old, JSON.stringify(sub));
-  check('away: sublabels are Zen\'s', sub.before === 'Назад к закрепленному адресу' &&
-      sub.cmd === 'Отделить от закреплённой вкладки', JSON.stringify(sub));
+  check('away: sublabels are Zen\'s', sub.before === T.backToPinned &&
+      sub.cmd === T.separateFromPinned, JSON.stringify(sub));
   await inSidebar(`rowByTitle('#tree .row', 'Cromarc A').querySelector('.reset-pin').click();`);
   await sleep(1200);
   s = await inSidebar('return state();');
@@ -185,7 +188,7 @@ if (phase === 'build') {
       s.today.includes('Elsewhere'), JSON.stringify({pages: pages.map(t => t.title), today: s.today}));
 
   // Essentials: pin B straight into the grid.
-  await inSidebar(`await menu(rowByTitle('#today .row', 'Cromarc B'), 'Добавить в важное');`);
+  await inSidebar(`await menu(rowByTitle('#today .row', 'Cromarc B'), ${JSON.stringify(T.addToEssentials)});`);
   await sleep(800);
   s = await inSidebar('return state();');
   check('essentials: B becomes a tile and leaves Today',

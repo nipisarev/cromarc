@@ -4,6 +4,8 @@
 
 import {html} from '//resources/lit/v3_0/lit.rollup.js';
 
+import {s} from '../i18n/i18n.js';
+
 import type {IconPickerElement} from './icon_picker.js';
 
 export function getHtml(this: IconPickerElement) {
@@ -13,18 +15,18 @@ export function getHtml(this: IconPickerElement) {
   <span class="spacer"></span>
   <div id="page-buttons">
     <button class="page" ?selected="${this.page_ === 'emojis'}"
-        @click="${this.onEmojisPageClick_}">Эмодзи</button>
+        @click="${this.onEmojisPageClick_}">${s('emojis')}</button>
     <button class="page" ?selected="${this.page_ === 'icons'}"
-        @click="${this.onIconsPageClick_}">Иконки</button>
+        @click="${this.onIconsPageClick_}">${s('icons')}</button>
   </div>
-  <button id="none" title="Без значка" @click="${this.onNoneClick_}">
+  <button id="none" title="${s('noIcon')}" @click="${this.onNoneClick_}">
     <span class="svg" style="mask-image: url(sidebar/ui_icons/trash.svg)"></span>
   </button>
 </div>
 <div id="pages">
   <div class="pane" id="emojis-pane">
     <div id="search-wrapper">
-      <input id="search" type="search" placeholder="Поиск эмодзи"
+      <input id="search" type="search" placeholder="${s('searchEmojis')}"
           spellcheck="false" .value="${this.query_}"
           @input="${this.onSearchInput_}">
     </div>

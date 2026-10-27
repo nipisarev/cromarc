@@ -5,6 +5,7 @@
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 
+import {cachedFormat, uiLocale} from '../i18n/i18n.js';
 import {MediaCommand} from '../sidebar.mojom-webui.js';
 import type {MediaItem} from '../sidebar.mojom-webui.js';
 
@@ -27,7 +28,8 @@ const DEFAULT_FOLDERS = 'downloads,documents,pictures';
 // The preview takes as much of the window as the column can have.
 const PREVIEW_WIDTH = 4000;
 
-const relativeTime = new Intl.RelativeTimeFormat('ru', {numeric: 'auto'});
+const relativeTime = () => cachedFormat(
+    'relativeTime', () => new Intl.RelativeTimeFormat(uiLocale(), {numeric: 'auto'}));
 
 function readStorage(key: string): string|null {
   try {
@@ -269,8 +271,8 @@ export class LibraryMediaElement extends CrLitElement {
     }
     const days = Math.round((item.modified - Date.now()) / MS_PER_DAY);
     return Math.abs(days) >= 7 ?
-        relativeTime.format(Math.round(days / 7), 'week') :
-        relativeTime.format(days, 'day');
+        relativeTime().format(Math.round(days / 7), 'week') :
+        relativeTime().format(days, 'day');
   }
 
   // Zen's opt-in shows the section's own sprite.

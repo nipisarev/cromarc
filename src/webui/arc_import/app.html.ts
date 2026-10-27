@@ -4,36 +4,33 @@
 
 import {html} from '//resources/lit/v3_0/lit.rollup.js';
 
+import {s} from '../i18n/i18n.js';
+
 import type {ArcImportAppElement} from './app.js';
 
 export function getHtml(this: ArcImportAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
 <main>
-  <h1>Перенести из Arc</h1>
+  <h1>${s('arcImportTitle')}</h1>
   <p class="hint" ?hidden="${this.loading_ || !this.found_ || this.fromExport_}">
-    Папки, закреплённые и важные вкладки, вкладки Today (откроются,
-    не загружаясь). Можно запускать снова: уже перенесённое не дублируется.
+    ${s('arcImportHint')}
   </p>
   <p class="hint" ?hidden="${!this.fromExport_}">
-    Из файла экспорта Arc: в нём только ссылки. Favorites закрепятся в корне
-    space, названия вкладок появятся, когда вы их откроете.
+    ${s('arcImportExportHint')}
   </p>
-  <p ?hidden="${!this.loading_}">Читаю сайдбар Arc…</p>
+  <p ?hidden="${!this.loading_}">${s('arcImportLoading')}</p>
   <p id="missing" ?hidden="${this.loading_ || this.found_}">
-    Не нашёл данные Arc
-    (~/Library/Application Support/Arc/StorableSidebar.json). Если Arc уже
-    удалён, перенесите из его файла экспорта: Arc → Settings → Advanced →
-    Export Data.
+    ${s('arcImportMissing')}
   </p>
   <p ?hidden="${this.loading_}">
     <button id="choose-export" class="${this.found_ ? 'link' : ''}"
         ?disabled="${this.importing_}" @click="${this.onChooseExportClick_}">
-      ${this.found_ ? 'Или из файла экспорта Arc…' :
-                      'Выбрать файл экспорта…'}
+      ${this.found_ ? s('arcImportOrFromExport') :
+                      s('arcImportChooseExport')}
     </button>
     <span id="export-failed" ?hidden="${!this.exportFailed_}">
-      Файл не выбран или это не экспорт Arc.
+      ${s('arcImportExportFailed')}
     </span>
   </p>
   <div id="spaces" ?hidden="${!this.found_}">
@@ -53,16 +50,16 @@ export function getHtml(this: ArcImportAppElement) {
             </option>`)}
           <option value="${this.newSpace_}"
               ?selected="${this.isChosen_(space.arcId, this.newSpace_)}">
-            → Новый space
+            → ${s('arcImportNewSpace')}
           </option>
           <option value="" ?selected="${this.isChosen_(space.arcId, '')}">
-            Не переносить
+            ${s('arcImportSkip')}
           </option>
         </select>
       </div>`)}
     <button id="import" ?disabled="${this.importing_}"
         @click="${this.onImportClick_}">
-      ${this.importing_ ? 'Переношу…' : 'Перенести'}
+      ${this.importing_ ? s('arcImportImporting') : s('importButton')}
     </button>
   </div>
   <pre id="summary" ?hidden="${!this.summary_}">${this.summary_}</pre>

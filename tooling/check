@@ -28,7 +28,7 @@ else
 fi
 
 echo "==> python syntax"
-for f in tooling/arch-check tooling/check-headers; do
+for f in tooling/arch-check tooling/check-headers tooling/check-locale-paks; do
   python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$f"
 done
 
@@ -40,7 +40,9 @@ for t in tooling/tests/test_*.sh; do "$t"; done
 
 echo "==> webui tests"
 if command -v node >/dev/null; then
-  node --test 'src/webui/*/tests/*_test.ts'
+  # The loader gives the pages' imports of loadTimeData and /strings.m.js the
+  # real strings (src/webui/i18n/tests); the strings check runs here too.
+  node --import ./src/webui/i18n/tests/loader.mjs --test 'src/webui/*/tests/*_test.ts'
 else
   echo "node not installed; skipped" >&2
   [ -z "${CI:-}" ] || exit 1

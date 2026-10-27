@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {texts, textF} from '../strings.mjs';
+
 // Arc import from Arc's export file, when Arc's own data is missing.
 
 const [port = '9343'] = process.argv.slice(2);
@@ -61,18 +63,32 @@ async function openImport() {
 
 const page = await openImport();
 check('import page loads', !!page);
+const T = await texts(evaluate, page, ['arcImportChooseExport', 'arcImportExportHint']);
+// The counts as the page and the summary give them: label, then number.
+const counted = (key, n) => textF(evaluate, page, key, String(n));
+const countsLine = async (...pairs) =>
+    (await Promise.all(pairs.map(([key, n]) => counted(key, n)))).join(' · ');
+const summaryLine = async (name, folders, pinned, essentials, today, skipped = 0) => {
+  const parts = await Promise.all([['arcImportFolders', folders], ['arcImportPinned', pinned],
+    ['arcImportEssentials', essentials], ['arcImportToday', today],
+    ...(skipped ? [['arcImportSkipped', skipped]] : [])].map(([key, n]) => counted(key, n)));
+  return `${name}: ${parts.join(', ')}`;
+};
+
 check('no Arc data: the page says so and offers the export file', await evaluate(page,
-    `!${APP}.found_ && !${APP}.shadowRoot.querySelector('#missing').hidden && ${APP}.shadowRoot.querySelector('#choose-export').textContent.trim() === 'Выбрать файл экспорта…'`));
+    `!${APP}.found_ && !${APP}.shadowRoot.querySelector('#missing').hidden && ${APP}.shadowRoot.querySelector('#choose-export').textContent.trim() === ${JSON.stringify(T.arcImportChooseExport)}`));
 await evaluate(page, `${APP}.shadowRoot.querySelector('#choose-export').click()`);
 const listed = await until(() => evaluate(page, `${APP}.found_ && ({spaces: ${APP}.spaces_.map(s => [s.title, s.folders, s.pinned]),
   counts: ${APP}.shadowRoot.querySelector('.counts').textContent, fromExport: ${APP}.fromExport_,
   hint: [...${APP}.shadowRoot.querySelectorAll('.hint')].filter(h => !h.hidden).map(h => h.textContent.trim().slice(0, 30))})`));
 check('the export file lists its space', JSON.stringify(listed?.spaces) === '[["Personal",2,3]]', JSON.stringify(listed));
-check('counts without Today/essentials, the export hint shows', listed?.counts === '2 папок · 3 закреплённых' &&
-    listed.hint.length === 1 && listed.hint[0].startsWith('Из файла экспорта'), JSON.stringify(listed));
+check('counts without Today/essentials, the export hint shows',
+    listed?.counts === await countsLine(['arcImportFolders', 2], ['arcImportPinned', 3]) &&
+    listed.hint.length === 1 && T.arcImportExportHint.startsWith(listed.hint[0]), JSON.stringify(listed));
 await evaluate(page, `${APP}.shadowRoot.querySelector('#import').click()`);
 const summary = await until(() => evaluate(page, `${APP}.summary_`), 20000);
-check('imported into the current space', summary === 'Your Chromium: 2 папок, 3 закреплённых, 0 важных, 0 в Today\n', summary);
+check('imported into the current space',
+    summary === `${await summaryLine('Your Chromium', 2, 3, 0, 0)}\n`, summary);
 const sidebar = (await sidebars())[0];
 const state = await until(async () => {
   const s = await evaluate(sidebar, SIDEBAR_STATE);

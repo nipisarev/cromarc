@@ -40,7 +40,10 @@ source_set("impl") {
     "//cromarc/browser/arc_import",
     "//cromarc/browser/spaces",
     "//cromarc/browser/tree:service",
+    "//cromarc/browser/ui:webui_strings",
+    "//cromarc/strings:cromarc_strings",
     "//cromarc/webui:resources",
+    "//ui/base",
     "//ui/shell_dialogs",
     "//ui/webui",
   ]
