@@ -61,7 +61,11 @@ void WelcomePageHandler::GetState(GetStateCallback callback) {
   for (const SpaceController::Space& space :
        SpaceController::Get()->GetSpaces()) {
     if (space.id == id) {
-      state->space_name = base::UTF16ToUTF8(space.name);
+      // Chromium's own name for a new profile is no name of the user's: the
+      // page suggests one instead.
+      if (!profiles_->HasDefaultName(id)) {
+        state->space_name = base::UTF16ToUTF8(space.name);
+      }
       state->space_icon = space.icon;
     }
   }

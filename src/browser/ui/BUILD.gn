@@ -42,3 +42,26 @@ source_set("webui_registration_impl") {
     "//cromarc/browser/ui/welcome",
   ]
 }
+
+# Cromarc's strings for each WebUI page; its controller hands in the locale.
+source_set("webui_strings") {
+  sources = [
+    "webui_strings.cc",
+    "webui_strings.h",
+  ]
+  deps = [
+    "//base",
+    "//content/public/browser",
+    "//cromarc/strings:cromarc_strings",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "webui_strings_unittest.cc" ]
+  deps = [
+    ":webui_strings",
+    "//cromarc/strings:cromarc_strings",
+    "//testing/gtest",
+  ]
+}

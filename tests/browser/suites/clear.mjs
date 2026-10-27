@@ -4,6 +4,7 @@
 
 // Today's Clear and its undo toast.
 import net from 'node:net';
+import {texts} from '../strings.mjs';
 
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
@@ -46,7 +47,8 @@ for (const p of ['a.html', 'b.html']) {
 }
 const sb = await until(sidebar);
 check('setup: two pages in Today', (await until(async () => (await pages()).length === 2 && await evaluate(sb, `${R}.querySelectorAll('.row.today[data-kind="tab"]').length >= 2`))) === true);
-const clear = `[...${R}.querySelectorAll('.separator .clear')].find(b => b.textContent.trim() === 'Очистить')`;
+const {clear: CLEAR} = await texts(evaluate, sb, ['clear']);
+const clear = `[...${R}.querySelectorAll('.separator .clear')].find(b => b.textContent.trim() === ${JSON.stringify(CLEAR)})`;
 await evaluate(sb, `${clear}.click(), true`);
 check('Clear closes Today but the last tab', !!(await until(async () => (await pages()).length < 2)), JSON.stringify(await pages()));
 check('…the toast offers undo', !!(await until(() => evaluate(sb, `!!${R}.querySelector('#toast button')`))));

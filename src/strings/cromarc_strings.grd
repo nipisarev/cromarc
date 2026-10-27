@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!-- Cromarc's UI strings, in English. Their Russian is in
+     translations/cromarc_strings_ru.xtb, under ids grit computes from the
+     English (and the meaning, where one English text needs two
+     translations). Chromium packs them into each locale's pak (hook H20), so
+     they come in the language Chromium's own UI uses. Other locales show the
+     English. -->
+<grit base_dir="." latest_public_release="0" current_release="1"
+      source_lang_id="en" enc_check="möl">
+  <outputs>
+    <output filename="grit/cromarc_strings.h" type="rc_header">
+      <emit emit_type='prepend'></emit>
+    </output>
+    <output filename="grit/cromarc_strings_map.h" type="resource_map_header" />
+    <output filename="grit/cromarc_strings_map.cc" type="resource_map_source" />
+    <output filename="cromarc_strings_af.pak" type="data_package" lang="af" />
+    <output filename="cromarc_strings_am.pak" type="data_package" lang="am" />
+    <output filename="cromarc_strings_ar.pak" type="data_package" lang="ar" />
+    <output filename="cromarc_strings_as.pak" type="data_package" lang="as" />
+    <output filename="cromarc_strings_az.pak" type="data_package" lang="az" />
+    <output filename="cromarc_strings_be.pak" type="data_package" lang="be" />
+    <output filename="cromarc_strings_bg.pak" type="data_package" lang="bg" />
+    <output filename="cromarc_strings_bn.pak" type="data_package" lang="bn" />
+    <output filename="cromarc_strings_bs.pak" type="data_package" lang="bs" />
+    <output filename="cromarc_strings_ca.pak" type="data_package" lang="ca" />
+    <output filename="cromarc_strings_cs.pak" type="data_package" lang="cs" />
+    <output filename="cromarc_strings_cy.pak" type="data_package" lang="cy" />
+    <output filename="cromarc_strings_da.pak" type="data_package" lang="da" />
+    <output filename="cromarc_strings_de.pak" type="data_package" lang="de" />
+    <output filename="cromarc_strings_el.pak" type="data_package" lang="el" />
+    <output filename="cromarc_strings_en-GB.pak" type="data_package" lang="en-GB" />
+    <output filename="cromarc_strings_en-US.pak" type="data_package" lang="en" />
+    <output filename="cromarc_strings_es.pak" type="data_package" lang="es" />
+    <output filename="cromarc_strings_es-419.pak" type="data_package" lang="es-419" />
+    <output filename="cromarc_strings_et.pak" type="data_package" lang="et" />
+    <output filename="cromarc_strings_eu.pak" type="data_package" lang="eu" />
+    <output filename="cromarc_strings_fa.pak" type="data_package" lang="fa" />
+    <output filename="cromarc_strings_fi.pak" type="data_package" lang="fi" />
+    <output filename="cromarc_strings_fil.pak" type="data_package" lang="fil" />
+    <output filename="cromarc_strings_fr-CA.pak" type="data_package" lang="fr-CA" />
+    <output filename="cromarc_strings_fr.pak" type="data_package" lang="fr" />
+    <output filename="cromarc_strings_gl.pak" type="data_package" lang="gl" />
+    <output filename="cromarc_strings_gu.pak" type="data_package" lang="gu" />
+    <output filename="cromarc_strings_he.pak" type="data_package" lang="he" />
+    <output filename="cromarc_strings_hi.pak" type="data_package" lang="hi" />
+    <output filename="cromarc_strings_hr.pak" type="data_package" lang="hr" />
+    <output filename="cromarc_strings_hu.pak" type="data_package" lang="hu" />
+    <output filename="cromarc_strings_hy.pak" type="data_package" lang="hy" />
+    <output filename="cromarc_strings_id.pak" type="data_package" lang="id" />
+    <output filename="cromarc_strings_is.pak" type="data_package" lang="is" />
+    <output filename="cromarc_strings_it.pak" type="data_package" lang="it" />
+    <output filename="cromarc_strings_ja.pak" type="data_package" lang="ja" />
+    <output filename="cromarc_strings_ka.pak" type="data_package" lang="ka" />
+    <output filename="cromarc_strings_kk.pak" type="data_package" lang="kk" />
+    <output filename="cromarc_strings_km.pak" type="data_package" lang="km" />
+    <output filename="cromarc_strings_kn.pak" type="data_package" lang="kn" />
+    <output filename="cromarc_strings_ko.pak" type="data_package" lang="ko" />
+    <output filename="cromarc_strings_ky.pak" type="data_package" lang="ky" />
+    <output filename="cromarc_strings_lo.pak" type="data_package" lang="lo" />
+    <output filename="cromarc_strings_lt.pak" type="data_package" lang="lt" />
+    <output filename="cromarc_strings_lv.pak" type="data_package" lang="lv" />
+    <output filename="cromarc_strings_mk.pak" type="data_package" lang="mk" />
+    <output filename="cromarc_strings_ml.pak" type="data_package" lang="ml" />
+    <output filename="cromarc_strings_mn.pak" type="data_package" lang="mn" />
+    <output filename="cromarc_strings_mr.pak" type="data_package" lang="mr" />
+    <output filename="cromarc_strings_ms.pak" type="data_package" lang="ms" />
+    <output filename="cromarc_strings_my.pak" type="data_package" lang="my" />
+    <output filename="cromarc_strings_ne.pak" type="data_package" lang="ne" />
+    <output filename="cromarc_strings_nl.pak" type="data_package" lang="nl" />
+    <output filename="cromarc_strings_nb.pak" type="data_package" lang="no" />
+    <output filename="cromarc_strings_pa.pak" type="data_package" lang="pa" />
+    <output filename="cromarc_strings_pl.pak" type="data_package" lang="pl" />
+    <output filename="cromarc_strings_pt-BR.pak" type="data_package" lang="pt-BR" />
+    <output filename="cromarc_strings_pt-PT.pak" type="data_package" lang="pt-PT" />
+    <output filename="cromarc_strings_or.pak" type="data_package" lang="or" />
+    <output filename="cromarc_strings_ro.pak" type="data_package" lang="ro" />
+    <output filename="cromarc_strings_ru.pak" type="data_package" lang="ru" />
+    <output filename="cromarc_strings_si.pak" type="data_package" lang="si" />
+    <output filename="cromarc_strings_sk.pak" type="data_package" lang="sk" />
+    <output filename="cromarc_strings_sl.pak" type="data_package" lang="sl" />
+    <output filename="cromarc_strings_sq.pak" type="data_package" lang="sq" />
+    <output filename="cromarc_strings_sr-Latn.pak" type="data_package" lang="sr-Latn" />
+    <output filename="cromarc_strings_sr.pak" type="data_package" lang="sr" />
+    <output filename="cromarc_strings_sv.pak" type="data_package" lang="sv" />
+    <output filename="cromarc_strings_sw.pak" type="data_package" lang="sw" />
+    <output filename="cromarc_strings_ta.pak" type="data_package" lang="ta" />
+    <output filename="cromarc_strings_te.pak" type="data_package" lang="te" />
+    <output filename="cromarc_strings_th.pak" type="data_package" lang="th" />
+    <output filename="cromarc_strings_tr.pak" type="data_package" lang="tr" />
+    <output filename="cromarc_strings_uk.pak" type="data_package" lang="uk" />
+    <output filename="cromarc_strings_ur.pak" type="data_package" lang="ur" />
+    <output filename="cromarc_strings_uz.pak" type="data_package" lang="uz" />
+    <output filename="cromarc_strings_vi.pak" type="data_package" lang="vi" />
+    <output filename="cromarc_strings_zh-CN.pak" type="data_package" lang="zh-CN" />
+    <output filename="cromarc_strings_zh-HK.pak" type="data_package" lang="zh-HK" />
+    <output filename="cromarc_strings_zh-TW.pak" type="data_package" lang="zh-TW" />
+    <output filename="cromarc_strings_zu.pak" type="data_package" lang="zu" />
+    <output filename="cromarc_strings_ar-XB.pak" type="data_package" lang="ar-XB" />
+    <output filename="cromarc_strings_en-XA.pak" type="data_package" lang="en-XA" />
+  </outputs>
+  <translations>
+    <file path="translations/cromarc_strings_ru.xtb" lang="ru" />
+  </translations>
+  <release seq="1">
+    <messages fallback_to_english="true">
+      <!-- The sidebar and its menus. -->
+      <message name="IDS_CROMARC_NEW_TAB" desc="The sidebar and its menus">New Tab</message>
+      <message name="IDS_CROMARC_NEW_FOLDER" desc="The sidebar and its menus">New Folder</message>
+      <message name="IDS_CROMARC_IMPORT_FROM_ARC" desc="The sidebar and its menus">Import from Arc…</message>
+      <message name="IDS_CROMARC_HIDE_SIDEBAR" desc="The sidebar and its menus">Hide sidebar  ⌘S</message>
+      <message name="IDS_CROMARC_SPACE_ACTIONS" desc="The sidebar and its menus">Space Actions</message>
+      <message name="IDS_CROMARC_EDIT_SPACE" desc="The sidebar and its menus">Change Name…</message>
+      <message name="IDS_CROMARC_CHANGE_ICON" desc="The sidebar and its menus">Change Icon…</message>
+      <message name="IDS_CROMARC_EDIT_THEME" desc="The sidebar and its menus">Edit Theme…</message>
+      <message name="IDS_CROMARC_SLEEP_SPACE" desc="The sidebar and its menus">Unload Space</message>
+      <message name="IDS_CROMARC_DELETE_SPACE" desc="The sidebar and its menus">Delete Space</message>
+      <message name="IDS_CROMARC_DELETE_SPACE_TITLE" desc="The sidebar and its menus">Delete Space?</message>
+      <message name="IDS_CROMARC_DELETE_SPACE_BODY" desc="The sidebar and its menus">Delete “<ph name="SPACE">$1<ex>Work</ex></ph>”? This space’s tabs, history, extensions and site data will be gone. This cannot be undone.</message>
+      <message name="IDS_CROMARC_DELETE" desc="The sidebar and its menus">Delete</message>
+      <message name="IDS_CROMARC_CANCEL" desc="The sidebar and its menus">Cancel</message>
+      <message name="IDS_CROMARC_CREATE_NEW" desc="The sidebar and its menus">Create New</message>
+      <message name="IDS_CROMARC_NEW_SPACE" desc="The sidebar and its menus">Create Space</message>
+      <message name="IDS_CROMARC_CREATE_FOLDER" desc="The sidebar and its menus">Create Folder</message>
+      <message name="IDS_CROMARC_LIBRARY" desc="The sidebar and its menus">Library</message>
+      <message name="IDS_CROMARC_ICLOUD_SYNC" desc="The sidebar and its menus">Sync with iCloud…</message>
+      <message name="IDS_CROMARC_ICLOUD_TITLE" desc="The sidebar and its menus">iCloud Drive</message>
+      <message name="IDS_CROMARC_ICLOUD_BODY" desc="The sidebar and its menus">This space’s bookmarks and tree, history, settings, list of extensions and tabs live in iCloud Drive/Cromarc and reach your other Mac. Passwords stay in your password manager. One Mac at a time: before you work on another Mac, quit Cromarc on this one.</message>
+      <message name="IDS_CROMARC_ICLOUD_ON" desc="The sidebar and its menus">On</message>
+      <message name="IDS_CROMARC_ICLOUD_OFF" desc="The sidebar and its menus">Off</message>
+      <message name="IDS_CROMARC_ICLOUD_ON_AFTER_RESTART" desc="The sidebar and its menus">Turns on after a restart</message>
+      <message name="IDS_CROMARC_ICLOUD_OFF_AFTER_RESTART" desc="The sidebar and its menus">Turns off after a restart</message>
+      <message name="IDS_CROMARC_ICLOUD_ENABLE" desc="The sidebar and its menus">Turn On</message>
+      <message name="IDS_CROMARC_ICLOUD_DISABLE" desc="The sidebar and its menus">Turn Off</message>
+      <message name="IDS_CROMARC_RESTART" desc="The sidebar and its menus">Restart</message>
+      <message name="IDS_CROMARC_TODAY" desc="The sidebar and its menus" meaning="The section of unpinned tabs">Today</message>
+      <message name="IDS_CROMARC_RENAME" desc="The sidebar and its menus">Rename</message>
+      <message name="IDS_CROMARC_REMOVE" desc="The sidebar and its menus">Remove</message>
+      <message name="IDS_CROMARC_RESET_PINNED" desc="The sidebar and its menus">Reset Pinned Tab</message>
+      <message name="IDS_CROMARC_RESET_ESSENTIAL" desc="The sidebar and its menus">Reset Essential Tab</message>
+      <message name="IDS_CROMARC_REPLACE_WITH_CURRENT" desc="The sidebar and its menus">Replace with Current URL</message>
+      <message name="IDS_CROMARC_RESET_PIN_BUTTON" desc="The sidebar and its menus">Reset and pin tab</message>
+      <message name="IDS_CROMARC_BACK_TO_PINNED" desc="The sidebar and its menus">Back to pinned url</message>
+      <message name="IDS_CROMARC_SEPARATE_FROM_PINNED" desc="The sidebar and its menus">Separate from pinned tab</message>
+      <message name="IDS_CROMARC_UNPIN" desc="The sidebar and its menus">Unpin Tab</message>
+      <message name="IDS_CROMARC_PIN" desc="The sidebar and its menus">Pin Tab</message>
+      <message name="IDS_CROMARC_COPY_LINK" desc="The sidebar and its menus">Copy Link</message>
+      <message name="IDS_CROMARC_ADD_TO_ESSENTIALS" desc="The sidebar and its menus">Add to Essentials</message>
+      <message name="IDS_CROMARC_REMOVE_FROM_ESSENTIALS" desc="The sidebar and its menus">Remove from Essentials</message>
+      <message name="IDS_CROMARC_ESSENTIALS_PROMO_SUBLABEL" desc="The sidebar and its menus">Keep your favorite tabs just a click away</message>
+      <message name="IDS_CROMARC_CLOSE" desc="The sidebar and its menus">Close</message>
+      <message name="IDS_CROMARC_CLEAR" desc="The sidebar and its menus">Clear</message>
+      <message name="IDS_CROMARC_CLEAR_TOOLTIP" desc="The sidebar and its menus">Close all unpinned tabs</message>
+      <message name="IDS_CROMARC_CLEARED" desc="The sidebar and its menus">Tabs closed</message>
+      <message name="IDS_CROMARC_UNDO" desc="The sidebar and its menus">Undo</message>
+      <message name="IDS_CROMARC_NEEDS_ATTENTION" desc="The sidebar and its menus">Needs attention</message>
+      <message name="IDS_CROMARC_UNSAVED_INPUT" desc="The sidebar and its menus">not closed: unsaved input</message>
+      <message name="IDS_CROMARC_CLOSE_ANYWAY" desc="The sidebar and its menus">Close Anyway</message>
+      <message name="IDS_CROMARC_KEEP" desc="The sidebar and its menus">Keep</message>
+      <message name="IDS_CROMARC_ARCHIVES_IN" desc="The sidebar and its menus">goes to the archive in <ph name="MINUTES">$1<ex>5</ex></ph> min</message>
+
+      <!-- The space editor and the icon picker. -->
+      <message name="IDS_CROMARC_CREATE_SPACE_TITLE" desc="The space editor and the icon picker">Create a Space</message>
+      <message name="IDS_CROMARC_EDIT_SPACE_TITLE" desc="The space editor and the icon picker">Edit Space</message>
+      <message name="IDS_CROMARC_CREATE_SPACE_LABEL" desc="The space editor and the icon picker">Spaces are used to organize your tabs and sessions.</message>
+      <message name="IDS_CROMARC_SPACE_NAME" desc="The space editor and the icon picker">Space Name</message>
+      <message name="IDS_CROMARC_REMOTE_SPACES" desc="The space editor and the icon picker">In iCloud Drive — connect from this Mac:</message>
+      <message name="IDS_CROMARC_SAVE" desc="The space editor and the icon picker">Save</message>
+      <message name="IDS_CROMARC_EMOJIS" desc="The space editor and the icon picker">Emojis</message>
+      <message name="IDS_CROMARC_ICONS" desc="The space editor and the icon picker">Icons</message>
+      <message name="IDS_CROMARC_NO_ICON" desc="The space editor and the icon picker">No icon</message>
+      <message name="IDS_CROMARC_SEARCH_EMOJIS" desc="The space editor and the icon picker">Search emojis</message>
+
+      <!-- The Library. -->
+      <message name="IDS_CROMARC_LIBRARY_CLOSE" desc="The Library">Close library</message>
+      <message name="IDS_CROMARC_LIBRARY_CUSTOMIZE" desc="The Library">Choose tabs</message>
+      <message name="IDS_CROMARC_LIBRARY_REMOVE_TAB" desc="The Library">Take this tab out</message>
+      <message name="IDS_CROMARC_LIBRARY_RESTORE_TAB" desc="The Library">Put this tab back</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY" desc="The Library">History</message>
+      <message name="IDS_CROMARC_LIBRARY_ARCHIVE" desc="The Library">Archive</message>
+      <message name="IDS_CROMARC_LIBRARY_DOWNLOADS" desc="The Library">Downloads</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA" desc="The Library">Media</message>
+      <message name="IDS_CROMARC_LIBRARY_SPACES" desc="The Library">Spaces</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING" desc="The Library">Routing</message>
+      <message name="IDS_CROMARC_LIBRARY_FILTER" desc="The Library">Filter</message>
+      <message name="IDS_CROMARC_LIBRARY_DONE" desc="The Library">Done</message>
+      <message name="IDS_CROMARC_LIBRARY_TODAY" desc="The Library" meaning="A time range">Today</message>
+      <message name="IDS_CROMARC_LIBRARY_WEEK" desc="The Library">This Week</message>
+      <message name="IDS_CROMARC_LIBRARY_MONTH" desc="The Library">This Month</message>
+      <message name="IDS_CROMARC_LIBRARY_OPENED_IN_BACKGROUND" desc="The Library">Opened tab in a new tab</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY_CLEAR" desc="The Library">Clear history</message>
+      <message name="IDS_CROMARC_LIBRARY_CLEAR_LAST_HOUR" desc="The Library">Last hour</message>
+      <message name="IDS_CROMARC_LIBRARY_CLEAR_LAST12_HOURS" desc="The Library">Last 12 hours</message>
+      <message name="IDS_CROMARC_LIBRARY_CLEAR_LAST_WEEK" desc="The Library">Last week</message>
+      <message name="IDS_CROMARC_LIBRARY_CLEAR_LAST_MONTH" desc="The Library">Last month</message>
+      <message name="IDS_CROMARC_LIBRARY_CLEAR_ALL" desc="The Library">Everything</message>
+      <message name="IDS_CROMARC_LIBRARY_CLEAR_PROMPT_TITLE" desc="The Library">Clear history?</message>
+      <message name="IDS_CROMARC_LIBRARY_CLEAR_PROMPT_MESSAGE" desc="The Library">The pages you visited in this time frame will be forgotten. This cannot be undone.</message>
+      <message name="IDS_CROMARC_LIBRARY_OPEN_LEGACY_HISTORY" desc="The Library">Open the “History” page</message>
+      <message name="IDS_CROMARC_LIBRARY_OPEN_LEGACY_DOWNLOADS" desc="The Library">Open the “Downloads” page</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY_FILTER_TITLE" desc="The Library">Filter History…</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY_FILTER_WHEN" desc="The Library">When was it visited?</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY_FILTER_SOURCE" desc="The Library">What to look through</message>
+      <message name="IDS_CROMARC_LIBRARY_SOURCE_CLOSED" desc="The Library">Closed tabs</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY_FILTER_SORT" desc="The Library">Sort by</message>
+      <message name="IDS_CROMARC_LIBRARY_SORT_DATE" desc="The Library">By Date</message>
+      <message name="IDS_CROMARC_LIBRARY_SORT_SITE" desc="The Library">By Site</message>
+      <message name="IDS_CROMARC_LIBRARY_SORT_MOST_VISITED" desc="The Library">By Most Visited</message>
+      <message name="IDS_CROMARC_LIBRARY_SORT_LAST_VISITED" desc="The Library">By Last Visited</message>
+      <message name="IDS_CROMARC_LIBRARY_SITE_OTHER" desc="The Library">Other</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY_SEARCH" desc="The Library">Search History…</message>
+      <message name="IDS_CROMARC_LIBRARY_HISTORY_EMPTY" desc="The Library">No history found</message>
+      <message name="IDS_CROMARC_LIBRARY_CLOSED_EMPTY" desc="The Library">No closed tabs</message>
+      <message name="IDS_CROMARC_LIBRARY_FORGET_BUTTON" desc="The Library">Remove from history</message>
+      <message name="IDS_CROMARC_LIBRARY_REOPEN_BUTTON" desc="The Library">Reopen page</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_REOPEN" desc="The Library">Reopen Page</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_FORGET" desc="The Library">Forget This Page</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_FORGET_SITE" desc="The Library">Forget About This Site</message>
+      <message name="IDS_CROMARC_LIBRARY_FORGET_SITE_TITLE" desc="The Library">Forget About This Site?</message>
+      <message name="IDS_CROMARC_LIBRARY_FORGET_SITE_MESSAGE" desc="The Library">History, cookies, data and cache of <ph name="SITE">$1<ex>example.com</ex></ph> will be removed. This cannot be undone.</message>
+      <message name="IDS_CROMARC_LIBRARY_FORGET_SITE_ACCEPT" desc="The Library">Forget</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_SEARCH" desc="The Library">Search routes</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_NEW" desc="The Library">New</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_NEW_TITLE" desc="The Library">New route</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_EDIT_TITLE" desc="The Library">Edit route</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_WHEN_THE_LINK" desc="The Library">When the link</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_CONTAINS" desc="The Library">Contains</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_EQUAL_TO" desc="The Library">Is Exactly</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_REGEX" desc="The Library">RegEx</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_OPEN_IT_IN" desc="The Library">Open it in</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_MOST_RECENT" desc="The Library">Most recent space</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_ADD" desc="The Library">Add route</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_SAVE" desc="The Library">Save route</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_REMOVE" desc="The Library">Remove route</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_EXTERNAL_LINKS" desc="The Library">Default route for external links</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_EMPTY" desc="The Library">Routes send links to the space you keep them in. Add one for a site you always open in the same place.</message>
+      <message name="IDS_CROMARC_LIBRARY_ROUTING_NO_RESULTS" desc="The Library">No routes found</message>
+      <message name="IDS_CROMARC_LIBRARY_DOWNLOADS_SEARCH" desc="The Library">Search downloads</message>
+      <message name="IDS_CROMARC_LIBRARY_DOWNLOADS_EMPTY" desc="The Library">No downloads found</message>
+      <message name="IDS_CROMARC_LIBRARY_DOWNLOADS_CLEAR_ALL" desc="The Library">Clear all downloads</message>
+      <message name="IDS_CROMARC_LIBRARY_DOWNLOADS_FILTER_TITLE" desc="The Library">Filter Downloads…</message>
+      <message name="IDS_CROMARC_LIBRARY_DOWNLOADS_FILTER_TYPE" desc="The Library">File type</message>
+      <message name="IDS_CROMARC_LIBRARY_DOWNLOADS_FILTER_WHEN" desc="The Library">When was it downloaded?</message>
+      <message name="IDS_CROMARC_LIBRARY_TYPE_IMAGES" desc="The Library">Images</message>
+      <message name="IDS_CROMARC_LIBRARY_TYPE_VIDEO" desc="The Library">Video</message>
+      <message name="IDS_CROMARC_LIBRARY_TYPE_AUDIO" desc="The Library">Audio</message>
+      <message name="IDS_CROMARC_LIBRARY_TYPE_DOCUMENTS" desc="The Library">Documents</message>
+      <message name="IDS_CROMARC_LIBRARY_TYPE_ARCHIVES" desc="The Library">Archives</message>
+      <message name="IDS_CROMARC_LIBRARY_TYPE_APPS" desc="The Library">Apps</message>
+      <message name="IDS_CROMARC_LIBRARY_OPEN_WHEN_DONE" desc="The Library">Opens when finished</message>
+      <message name="IDS_CROMARC_LIBRARY_CANCEL_DOWNLOAD" desc="The Library">Cancel download</message>
+      <message name="IDS_CROMARC_LIBRARY_SHOW_IN_FINDER" desc="The Library">Show in Finder</message>
+      <message name="IDS_CROMARC_LIBRARY_RETRY_DOWNLOAD" desc="The Library">Retry download</message>
+      <message name="IDS_CROMARC_LIBRARY_MORE_OPTIONS" desc="The Library">More options</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_OPEN" desc="The Library">Open <ph name="NAME">$1<ex>report.pdf</ex></ph></message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_COPY" desc="The Library">Copy <ph name="NAME">$1<ex>report.pdf</ex></ph></message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_COPY_LINK" desc="The Library">Copy Download Link</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_UNBLOCK" desc="The Library">Allow Download</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_HIDE" desc="The Library">Hide from Cromarc</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_DELETE" desc="The Library">Delete File</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_PAUSE" desc="The Library">Pause</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_RESUME" desc="The Library">Resume</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_GO_TO_PAGE" desc="The Library">Go To Download Page</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_REMOVE_FROM_HISTORY" desc="The Library">Remove From History</message>
+      <message name="IDS_CROMARC_LIBRARY_MENU_CLEAR_PREVIEW" desc="The Library">Clear Download Preview</message>
+      <message name="IDS_CROMARC_LIBRARY_UNBLOCK_TITLE" desc="The Library">Keep this download?</message>
+      <message name="IDS_CROMARC_LIBRARY_UNBLOCK_MESSAGE" desc="The Library">This file may harm your computer. Keep it only if you trust its source.</message>
+      <message name="IDS_CROMARC_LIBRARY_UNBLOCK_ACCEPT" desc="The Library">Keep File</message>
+      <message name="IDS_CROMARC_LIBRARY_SPACE_THEME" desc="The Library">Change theme</message>
+      <message name="IDS_CROMARC_LIBRARY_SPACE_MOVE" desc="The Library">Drag to reorder</message>
+      <message name="IDS_CROMARC_LIBRARY_SPACE_ICON" desc="The Library">Change icon</message>
+      <message name="IDS_CROMARC_LIBRARY_SPACE_RENAME" desc="The Library">Rename space</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_EMPTY" desc="The Library">No media found</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_TURN_OFF" desc="The Library">Turn off Media</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_SEARCH" desc="The Library">Search Media…</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_LOADING" desc="The Library">Looking for media…</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_TITLE" desc="The Library">Your Media in the Library</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_BODY" desc="The Library">Quickly grab screenshots, images and videos from your computer by showing them in the Cromarc Library.</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_BUTTON" desc="The Library">Show Media</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_OPT_IN_NOTE" desc="The Library">Media never leaves your computer and is not viewable by anyone but you.</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_FILTER_TITLE" desc="The Library">Filter Media…</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_FILTER_FOLDERS" desc="The Library">Where to look</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_OPEN_IN" desc="The Library">Open in <ph name="APP">$1<ex>Preview</ex></ph></message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_PREVIOUS" desc="The Library">Previous</message>
+      <message name="IDS_CROMARC_LIBRARY_MEDIA_NEXT" desc="The Library" meaning="The next file in the media viewer">Next</message>
+      <message name="IDS_CROMARC_LIBRARY_OPEN" desc="The Library">Open</message>
+      <message name="IDS_CROMARC_LIBRARY_COPY" desc="The Library">Copy</message>
+
+      <!-- Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library). -->
+      <message name="IDS_CROMARC_UNIT_BYTES" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">bytes</message>
+      <message name="IDS_CROMARC_UNIT_KILOBYTES" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">KB</message>
+      <message name="IDS_CROMARC_UNIT_MEGABYTES" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">MB</message>
+      <message name="IDS_CROMARC_UNIT_GIGABYTES" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">GB</message>
+      <message name="IDS_CROMARC_UNIT_TERABYTES" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">TB</message>
+      <message name="IDS_CROMARC_UNIT_SECONDS" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">s</message>
+      <message name="IDS_CROMARC_UNIT_MINUTES" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">m</message>
+      <message name="IDS_CROMARC_UNIT_HOURS" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">h</message>
+      <message name="IDS_CROMARC_UNIT_DAYS" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">d</message>
+      <message name="IDS_CROMARC_TIME_PAIR" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)"><ph name="TIME">$1<ex>14</ex></ph><ph name="UNIT">$2<ex>m</ex></ph></message>
+      <message name="IDS_CROMARC_DOWNLOAD_SPEED" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)"><ph name="RATE">$1<ex>3.2</ex></ph> <ph name="UNIT">$2<ex>m</ex></ph>/s</message>
+      <message name="IDS_CROMARC_DOWNLOAD_YESTERDAY" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">Yesterday</message>
+      <message name="IDS_CROMARC_DOWNLOAD_DANGEROUS" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">This file may be dangerous</message>
+      <message name="IDS_CROMARC_DOWNLOAD_PAUSED" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">Paused</message>
+      <message name="IDS_CROMARC_DOWNLOAD_MISSING" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">File moved or missing</message>
+      <message name="IDS_CROMARC_DOWNLOAD_CANCELED" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">Canceled</message>
+      <message name="IDS_CROMARC_DOWNLOAD_FAILED" desc="Downloads: sizes, times and states (Firefox downloadUtils.ftl, Zen library)">Failed</message>
+
+      <!-- The command bar and the theme picker. -->
+      <message name="IDS_CROMARC_COMMAND_BAR_PLACEHOLDER" desc="The command bar and the theme picker">Search or enter address</message>
+      <message name="IDS_CROMARC_COMMAND_BAR_KIND_TAB" desc="The command bar and the theme picker">Switch to Tab</message>
+      <message name="IDS_CROMARC_COMMAND_BAR_KIND_PINNED" desc="The command bar and the theme picker">Pinned</message>
+      <message name="IDS_CROMARC_COMMAND_BAR_KIND_ARCHIVE" desc="The command bar and the theme picker">From archive</message>
+      <message name="IDS_CROMARC_THEME_CLICK_TO_ADD" desc="The command bar and the theme picker">Click to add a color</message>
+
+      <!-- The welcome page. -->
+      <message name="IDS_CROMARC_WELCOME_TITLE" desc="The welcome page">Welcome to Cromarc</message>
+      <message name="IDS_CROMARC_WELCOME_HELLO" desc="The welcome page">A browser in the spirit of Arc and Zen, where every space is a profile of its own, with its own extensions, passwords and cookies.</message>
+      <message name="IDS_CROMARC_WELCOME_START" desc="The welcome page">Get Started</message>
+      <message name="IDS_CROMARC_WELCOME_FIRST_SPACE" desc="The welcome page">This is your first space</message>
+      <message name="IDS_CROMARC_WELCOME_ICON" desc="The welcome page">Icon</message>
+      <message name="IDS_CROMARC_WELCOME_NEXT" desc="The welcome page">Next</message>
+      <message name="IDS_CROMARC_WELCOME_MORE_TITLE" desc="The welcome page">Add more?</message>
+      <message name="IDS_CROMARC_WELCOME_MORE_BODY" desc="The welcome page">Every space is a profile of its own: extensions go into it separately. For example, Bitwarden in your personal one and 1Password in your work one.</message>
+      <message name="IDS_CROMARC_WELCOME_OWN" desc="The welcome page">Your own…</message>
+      <message name="IDS_CROMARC_WELCOME_ADD" desc="The welcome page">Add</message>
+      <message name="IDS_CROMARC_WELCOME_LATER" desc="The welcome page">Later</message>
+      <message name="IDS_CROMARC_WELCOME_PERSONAL" desc="The welcome page">Personal</message>
+      <message name="IDS_CROMARC_WELCOME_WORK" desc="The welcome page">Work</message>
+      <message name="IDS_CROMARC_WELCOME_ARC_TITLE" desc="The welcome page">Import from Arc?</message>
+      <message name="IDS_CROMARC_WELCOME_ARC_BODY" desc="The welcome page">Arc’s sidebar is here: its folders, pinned tabs and essentials can move into Cromarc’s spaces.</message>
+      <message name="IDS_CROMARC_IMPORT_BUTTON" desc="The welcome page">Import</message>
+      <message name="IDS_CROMARC_WELCOME_SKIP" desc="The welcome page">Skip</message>
+      <message name="IDS_CROMARC_WELCOME_DEFAULT_TITLE" desc="The welcome page">Make Cromarc your default browser?</message>
+      <message name="IDS_CROMARC_WELCOME_DEFAULT_BODY" desc="The welcome page">Then links from other apps open in a little window, like Little Arc, and “link → space” rules work.</message>
+      <message name="IDS_CROMARC_WELCOME_IS_DEFAULT" desc="The welcome page">Cromarc is already your default browser.</message>
+      <message name="IDS_CROMARC_WELCOME_MAKE_DEFAULT" desc="The welcome page">Make Default</message>
+      <message name="IDS_CROMARC_WELCOME_NOT_NOW" desc="The welcome page">Not Now</message>
+      <message name="IDS_CROMARC_WELCOME_DONE_TITLE" desc="The welcome page">All set</message>
+      <message name="IDS_CROMARC_WELCOME_DONE_BODY" desc="The welcome page">⌘T — command bar, ⌘S — hide the sidebar, Ctrl+1…9 — spaces, two-finger swipe on the sidebar — the next space, ⌥-click on a link — Glance.</message>
+      <message name="IDS_CROMARC_WELCOME_FINISH" desc="The welcome page">Start Browsing</message>
+
+      <!-- Import from Arc. -->
+      <message name="IDS_CROMARC_ARC_IMPORT_TITLE" desc="Import from Arc">Import from Arc</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_HINT" desc="Import from Arc">Folders, pinned and essential tabs, Today tabs (they open without loading). You can run it again: what was imported is not duplicated.</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_EXPORT_HINT" desc="Import from Arc">From an Arc export file: it holds only links. Favorites are pinned at the root of the space; tab titles appear once you open them.</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_LOADING" desc="Import from Arc">Reading Arc’s sidebar…</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_MISSING" desc="Import from Arc">Arc’s data was not found (~/Library/Application Support/Arc/StorableSidebar.json). If Arc is already deleted, import from its export file: Arc → Settings → Advanced → Export Data.</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_OR_FROM_EXPORT" desc="Import from Arc">Or from an Arc export file…</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_CHOOSE_EXPORT" desc="Import from Arc">Choose an export file…</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_EXPORT_FAILED" desc="Import from Arc">No file was chosen, or it is not an Arc export.</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_NEW_SPACE" desc="Import from Arc">New space</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_SKIP" desc="Import from Arc">Don’t import</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_IMPORTING" desc="Import from Arc">Importing…</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_THIS_SPACE" desc="Import from Arc">(this one)</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_NOTHING" desc="Import from Arc">Nothing to import.</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_EXPORT_FILE" desc="Import from Arc">Arc Export File</message>
+      <message name="IDS_CROMARC_ARC_IMPORT_FOLDERS" desc="Import from Arc">Folders <ph name="COUNT">$1<ex>3</ex></ph></message>
+      <message name="IDS_CROMARC_ARC_IMPORT_PINNED" desc="Import from Arc">Pinned <ph name="COUNT">$1<ex>3</ex></ph></message>
+      <message name="IDS_CROMARC_ARC_IMPORT_ESSENTIALS" desc="Import from Arc">Essentials <ph name="COUNT">$1<ex>3</ex></ph></message>
+      <message name="IDS_CROMARC_ARC_IMPORT_TODAY" desc="Import from Arc">Today <ph name="COUNT">$1<ex>3</ex></ph></message>
+      <message name="IDS_CROMARC_ARC_IMPORT_SKIPPED" desc="Import from Arc">Already there <ph name="COUNT">$1<ex>3</ex></ph></message>
+
+      <!-- Little windows and Glance. -->
+      <message name="IDS_CROMARC_LITTLE_OPEN_IN" desc="Little windows and Glance">Open in <ph name="SPACE">$1<ex>Work</ex></ph></message>
+      <message name="IDS_CROMARC_LITTLE_OPEN_IN_ANOTHER" desc="Little windows and Glance">Open in another space</message>
+      <message name="IDS_CROMARC_LITTLE_CLOSE" desc="Little windows and Glance">Close (goes to the archive)</message>
+      <message name="IDS_CROMARC_LITTLE_ALWAYS_OPEN" desc="Little windows and Glance">Always open <ph name="HOST">$1<ex>example.com</ex></ph> in “<ph name="SPACE">$2<ex>Work</ex></ph>”</message>
+      <message name="IDS_CROMARC_GLANCE_OPEN_AS_TAB" desc="Little windows and Glance">Open as Tab</message>
+      <message name="IDS_CROMARC_GLANCE_CLOSE" desc="Little windows and Glance">Close (Esc)</message>
+    </messages>
+  </release>
+</grit>

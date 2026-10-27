@@ -6,6 +6,7 @@ import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 
 import {NEW_SPACE, PageHandlerFactory, PageHandlerRemote} from '../arc_import.mojom-webui.js';
 import type {ArcSpace, Target} from '../arc_import.mojom-webui.js';
+import {s, sf, uiLocale} from '../i18n/i18n.js';
 
 import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
@@ -85,9 +86,12 @@ export class ArcImportAppElement extends CrLitElement {
   }
 
   protected countsOf_(space: ArcSpace): string {
-    const counts = [`${space.folders} папок`, `${space.pinned} закреплённых`];
+    const n = (value: number) => new Intl.NumberFormat(uiLocale()).format(value);
+    const counts = [sf('arcImportFolders', n(space.folders)),
+                    sf('arcImportPinned', n(space.pinned))];
     if (!this.fromExport_) {
-      counts.push(`${space.essentials} важных`, `${space.today} в Today`);
+      counts.push(sf('arcImportEssentials', n(space.essentials)),
+                  sf('arcImportToday', n(space.today)));
     }
     return counts.join(' · ');
   }
@@ -97,7 +101,8 @@ export class ArcImportAppElement extends CrLitElement {
   }
 
   protected targetLabel_(target: Target): string {
-    return `${target.icon} ${target.name}${target.current ? ' (этот)' : ''}`;
+    return `${target.icon} ${target.name}${
+        target.current ? ` ${s('arcImportThisSpace')}` : ''}`;
   }
 
   protected isChosen_(arcId: string, target: string): boolean {
@@ -114,7 +119,7 @@ export class ArcImportAppElement extends CrLitElement {
     const choices = Object.entries(this.choices_).map(
         ([arcId, target]) => ({arcId, target}));
     const {summary} = await this.handler_.import(choices);
-    this.summary_ = summary || 'Нечего переносить.';
+    this.summary_ = summary || s('arcImportNothing');
     this.importing_ = false;
   }
 }

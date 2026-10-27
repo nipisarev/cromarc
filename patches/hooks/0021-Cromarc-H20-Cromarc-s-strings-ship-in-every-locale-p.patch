@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Tue, 27 Oct 2026 18:49:48 +0100
+Subject: [PATCH] Cromarc H20: Cromarc's strings ship in every locale pak
+
+
+diff --git a/chrome/chrome_repack_locales.gni b/chrome/chrome_repack_locales.gni
+index 226c91dd847f5..a8311ccc625f7 100644
+--- a/chrome/chrome_repack_locales.gni
++++ b/chrome/chrome_repack_locales.gni
+@@ -106,6 +106,11 @@ template("chrome_repack_locales") {
+           [ "${root_gen_dir}/chrome/browser/indigo/resources/indigo_strings_" ]
+       deps += [ "//chrome/browser/indigo/resources:indigo_strings" ]
+     }
++    if (!is_android) {
++      # Cromarc's strings, in the locale Chromium picks for its own.
++      source_patterns += [ "${root_gen_dir}/cromarc/strings/cromarc_strings_" ]
++      deps += [ "//cromarc/strings:cromarc_strings" ]
++    }
+     if (enable_builtin_search_provider_assets && !is_android) {
+       source_patterns += [ "${root_gen_dir}/third_party/search_engines_data/search_engine_descriptions_strings_" ]
+       deps += [
+diff --git a/tools/gritsettings/resource_ids.spec b/tools/gritsettings/resource_ids.spec
+index 12a7de665c1d8..27d523ad07eeb 100644
+--- a/tools/gritsettings/resource_ids.spec
++++ b/tools/gritsettings/resource_ids.spec
+@@ -1804,6 +1804,9 @@
+     "META": {"sizes": {"includes": [500]}},
+     "includes": [10300],
+   },
++  "cromarc/strings/cromarc_strings.grd": {
++    "messages": [10320],
++  },
+ 
+   "<(SHARED_INTERMEDIATE_DIR)/THIS_IS_A_PLACEHOLDER.grd": {
+     "META": {"sizes": {"includes": [800]}},

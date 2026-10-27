@@ -1,0 +1,45 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import("//tools/grit/grit_rule.gni")
+
+assert(!is_android)
+
+# Cromarc's UI strings, one pak per locale. Hook H20 packs them into Chrome's
+# locale paks, so the strings come in the language Chromium picked for its own.
+grit_strings("cromarc_strings") {
+  source = "cromarc_strings.grd"
+  inputs = [ "translations/cromarc_strings_ru.xtb" ]
+  outputs = [
+    "grit/cromarc_strings.h",
+    "grit/cromarc_strings_map.cc",
+    "grit/cromarc_strings_map.h",
+  ]
+
+  # kCromarcStrings (the map, built in this target) holds webui::ResourcePath.
+  public_deps = [ "//ui/base:webui_resource_path" ]
+}
+
+# The paks themselves, for the strings' unit tests.
+group("test_paks") {
+  testonly = true
+  data = [
+    "$target_gen_dir/cromarc_strings_en-US.pak",
+    "$target_gen_dir/cromarc_strings_ru.pak",
+  ]
+  data_deps = [ ":cromarc_strings" ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "cromarc_strings_unittest.cc" ]
+  data_deps = [ ":test_paks" ]
+  deps = [
+    ":cromarc_strings",
+    "//base",
+    "//cromarc/browser/arc_import",
+    "//testing/gtest",
+    "//ui/base",
+  ]
+}

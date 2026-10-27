@@ -135,7 +135,7 @@ export class LibraryElement extends CrLitElement {
   protected accessor hiddenTabs_: string[] = [];
   protected accessor mounted_: string[] = [];
   protected accessor animatingTab_: string = '';
-  // The history section lists the archive: its tab reads "Архив".
+  // The history section lists the archive: its tab reads "Archive".
   protected accessor closedTabs_: boolean = false;
   protected accessor toast_: string = '';
   protected accessor confirm_: LibraryConfirm|null = null;

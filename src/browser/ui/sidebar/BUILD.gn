@@ -107,6 +107,7 @@ source_set("impl") {
     "//cromarc/browser/tree:service",
     "//components/favicon/content",
     "//cromarc/browser/ui:browser_commands",
+    "//cromarc/browser/ui:webui_strings",
     "//cromarc/browser/ui/welcome",
     "//ui/base/mojom:ui_base_types",
     "//cc/paint",

@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/tab_strip_api/tab_strip_service_feature.h"
@@ -31,6 +32,7 @@
 #include "cromarc/browser/chromium/library_ports_adapter.h"
 #include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/sidebar/sidebar_page_handler.h"
+#include "cromarc/browser/ui/webui_strings.h"
 #include "ui/webui/webui_util.h"
 
 namespace cromarc {
@@ -44,6 +46,7 @@ SidebarUI::SidebarUI(content::WebUI* web_ui)
       web_ui->GetWebContents()->GetBrowserContext(), kSidebarHost);
   webui::SetupWebUIDataSource(source, kCromarcResources,
                               IDR_CROMARC_SIDEBAR_SIDEBAR_HTML);
+  AddCromarcStrings(source, g_browser_process->GetApplicationLocale());
   // TabStripService bindings and helpers, served under /tab_strip_api/.
   source->AddResourcePaths(kTabStripApiResources);
   // Icons of pinned items that sleep.

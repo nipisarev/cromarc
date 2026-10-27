@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {cachedFormat, uiLocale} from '../i18n/i18n.js';
+
 // What the Library's lists are made of, after zen:library/sections/
 // ZenLibraryHistorySection.mjs and ZenLibrarySearchSection.mjs.
 
@@ -81,26 +83,29 @@ export function groupBySite(visits: Visit[]): VisitGroup[] {
         if (!one || !other) {
           return one ? -1 : 1;
         }
-        return one.localeCompare(other);
+        return one.localeCompare(other, uiLocale());
       })
       .map(([site, visits]) => ({key: `site-${site}`, site, visits}));
 }
 
-const relativeDay = new Intl.RelativeTimeFormat('ru', {numeric: 'auto'});
-const mediumDate = new Intl.DateTimeFormat('ru', {dateStyle: 'medium'});
-const visitDate =
-    new Intl.DateTimeFormat('ru', {dateStyle: 'medium', timeStyle: 'short'});
+const relativeDay = () => cachedFormat(
+    'relativeDay', () => new Intl.RelativeTimeFormat(uiLocale(), {numeric: 'auto'}));
+const mediumDate = () => cachedFormat(
+    'mediumDate', () => new Intl.DateTimeFormat(uiLocale(), {dateStyle: 'medium'}));
+const visitDate = () => cachedFormat(
+    'visitDate',
+    () => new Intl.DateTimeFormat(uiLocale(), {dateStyle: 'medium', timeStyle: 'short'}));
 
-// "Сегодня", "Вчера", "3 дня назад" up to six days, then the date.
+// "Today", "Yesterday", "3 days ago" up to six days, then the date.
 export function formatDay(day: number, now: number): string {
   const daysAgo = Math.round((startOfDay(now) - day) / MS_PER_DAY);
-  const formatted = daysAgo <= 6 ? relativeDay.format(-daysAgo, 'day') :
-                                   mediumDate.format(day);
-  return formatted.charAt(0).toLocaleUpperCase() + formatted.slice(1);
+  const formatted = daysAgo <= 6 ? relativeDay().format(-daysAgo, 'day') :
+                                   mediumDate().format(day);
+  return formatted.charAt(0).toLocaleUpperCase(uiLocale()) + formatted.slice(1);
 }
 
 export function formatVisitTime(time: number): string {
-  return visitDate.format(time);
+  return visitDate().format(time);
 }
 
 export function formatUrl(url: string): string {

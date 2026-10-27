@@ -8,15 +8,16 @@ import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 
 import {PageCallbackRouter, PageHandlerFactory, PageHandlerRemote, ResultKind} from '../command_bar.mojom-webui.js';
 import type {Result} from '../command_bar.mojom-webui.js';
+import {s} from '../i18n/i18n.js';
 
 import {getCss} from './app.css.js';
 import {getHtml} from './app.html.js';
 
 const KIND_LABELS: Record<ResultKind, string> = {
-  [ResultKind.kTab]: 'Перейти к вкладке',
-  [ResultKind.kPinned]: 'Закреплено',
+  [ResultKind.kTab]: s('commandBarKindTab'),
+  [ResultKind.kPinned]: s('commandBarKindPinned'),
   [ResultKind.kSuggestion]: '',
-  [ResultKind.kArchive]: 'Из архива',
+  [ResultKind.kArchive]: s('commandBarKindArchive'),
 };
 
 // The command bar (design, component 6): one field, results from the window's

@@ -29,6 +29,8 @@
 #include "cromarc/browser/spaces/space_controller.h"
 #include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/tree/tree_service.h"
+#include "cromarc/strings/grit/cromarc_strings.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/shell_dialogs/select_file_policy.h"
 #include "ui/shell_dialogs/selected_file_info.h"
 
@@ -128,15 +130,7 @@ class ArcImportPageHandler::Batch : public base::RefCounted<Batch> {
   explicit Batch(ImportCallback callback) : callback_(std::move(callback)) {}
 
   void Add(const std::u16string& name, const ImportCounts& counts) {
-    lines_.push_back(base::StrCat(
-        {base::UTF16ToUTF8(name), ": ", base::NumberToString(counts.folders),
-         " папок, ", base::NumberToString(counts.pinned), " закреплённых, ",
-         base::NumberToString(counts.essentials), " важных, ",
-         base::NumberToString(counts.today), " в Today"}));
-    if (counts.skipped) {
-      lines_.back() += base::StrCat(
-          {", уже были: ", base::NumberToString(counts.skipped)});
-    }
+    lines_.push_back(base::UTF16ToUTF8(SummaryLine(name, counts)));
   }
 
  private:
@@ -209,7 +203,8 @@ void ArcImportPageHandler::ChooseExportFile(
   ui::SelectFileDialog::FileTypeInfo file_types;
   file_types.extensions = {{FILE_PATH_LITERAL("md")}};
   select_file_dialog_->SelectFile(
-      ui::SelectFileDialog::SELECT_OPEN_FILE, u"Файл экспорта Arc",
+      ui::SelectFileDialog::SELECT_OPEN_FILE,
+      l10n_util::GetStringUTF16(IDS_CROMARC_ARC_IMPORT_EXPORT_FILE),
       base::GetHomeDir().Append("Downloads"), &file_types, 1,
       FILE_PATH_LITERAL("md"), web_contents_->GetTopLevelNativeWindow());
 }

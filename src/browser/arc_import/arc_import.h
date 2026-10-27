@@ -6,6 +6,7 @@
 #define CROMARC_BROWSER_ARC_IMPORT_ARC_IMPORT_H_
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "cromarc/browser/arc_import/arc_sidebar.h"
@@ -26,6 +27,11 @@ struct ImportCounts {
 
 // URLs compare without the fragment and a trailing slash, as the sidebar does.
 std::string UrlKey(const GURL& url);
+
+// What an import brought into one space, in the UI's language:
+// "Work: Folders 0, Pinned 2, Essentials 1, Today 0, Already there 3".
+std::u16string SummaryLine(std::u16string_view space,
+                           const ImportCounts& counts);
 
 // Brings Arc spaces chosen for one Cromarc space into its tree: essentials
 // first (up to the limit, the rest as pinned items), then each Arc space's

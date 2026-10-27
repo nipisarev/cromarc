@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {textF} from '../strings.mjs';
+
 // Arc import through chrome://cromarc-import with a fixture sidebar.
 
 const [port = '9343'] = process.argv.slice(2);
@@ -62,6 +64,16 @@ async function openImport() {
 
 const page = await openImport();
 check('import page loads', !!page);
+// The counts as the page and the summary give them: label, then number.
+const counted = (key, n) => textF(evaluate, page, key, String(n));
+const countsLine = async (...pairs) =>
+    (await Promise.all(pairs.map(([key, n]) => counted(key, n)))).join(' · ');
+const summaryLine = async (name, folders, pinned, essentials, today, skipped = 0) => {
+  const parts = await Promise.all([['arcImportFolders', folders], ['arcImportPinned', pinned],
+    ['arcImportEssentials', essentials], ['arcImportToday', today],
+    ...(skipped ? [['arcImportSkipped', skipped]] : [])].map(([key, n]) => counted(key, n)));
+  return `${name}: ${parts.join(', ')}`;
+};
 const listed = await evaluate(page, `({found: ${APP}.found_,
   spaces: ${APP}.spaces_.map(s => [s.title, s.folders, s.pinned, s.essentials, s.today]),
   counts: ${APP}.shadowRoot.querySelector('.counts').textContent,
@@ -69,7 +81,8 @@ const listed = await evaluate(page, `({found: ${APP}.found_,
 check('fixture read: 2 Arc spaces with counts, Today too', listed.found &&
     JSON.stringify(listed.spaces) === JSON.stringify([['Personal', 2, 3, 1, 3], ['Work', 0, 2, 1, 0]]),
     JSON.stringify(listed));
-check('counts read in Zen\'s words', listed.counts === '2 папок · 3 закреплённых · 1 важных · 3 в Today', listed.counts);
+check('counts read as label and number', listed.counts === await countsLine(['arcImportFolders', 2],
+    ['arcImportPinned', 3], ['arcImportEssentials', 1], ['arcImportToday', 3]), listed.counts);
 check('defaults: first to the current space, the other to a new one',
     listed.choices['s-personal'] === 'Default' && listed.choices['s-work'] === 'new',
     JSON.stringify(listed.choices));
@@ -78,7 +91,13 @@ await evaluate(page, `${APP}.shadowRoot.querySelector('#import').click()`);
 const summary = await until(() => evaluate(page, `${APP}.summary_`), 20000);
 console.log('summary:', JSON.stringify(summary));
 check('import reports per Cromarc space, Today included, the pinned duplicate left out',
-    (summary ?? '').split('\n').filter(Boolean).sort().join('\n') === 'Work: 0 папок, 2 закреплённых, 1 важных, 0 в Today\nYour Chromium: 2 папок, 3 закреплённых, 1 важных, 2 в Today, уже были: 1', summary);
+    (summary ?? '').split('\n').filter(Boolean).sort().join('\n') ===
+        [await summaryLine('Work', 0, 2, 1, 0), await summaryLine('Your Chromium', 2, 3, 1, 2, 1)].join('\n'),
+    summary);
+
+// What the second run will say, while this page still answers.
+const secondSummary = [await summaryLine('Your Chromium', 0, 0, 0, 0, 7),
+                       await summaryLine('Work', 0, 0, 0, 0, 3)].join('\n');
 
 const sidebar = (await sidebars())[0];
 const state = await until(async () => {
@@ -108,7 +127,7 @@ const summary2 = await until(() => evaluate(again, `${APP}.summary_`), 20000);
 console.log('summary 2:', JSON.stringify(summary2));
 // Spaces answer in the order their profiles load.
 const lines = text => (text ?? '').split('\n').filter(Boolean).sort().join('\n');
-check('second run adds nothing', lines(summary2) === lines('Your Chromium: 0 папок, 0 закреплённых, 0 важных, 0 в Today, уже были: 7\nWork: 0 папок, 0 закреплённых, 0 важных, 0 в Today, уже были: 3'), summary2);
+check('second run adds nothing', lines(summary2) === lines(secondSummary), summary2);
 const state2 = await evaluate((await sidebars())[0], SIDEBAR_STATE);
 check('no duplicates, still 2 spaces', state2.rows.filter(t => t === 'Mail').length === 1 &&
     state2.today.filter(t => t.includes('One')).length === 1 && state2.spaces.length === 2, JSON.stringify(state2));

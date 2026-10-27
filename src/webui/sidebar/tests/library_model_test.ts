@@ -7,18 +7,42 @@ import {test} from 'node:test';
 
 import {arrangeClosed, formatDay, formatUrl, groupByDay, groupBySite, siteOf, startOfDay} from '../library_model.ts';
 import type {Visit} from '../library_model.ts';
+import {useLocale} from '../../i18n/tests/strings_stub.ts';
 
 const now = new Date(2026, 9, 24, 10, 30).getTime();
 const at = (d: number, h = 9) => new Date(2026, 9, d, h).getTime();
 const visit = (url: string, time: number, title = ''): Visit =>
     ({url, title, time});
 
-test('days read relatively up to six days ago, then as a date (Zen)', () => {
-  assert.equal(formatDay(startOfDay(at(24)), now), 'Сегодня');
-  assert.equal(formatDay(startOfDay(at(23)), now), 'Вчера');
-  assert.equal(formatDay(startOfDay(at(21)), now), '3 дня назад');
-  assert.match(formatDay(startOfDay(at(12)), now), /^12 окт\. 2026/);
-});
+// A zone with daylight saving: Europe's clocks go back on 25 October 2026.
+process.env['TZ'] = 'Europe/Berlin';
+
+const DAYS = {
+  'en-US': ['Today', 'Yesterday', '3 days ago', '6 days ago', 'Oct 17, 2026', 'Oct 12, 2026',
+            'Tomorrow'],
+  'en-GB': ['Today', 'Yesterday', '3 days ago', '6 days ago', '17 Oct 2026', '12 Oct 2026',
+            'Tomorrow'],
+  // Russian plurals come from Intl, not from rules of ours.
+  ru: ['Сегодня', 'Вчера', '3 дня назад', '6 дней назад', '17 окт. 2026 г.', '12 окт. 2026 г.',
+       'Завтра'],
+};
+
+for (const [locale, days] of Object.entries(DAYS)) {
+  test(`${locale}: days read relatively up to six days ago, then as a date (Zen)`, () => {
+    useLocale(locale);
+    try {
+      // The last is tomorrow: a clock behind the history's.
+      assert.deepEqual([24, 23, 21, 18, 17, 12, 25].map(d => formatDay(startOfDay(at(d)), now)),
+                       days);
+      // The day the clocks went back has 25 hours, and still is yesterday.
+      const afterSwitch = new Date(2026, 9, 26, 10, 30).getTime();
+      assert.equal(formatDay(startOfDay(new Date(2026, 9, 25, 9).getTime()), afterSwitch),
+                   days[1]);
+    } finally {
+      useLocale('en-US');
+    }
+  });
+}
 
 test('history groups by day, newest first', () => {
   const groups = groupByDay([

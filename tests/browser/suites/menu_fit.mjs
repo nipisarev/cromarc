@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {texts} from '../strings.mjs';
+
 // The reset button's sublabel stays on one line inside its row.
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
@@ -39,10 +41,11 @@ const prelude = `const app = document.querySelector('cromarc-sidebar-app');
   const close = async () => { root.querySelector('#menu-backdrop').click(); await new Promise(r => setTimeout(r, 200)); };`;
 
 let r;
+const {pin} = await texts((t, expr) => evaluate(t, `return ${expr};`), sidebar, ['pin']);
 // Pin it, take it away, and look at the sublabel when it shows.
 await evaluate(sidebar, `${prelude}
   const el = row('#today .row', 'Home Page');
-  app.testMenuChoice = 'Закрепить';
+  app.testMenuChoice = ${JSON.stringify(pin)};
   el.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, composed: true, clientX: 20, clientY: 20}));
   await new Promise(r => setTimeout(r, 300));`);
 await sleep(1000);

@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/webui/favicon_source.h"
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
@@ -23,6 +24,7 @@
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/command_bar/command_bar_page_handler.h"
 #include "cromarc/browser/ui/command_bar/cromarc_command_bar.h"
+#include "cromarc/browser/ui/webui_strings.h"
 #include "ui/webui/webui_util.h"
 
 namespace cromarc {
@@ -36,6 +38,7 @@ CommandBarUI::CommandBarUI(content::WebUI* web_ui)
       web_ui->GetWebContents()->GetBrowserContext(), kCommandBarHost);
   webui::SetupWebUIDataSource(source, kCromarcResources,
                               IDR_CROMARC_COMMAND_BAR_COMMAND_BAR_HTML);
+  AddCromarcStrings(source, g_browser_process->GetApplicationLocale());
   Profile* const profile = Profile::FromWebUI(web_ui);
   content::URLDataSource::Add(
       profile, std::make_unique<FaviconSource>(

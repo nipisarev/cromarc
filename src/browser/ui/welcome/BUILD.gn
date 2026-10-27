@@ -43,6 +43,7 @@ source_set("impl") {
     "//components/tabs:public",
     "//content/public/browser",
     "//cromarc/browser/spaces",
+    "//cromarc/browser/ui:webui_strings",
     "//cromarc/browser/ui/arc_import",
     "//cromarc/webui:resources",
     "//skia",

@@ -21,8 +21,10 @@
 #include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/ui/glance/hovered_link.h"
+#include "cromarc/strings/grit/cromarc_strings.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/base_window.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/page_transition_types.h"
@@ -125,12 +127,13 @@ class GlanceView : public views::View {
     auto as_tab = views::CreateVectorImageButtonWithNativeTheme(
         base::BindRepeating(&Glance::OpenAsTab, base::Unretained(glance)),
         kOpenInNewIcon, kIconSize);
-    as_tab->SetTooltipText(u"Открыть как вкладку");
+    as_tab->SetTooltipText(
+        l10n_util::GetStringUTF16(IDS_CROMARC_GLANCE_OPEN_AS_TAB));
     header->AddChildView(std::move(as_tab));
     auto close = views::CreateVectorImageButtonWithNativeTheme(
         base::BindRepeating(&Glance::Close, base::Unretained(glance)),
         vector_icons::kCloseIcon, kIconSize);
-    close->SetTooltipText(u"Закрыть (Esc)");
+    close->SetTooltipText(l10n_util::GetStringUTF16(IDS_CROMARC_GLANCE_CLOSE));
     header->AddChildView(std::move(close));
     card->AddChildView(std::move(header));
 

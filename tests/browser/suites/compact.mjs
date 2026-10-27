@@ -5,6 +5,7 @@
 // Compact mode: the sidebar collapses to nothing, flashes for a background tab,
 // and comes back.
 import {readFileSync} from 'node:fs';
+import {texts} from '../strings.mjs';
 
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
@@ -48,7 +49,8 @@ const heightPinned = await evaluate(await sidebar(), 'window.innerHeight');
 const pageBefore = await pageWidth();
 console.log('sidebar', before, 'page', pageBefore);
 check('the sidebar has width', before > 100);
-check('the menu has the hide-sidebar item', await clickMenu('Скрыть сайдбар'));
+const {hideSidebar} = await texts(evaluate, await sidebar(), ['hideSidebar']);
+check('the menu has the hide-sidebar item', await clickMenu(hideSidebar));
 check('collapsed: the sidebar is gone', (await until(async () => (await width()) <= 2)) === true, String(await width()));
 const pageCompact = await until(async () => { const w = await pageWidth(); return w > pageBefore && w; });
 console.log('page in compact', pageCompact);

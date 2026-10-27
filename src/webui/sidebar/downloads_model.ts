@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {cachedFormat, s, sf, uiLocale} from '../i18n/i18n.js';
+
 // What the Library's downloads and the download stack say about a download
 // (zen:library/ZenLibraryUtils.sys.mjs, Firefox's DownloadUtils and
 // DownloadsCommon strings, in their Russian).
@@ -87,46 +89,55 @@ export function hasFile(download: DownloadLike): boolean {
   return download.state === COMPLETE && !download.missing;
 }
 
-const UNITS = ['байт', 'КБ', 'МБ', 'ГБ', 'ТБ'];
-const oneDecimal = new Intl.NumberFormat('ru', {maximumFractionDigits: 1});
-const whole = new Intl.NumberFormat('ru', {maximumFractionDigits: 0});
+const oneDecimal = () => cachedFormat(
+    'oneDecimal', () => new Intl.NumberFormat(uiLocale(), {maximumFractionDigits: 1}));
+const whole = () => cachedFormat(
+    'whole', () => new Intl.NumberFormat(uiLocale(), {maximumFractionDigits: 0}));
 
 // DownloadUtils.convertByteUnits: a decimal under 100, none from there.
 export function byteUnits(bytes: number): [string, string] {
+  const units = [s('unitBytes'), s('unitKilobytes'), s('unitMegabytes'),
+                 s('unitGigabytes'), s('unitTerabytes')];
   let value = bytes;
   let unit = 0;
-  while (value >= 1024 && unit < UNITS.length - 1) {
+  while (value >= 1024 && unit < units.length - 1) {
     value /= 1024;
     unit++;
   }
-  const format = unit === 0 || value >= 100 ? whole : oneDecimal;
-  return [format.format(value), UNITS[unit]!];
+  const format = unit === 0 || value >= 100 ? whole() : oneDecimal();
+  return [format.format(value), units[unit]!];
 }
 
-// DownloadUtils.convertTimeUnits and Zen's long form: "1 мин 14 с".
+// DownloadUtils.convertTimeUnits and Zen's long form: "1m 14s".
 export function timeLeftText(seconds: number): string {
   if (seconds < 0) {
     return '';
   }
-  const steps: Array<[number, string]> =
-      [[86400, 'дн'], [3600, 'ч'], [60, 'мин'], [1, 'с']];
+  const pair = (time: number, unit: string) =>
+      sf('timePair', whole().format(time), unit);
+  const steps: Array<[number, string]> = [
+    [86400, s('unitDays')],
+    [3600, s('unitHours')],
+    [60, s('unitMinutes')],
+    [1, s('unitSeconds')],
+  ];
   const index = steps.findIndex(([size]) => seconds >= size);
   if (index < 0) {
-    return '0 с';
+    return pair(0, s('unitSeconds'));
   }
   const [size, unit] = steps[index]!;
   const main = Math.floor(seconds / size);
   const next = steps[index + 1];
   const rest = next ? Math.floor((seconds % size) / next[0]) : 0;
-  return rest > 0 && next ? `${main} ${unit} ${rest} ${next[1]}` :
-                            `${main} ${unit}`;
+  return rest > 0 && next ? `${pair(main, unit)} ${pair(rest, next[1])}` :
+                            pair(main, unit);
 }
 
-// ZenLibraryUtils transferText: "156/1,07 ГБ · 3,2 МБ/с · 1 мин 14 с".
+// ZenLibraryUtils transferText: "156 MB/1.1 GB · 3.2 MB/s · 1m 14s".
 export function transferText(download: DownloadLike, speed = false): string {
   const [current, currentUnit] = byteUnits(n(download.receivedBytes));
   const rate = speed && !download.paused && n(download.speed) > 0 ?
-      `${byteUnits(n(download.speed)).join(' ')}/с` :
+      sf('downloadSpeed', ...byteUnits(n(download.speed))) :
       '';
   if (!hasProgress(download)) {
     return [`${current} ${currentUnit}`, rate].filter(Boolean).join(' · ');
@@ -153,9 +164,12 @@ export function baseDomainOf(url: string): string {
   }
 }
 
-const timeOfDay = new Intl.DateTimeFormat('ru', {timeStyle: 'short'});
-const weekday = new Intl.DateTimeFormat('ru', {weekday: 'long'});
-const shortDate = new Intl.DateTimeFormat('ru', {dateStyle: 'short'});
+const timeOfDay = () => cachedFormat(
+    'timeOfDay', () => new Intl.DateTimeFormat(uiLocale(), {timeStyle: 'short'}));
+const weekday = () => cachedFormat(
+    'weekday', () => new Intl.DateTimeFormat(uiLocale(), {weekday: 'long'}));
+const shortDate = () => cachedFormat(
+    'shortDate', () => new Intl.DateTimeFormat(uiLocale(), {dateStyle: 'short'}));
 
 function startOfDay(time: number): number {
   const date = new Date(time);
@@ -163,21 +177,21 @@ function startOfDay(time: number): number {
   return date.getTime();
 }
 
-// DownloadUtils.getReadableDates: the time today, "Вчера", the weekday
+// DownloadUtils.getReadableDates: the time today, "Yesterday", the weekday
 // within the week, the date before.
 export function readableDate(time: number, now: number): string {
   const days = Math.round((startOfDay(now) - startOfDay(time)) / 86400000);
   if (days <= 0) {
-    return timeOfDay.format(time);
+    return timeOfDay().format(time);
   }
   if (days === 1) {
-    return 'Вчера';
+    return s('downloadYesterday');
   }
   if (days < 7) {
-    const name = weekday.format(time);
-    return name.charAt(0).toLocaleUpperCase() + name.slice(1);
+    const name = weekday().format(time);
+    return name.charAt(0).toLocaleUpperCase(uiLocale()) + name.slice(1);
   }
-  return shortDate.format(time);
+  return shortDate().format(time);
 }
 
 // DownloadsCommon's statusSeparator.
@@ -187,16 +201,16 @@ const SEPARATOR = ' — ';
 // #statusText).
 export function statusText(download: DownloadLike, now: number): string {
   if (download.dangerous) {
-    return 'Этот файл может быть опасен';
+    return s('downloadDangerous');
   }
   if (isPending(download)) {
     return download.paused ?
-        ['Приостановлено', transferText(download)].join(SEPARATOR) :
+        [s('downloadPaused'), transferText(download)].join(SEPARATOR) :
         transferText(download, true);
   }
   if (download.state === COMPLETE) {
     if (download.missing) {
-      return 'Файл перемещён или отсутствует';
+      return s('downloadMissing');
     }
     const [size, unit] = byteUnits(n(download.receivedBytes));
     return [
@@ -206,7 +220,7 @@ export function statusText(download: DownloadLike, now: number): string {
     ].filter(Boolean)
         .join(SEPARATOR);
   }
-  return download.state === CANCELLED ? 'Отменено' : 'Ошибка';
+  return download.state === CANCELLED ? s('downloadCanceled') : s('downloadFailed');
 }
 
 // ZenLibraryWidget's ENTRIES: the download stack's slots, the newest at the

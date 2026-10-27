@@ -73,6 +73,10 @@ std::vector<Profiles::Entry> FakeProfiles::List() {
   return entries;
 }
 
+bool FakeProfiles::HasDefaultName(const std::string& id) {
+  return false;
+}
+
 std::u16string FakeProfiles::NameOf(const std::string& id) {
   for (const Space& space : spaces_) {
     if (space.id == id) {

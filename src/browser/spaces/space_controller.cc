@@ -403,7 +403,7 @@ void SpaceController::SwitchToLoaded(WindowId from_id, Profile* target) {
     ClearPrepared(/*hide=*/true);
   }
   profiles_->PrefsOf(target)->SetTime(kSpaceLastActivePref, base::Time::Now());
-  // Native fullscreen (design, "Fullscreen и дисплеи"): every fullscreen
+  // Native fullscreen (design, "Fullscreen and displays"): every fullscreen
   // space window keeps a macOS Space of its own, and nothing is hidden in
   // one, so each transition runs on the window in front.
   if (IsFullscreen(to)) {

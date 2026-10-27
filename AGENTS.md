@@ -28,9 +28,17 @@ Chromium's internals.
    (`~/Projects/_ref/zen-desktop/src/zen`), never invented. Where our model
    differs from Zen's, what the user sees, transitions included, still matches
    Zen.
+7. Text a person reads lives only in `src/strings/cromarc_strings.grd`
+   (English, Zen's words where the thing is Zen's), with its Russian in
+   `src/strings/translations/cromarc_strings_ru.xtb`. The language is
+   Chromium's only: Chromium packs these strings into its locale paks (hook
+   H20) and picks one, so Cromarc adds no language setting, pref or switch and
+   never reads a locale itself.
 
 `tooling/arch-check` enforces 1–4 (rules R1–R4 below). It runs when an agent
-writes a file, at every commit, in CI and before an install.
+writes a file, at every commit, in CI and before an install. The strings
+check (`src/webui/i18n/tests/strings_test.ts`) enforces 7 at every commit
+touching `src/`, in `tooling/check` and so in CI.
 
 ## Layers
 
@@ -66,6 +74,13 @@ tests run on the adapter and on the fake alike (`Tree`:
    with a browser suite in `tests/browser/suites/` (`tooling/test-browser`).
 4. Only when Chromium has no extension point at all (observer, keyed service,
    WebUI config, pref, command) add a hook: see below.
+5. Every word the feature shows is a message in `cromarc_strings.grd`
+   (`IDS_CROMARC_<NAME>`; $1… for what goes in) with its Russian in the xtb,
+   under the id the strings check prints when it is missing. WebUI reads it
+   as `s('name')`/`sf('name', …)` from `src/webui/i18n/i18n.ts` (the key is
+   the name in lowerCamel case), dates and numbers through `Intl` with
+   `uiLocale()`; C++ reads it with `l10n_util::GetStringUTF16(IDS_CROMARC_…)`.
+   One English text that needs two Russian ones gets a `meaning`.
 
 ## Hooks
 
@@ -94,7 +109,7 @@ commit. Reading a command-line switch is not a system change; adding one is.
 | An agent writes a file | `.claude/settings.json` runs `tooling/arch-check --claude-hook`; a violation comes back to the agent at once |
 | `git commit` | `tooling/git-hooks/pre-commit` (arch-check on the staged files, the baseline only shrinks; all of `tooling/check` when tooling or WebUI files are staged) and `commit-msg` (`System-Change:`). `tooling/bootstrap` sets `core.hooksPath` |
 | Push | CI (`.github/workflows/check.yml`): `tooling/check` (arch-check `--strict` and its tests), baseline growth, `System-Change:` on every pushed commit |
-| Install | `tooling/install` refuses unless the tree is committed, arch-check passes, every suite passed on this very build (`tooling/test-browser` stamps it) and Chromium holds exactly `patches/hooks` |
+| Install | `tooling/install` refuses unless the tree is committed, arch-check passes, every suite passed on this very build (`tooling/test-browser` stamps it, once the app's locale paks hold every Cromarc string: `tooling/check-locale-paks`) and Chromium holds exactly `patches/hooks` |
 
 `tooling/arch/baseline.txt` listed the violations that were there when the
 check came in (350); it is empty now and stays empty. Nothing may be added
@@ -107,7 +122,8 @@ adapter, never an exception.
   into Chromium). Never rebuild `out/release` while the daily Cromarc runs from
   it; the daily app is `/Applications/Cromarc.app`.
 - Test: `tooling/test-browser` (every suite, headless) and
-  `out/release/cromarc_unittests`, `node --test src/webui/*/tests/*_test.ts`,
+  `out/release/cromarc_unittests`, `node --import
+  ./src/webui/i18n/tests/loader.mjs --test src/webui/*/tests/*_test.ts`,
   `tooling/check`. A visual change also needs a window screenshot
   (windowed run plus `screencapture -l <window id>`).
 - Commit only after reading the results. Install: `tooling/install`.

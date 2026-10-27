@@ -196,7 +196,7 @@ export function getHtml(this: SidebarAppElement) {
   </div>`)}
 </div>
 ${this.editor_ ? html`
-  <cromarc-space-editor id="space-editor" ?creating="${!this.editor_.id}"
+  <cromarc-space-editor id="space-editor" .creating="${!this.editor_.id}"
       .name="${this.editor_.name}" .icon="${this.editor_.icon}"
       .pickerOpen="${this.editor_.pickerOpen}"
       .remoteSpaces="${this.remoteSpaces_}"

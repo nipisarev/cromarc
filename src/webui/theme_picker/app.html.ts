@@ -4,6 +4,7 @@
 
 import {html} from '//resources/lit/v3_0/lit.rollup.js';
 
+import {s} from '../i18n/i18n.js';
 import {textureDotLit} from '../sidebar/theme_model.js';
 
 import type {ThemePickerAppElement} from './app.js';
@@ -37,7 +38,7 @@ export function getHtml(this: ThemePickerAppElement) {
         <span class="icon" style="mask-image: url(sidebar/ui_icons/color-filter.svg)"></span>
       </button>
     </div>
-    <span id="click-to-add" ?hidden="${!this.isDefault_()}">Щёлкните, чтобы добавить цвет</span>
+    <span id="click-to-add" ?hidden="${!this.isDefault_()}">${s('themeClickToAdd')}</span>
     ${this.dots_.map(dot => html`
       <div class="dot" ?primary="${dot.id === 0}"
           ?dragging="${dot.id === 0 && this.dragging_}"

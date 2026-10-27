@@ -23,6 +23,7 @@
 #include "content/public/browser/web_ui_data_source.h"
 #include "content/public/common/url_constants.h"
 #include "cromarc/browser/chromium/adapters.h"
+#include "cromarc/browser/ui/webui_strings.h"
 #include "cromarc/browser/ui/welcome/welcome_page_handler.h"
 #include "ui/base/window_open_disposition.h"
 #include "ui/webui/webui_util.h"
@@ -54,6 +55,7 @@ WelcomeUI::WelcomeUI(content::WebUI* web_ui)
       web_ui->GetWebContents()->GetBrowserContext(), kWelcomeHost);
   webui::SetupWebUIDataSource(source, kCromarcResources,
                               IDR_CROMARC_WELCOME_WELCOME_HTML);
+  AddCromarcStrings(source, g_browser_process->GetApplicationLocale());
 }
 
 WelcomeUI::~WelcomeUI() = default;

@@ -8,9 +8,14 @@
 #include <set>
 #include <string>
 
+#include "base/i18n/number_formatting.h"
 #include "base/memory/raw_ref.h"
+#include "base/strings/strcat.h"
+#include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "cromarc/browser/ports/tree.h"
+#include "cromarc/strings/grit/cromarc_strings.h"
+#include "ui/base/l10n/l10n_util.h"
 
 namespace cromarc {
 
@@ -22,6 +27,22 @@ std::string UrlKey(const GURL& url) {
     spec.pop_back();
   }
   return spec;
+}
+
+std::u16string SummaryLine(std::u16string_view space,
+                           const ImportCounts& counts) {
+  const auto count = [](int message, int value) {
+    return l10n_util::GetStringFUTF16(message, base::FormatNumber(value));
+  };
+  std::vector<std::u16string> parts = {
+      count(IDS_CROMARC_ARC_IMPORT_FOLDERS, counts.folders),
+      count(IDS_CROMARC_ARC_IMPORT_PINNED, counts.pinned),
+      count(IDS_CROMARC_ARC_IMPORT_ESSENTIALS, counts.essentials),
+      count(IDS_CROMARC_ARC_IMPORT_TODAY, counts.today)};
+  if (counts.skipped) {
+    parts.push_back(count(IDS_CROMARC_ARC_IMPORT_SKIPPED, counts.skipped));
+  }
+  return base::StrCat({space, u": ", base::JoinString(parts, u", ")});
 }
 
 namespace {

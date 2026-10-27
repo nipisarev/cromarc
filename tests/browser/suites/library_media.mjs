@@ -8,6 +8,7 @@
 // a fixture, never the Mac's own Downloads, Documents or Pictures.
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {texts} from '../strings.mjs';
 
 const [port] = process.argv.slice(2);
 const base = `http://127.0.0.1:${port}`;
@@ -78,6 +79,7 @@ check('Escape closes the preview, the Library back to 418px', !!(await until(asy
     !(await evaluate(sb, `!!${IN(`${M} .media-preview`)}`)) && (await evaluate(sb, `${APP}.libraryWidth_`)) === 418)));
 check('…and leaves the Library open', await evaluate(sb, `${APP}.libraryOpen_`) === true);
 
-await evaluate(sb, `${APP}.testMenuChoice = 'Выключить медиа'; ${IN('.tab[data-section="media"]')}.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})), true`);
+const {libraryMediaTurnOff} = await texts(evaluate, sb, ['libraryMediaTurnOff']);
+await evaluate(sb, `${APP}.testMenuChoice = ${JSON.stringify(libraryMediaTurnOff)}; ${IN('.tab[data-section="media"]')}.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})), true`);
 check('the tab\'s menu turns Media off again', !!(await until(() => evaluate(sb, `!!${IN(`${M} .media-opt-in`)}`))));
 process.exit(results.every(Boolean) ? 0 : 1);

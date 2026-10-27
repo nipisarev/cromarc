@@ -7,8 +7,9 @@
 # (AGENTS.md): tooling/arch-check on the staged files, and the baseline of
 # known violations only shrinks. A commit that touches what only
 # tooling/check covers (the tooling, its tests, the WebUI's unit tests) needs
-# tooling/check green as well. Installed by tooling/bootstrap
-# (core.hooksPath = tooling/git-hooks).
+# tooling/check green as well, and any change in src/ the strings check (text
+# a person reads lives in //cromarc/strings, C++ included). Installed by
+# tooling/bootstrap (core.hooksPath = tooling/git-hooks).
 
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
@@ -17,6 +18,14 @@ root="$(git rev-parse --show-toplevel)"
 if git diff --cached --name-only | grep -qE '^(tooling|branding|src/webui)/'; then
   "$root/tooling/check" >/dev/null || {
     echo "pre-commit: tooling/check is red; run it to see why" >&2
+    exit 1
+  }
+fi
+if git diff --cached --name-only | grep -qE '^src/' && command -v node >/dev/null; then
+  (cd "$root" && node --import ./src/webui/i18n/tests/loader.mjs \
+    --test src/webui/i18n/tests/strings_test.ts >/dev/null) || {
+    echo "pre-commit: the strings check is red; run node --import" \
+      "./src/webui/i18n/tests/loader.mjs --test src/webui/i18n/tests/strings_test.ts" >&2
     exit 1
   }
 fi

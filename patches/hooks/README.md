@@ -201,3 +201,14 @@ window's top to its bottom edge with only the window buttons over it, as Zen's
 Library does; otherwise Chrome's values.
 If it moved: the vertical tab strip region's layout of its top button row and
 the padding at its bottom.
+
+### H20 Cromarc's strings ship in every locale pak
+Kind: build
+Where: `chrome/chrome_repack_locales.gni` (`chrome_repack_locales`, next to
+Indigo's strings), `tools/gritsettings/resource_ids.spec`.
+Contract: each locale pak Chrome builds (`<locale>.lproj/locale.pak`) holds
+`//cromarc/strings`'s messages in that locale, English where there is no
+translation, so Cromarc's text comes in the language Chromium picked for its
+own; `cromarc_strings.grd` has its message ids.
+If it moved: the template that repacks the per-locale string paks of
+`//chrome`, and the grd id ranges.

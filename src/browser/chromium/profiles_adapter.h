@@ -29,6 +29,7 @@ class ProfilesAdapter : public Profiles,
   // Profiles:
   std::vector<Entry> List() override;
   std::u16string NameOf(const std::string& id) override;
+  bool HasDefaultName(const std::string& id) override;
   Profile* GetLoaded(const std::string& id) override;
   void Load(const std::string& id,
             base::OnceCallback<void(Profile*)> then) override;

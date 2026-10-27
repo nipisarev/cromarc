@@ -40,6 +40,9 @@ class Profiles {
   virtual std::vector<Entry> List() = 0;
   // Any profile's name, omitted and ephemeral ones too; empty for none.
   virtual std::u16string NameOf(const std::string& id) = 0;
+  // Whether the profile still has the name Chromium gave it ("Person 1",
+  // "Your Chromium", in Chromium's language) rather than one a person chose.
+  virtual bool HasDefaultName(const std::string& id) = 0;
   // Null when that profile is not loaded.
   virtual Profile* GetLoaded(const std::string& id) = 0;
   // Loads the profile; null for none.

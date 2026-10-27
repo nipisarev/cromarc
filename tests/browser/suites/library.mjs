@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import {texts} from '../strings.mjs';
+
 // The Library as Zen's (zen:library): its rail, the column it widens, the
 // history section with the archive as its closed-tabs source, routes, and
 // Zen's edge swipes.
@@ -83,8 +85,17 @@ const libraryColumn = await evaluate(sb, `(() => {
 check('…its column runs from the top edge to the bottom one, the window buttons in its 40px header',
     libraryColumn.top === 0 && libraryColumn.bottom === libraryColumn.height && libraryColumn.tab >= 40,
     JSON.stringify(libraryColumn));
+const T = await texts(evaluate, sb, ['libraryRouting', 'libraryMedia', 'libraryDownloads',
+  'librarySpaces', 'libraryHistory', 'libraryArchive', 'libraryRoutingEmpty', 'unitBytes',
+  'libraryDownloadsClearAll']);
+// History's day headings are Intl's, in the locale Chromium gave the page.
+const todayHeading = await evaluate(sb, `import('chrome://resources/js/load_time_data.js').then(({loadTimeData: l}) => {
+  const day = new Intl.RelativeTimeFormat(l.getString('locale'), {numeric: 'auto'}).format(0, 'day');
+  return day.charAt(0).toLocaleUpperCase(l.getString('locale')) + day.slice(1);
+})`);
 const rail = await evaluate(sb, `${ALL('.tab .tab-label')}.map(n => n.textContent)`);
-check('its rail holds Zen\'s sections in Zen\'s order, History chosen', rail.join() === 'Маршруты,Медиа,Загрузки,Пространства,История' &&
+check('its rail holds Zen\'s sections in Zen\'s order, History chosen', rail.join() === [T.libraryRouting,
+    T.libraryMedia, T.libraryDownloads, T.librarySpaces, T.libraryHistory].join() &&
     await evaluate(sb, `${IN('.tab[active]')}.dataset.section`) === 'history', JSON.stringify(rail));
 check('the rail icons are Zen\'s sprites, coloured', !!(await until(() => evaluate(sb,
     `${IN('.tab[active] .tab-icon-image')}.style.backgroundImage.startsWith('url("data:image/svg+xml;base64')`))));
@@ -93,7 +104,7 @@ check('the rail icons are Zen\'s sprites, coloured', !!(await until(() => evalua
 const H = 'cromarc-library-history';
 const visited = await until(async () => { const t = await titles(H); return t.includes('Little test') && t; });
 check('History lists the pages visited, by day', !!visited &&
-    await evaluate(sb, `${IN(`${H} .group h3`)}.textContent`) === 'Сегодня', JSON.stringify(await titles(H)));
+    await evaluate(sb, `${IN(`${H} .group h3`)}.textContent`) === todayHeading, JSON.stringify(await titles(H)));
 
 // The archive is the closed-tabs source.
 await evaluate(sb, `${IN(`${H} .filter-button`)}.click(), true`);
@@ -101,7 +112,7 @@ await chip(H, 'source', 'closed');
 const archived = await until(async () => { const t = await titles(H); return t.includes('Little test') && t; });
 check('the closed-tabs source lists the archive, blank tabs left out', !!archived &&
     !archived.includes('about:blank'), JSON.stringify(await titles(H)));
-check('…and the tab reads Archive', await evaluate(sb, `${IN('.tab[active] .tab-label')}.textContent`) === 'Архив');
+check('…and the tab reads Archive', await evaluate(sb, `${IN('.tab[active] .tab-label')}.textContent`) === T.libraryArchive);
 check('the most visited sort is off for closed tabs', await evaluate(sb,
     `${IN(`${H} .filter-chip[data-option="mostvisited"]`)}.disabled`) === true);
 await evaluate(sb, `${IN(`${H} .filter-done`)}.click(), true`);
@@ -137,7 +148,7 @@ check('the bin forgets the page', !!forgotten && !(await titles(H)).includes('Se
 const R = 'cromarc-library-routing';
 await evaluate(sb, `${IN('.tab[data-section="space-routing"]')}.click(), true`);
 await until(() => evaluate(sb, `!!${IN(R)}`));
-check('Routes has Zen\'s empty text', !!(await until(() => evaluate(sb, `${IN(`${R} .empty`)}?.textContent.includes('Маршруты отправляют')`))));
+check('Routes has Zen\'s empty text', !!(await until(() => evaluate(sb, `${IN(`${R} .empty`)}?.textContent.trim() === ${JSON.stringify(T.libraryRoutingEmpty)}`))));
 await evaluate(sb, `${IN(`${R} .filter-button`)}.click(), true`);
 await evaluate(sb, `(() => { const i = ${IN(`${R} .routing-reference`)}; i.value = 'example.com'; i.dispatchEvent(new Event('input')); return true; })()`);
 await sleep(100);
@@ -192,7 +203,8 @@ if (!paths.every(p => p.startsWith(downloadDir ?? '\0'))) {
 }
 check('Downloads lists them, newest first', !!files && files[0] === 'pixel.png', JSON.stringify(await titles(D)));
 const status = await evaluate(sb, `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'sample.bin').querySelector('.download-status').textContent`);
-check('…with Firefox\'s status: size — site — time', /^22 байт — 127\.0\.0\.1 — \d\d:\d\d$/.test(status), status);
+check('…with Firefox\'s status: size — site — time',
+    status.startsWith(`22 ${T.unitBytes} — 127.0.0.1 — `) && /\d:\d\d/.test(status), status);
 const pictureIcon = `${ALL(`${D} .row`)}.find(r => r.querySelector('.row-title').textContent === 'pixel.png').querySelector('.file-icon')`;
 check('a finished picture shows itself', !!(await until(() => evaluate(sb,
     `${pictureIcon}.hasAttribute('preview') && ${pictureIcon}.src.includes('download-preview/')`))));
@@ -222,7 +234,7 @@ await evaluate(sb, `${button}.dispatchEvent(new MouseEvent('mouseleave')), true`
 check('…which goes when the pointer leaves', !!(await until(() => evaluate(sb, `!${APP}.stackOpen_`), 2000)));
 await evaluate(sb, `${button}.click()`);
 await settled(true);
-await evaluate(sb, `${APP}.testMenuChoice = 'Очистить все загрузки'; ${IN('.tab[data-section="downloads"]')}.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})), true`);
+await evaluate(sb, `${APP}.testMenuChoice = ${JSON.stringify(T.libraryDownloadsClearAll)}; ${IN('.tab[data-section="downloads"]')}.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})), true`);
 check('the tab\'s menu clears them all', !!(await until(async () => (await titles(D)).length === 0)), JSON.stringify(await titles(D)));
 await evaluate(sb, `${IN('.tab[data-section="space-routing"]')}.click(), true`);
 
