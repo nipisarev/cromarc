@@ -148,6 +148,9 @@ export async function checkWelcome(expect) {
   const got = await evaluate(page, `[${WELCOME}.name_, ${WELCOME}.shadowRoot.querySelector('#add-work').textContent.trim()]`);
   check(`the welcome page calls the space «${expect.spaceName}» and suggests «💼 ${expect.work}»`,
         got?.[0] === expect.spaceName && got?.[1] === `💼 ${expect.work}`, JSON.stringify(got));
+  const shown = await evaluate(page, `[...${WELCOME}.shadowRoot.querySelectorAll('section')]
+      .filter(s => getComputedStyle(s).display !== 'none').length`);
+  check('…showing one step at a time', shown === 1, String(shown));
   return page;
 }
 
