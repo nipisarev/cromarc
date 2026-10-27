@@ -27,6 +27,10 @@ patches=("$CROMARC_ROOT"/patches/hooks/*.patch)
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 git -C "$work" init -q
+# No maintenance in the background: it could still be writing into .git when
+# the trap removes the folder (CI failed on "Directory not empty").
+git -C "$work" config maintenance.auto false
+git -C "$work" config gc.auto 0
 git -C "$work" config user.email check@cromarc.invalid
 git -C "$work" config user.name check-patches
 

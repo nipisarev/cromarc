@@ -250,6 +250,8 @@ test_baseline_grew_and_system_files() {
   local root out status
   root="$(fixture git)"
   git -C "$root" init -q
+  # No background maintenance writing into a fixture being removed.
+  git -C "$root" config maintenance.auto false
   git -C "$root" config user.email t@t.invalid
   git -C "$root" config user.name t
   echo '#include "chrome/browser/ui/browser.h"' >"$root/src/browser/feature/old.cc"
