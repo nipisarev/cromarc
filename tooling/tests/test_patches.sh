@@ -43,10 +43,13 @@ setup() {
     > "$repo/CHROMIUM_VERSION"
   echo 'ours' > "$repo/src/browser/ours.cc"
   git -C "$repo" init -q
+  # No background maintenance writing into a fixture being removed.
+  git -C "$repo" config maintenance.auto false
   git -C "$repo" config user.email personal@example.com
   git -C "$repo" config user.name 'Personal Name'
 
   git -C "$src" init -q
+  git -C "$src" config maintenance.auto false
   git -C "$src" config user.email work@corp.example
   git -C "$src" config user.name 'Work Name'
   printf 'one\ntwo\nthree\n' > "$src/upstream.cc"
