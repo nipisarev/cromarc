@@ -37,6 +37,11 @@ main {
   background: var(--color-sys-primary, #6b40d9);
 }
 
+/* Steps not shown are hidden: display below would show them all. */
+[hidden] {
+  display: none !important;
+}
+
 section {
   animation: in 300ms cubic-bezier(.2, .8, .2, 1);
   display: flex;
