@@ -56,6 +56,11 @@ await mouse(tab, 'mouseReleased', 120, 80, 1);
 const glance = await until(() => find(`${site}/b.html`));
 check('Alt+click on a link opens it in Glance', !!glance);
 check('the page itself stays', !!(await find(`${site}/glance.html`)));
+const sidebar = (await targets()).find(t => t.url.startsWith('chrome://cromarc-sidebar'));
+const stripTabs = await send(sidebar, 'Runtime.evaluate', {returnByValue: true,
+  expression: `document.querySelector('cromarc-sidebar-app').tabs_.map(t => t.url)`});
+check('…and no tab opens for it', JSON.stringify(stripTabs.result?.result?.value) === JSON.stringify([`${site}/glance.html`]),
+    JSON.stringify(stripTabs.result));
 const tabs = (await targets()).filter(t => t.type === 'page' && t.url.startsWith(site));
 console.log('pages:', tabs.map(t => t.url));
 const r = await send(glance, 'Runtime.evaluate', {expression: 'document.title', returnByValue: true});
