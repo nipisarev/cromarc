@@ -11,6 +11,11 @@
 # network) and lists the DCHECKs they trip in Chromium's code.
 # The browsers run headless: nothing shows on screen or in the Dock and the
 # Mac stays the user's (CROMARC_TEST_WINDOWED=1 shows them).
+# A suite that needs a restart quits the browser itself (Browser.close, so the
+# session is saved) and exits 75: the browser starts again on the same profile
+# with no page of ours, so only what it restores opens, and the suite runs once
+# more with CROMARC_TEST_PHASE one higher (it is 1 at first; two restarts at
+# most).
 # Usage: tooling/test-browser [--sites] [suite...]
 #   CROMARC_APP picks another app (default: out/release/Cromarc.app).
 
@@ -84,9 +89,11 @@ is_daily() {
   [ "$1" = webauthn_opaque_origin ] || [ "$1" = smoke_sites ]
 }
 
-# Starts the browser for suite $1 on port $2 with profile $3, output to $4.
+# Starts the browser for suite $1 on port $2 with profile $3, output to $4,
+# opening the pages after them.
 launch() {
   local name=$1 port=$2 profile=$3 log=$4
+  shift 4
   local args=(--user-data-dir="$profile" --remote-debugging-port="$port"
     --no-first-run --no-default-browser-check --use-mock-keychain
     --disable-backgrounding-occluded-windows --disable-renderer-backgrounding
@@ -108,11 +115,13 @@ launch() {
       args+=(--cromarc-arc-sidebar="$work/no-arc.json"
         --cromarc-arc-export="$fixtures/arc_export.md") ;;
   esac
-  # Downloads go to the profile's own folder, never to ~/Downloads.
+  # Downloads go to the profile's own folder, never to ~/Downloads. A
+  # restart keeps the prefs the browser saved.
   mkdir -p "$profile/Default" "$profile/downloads"
-  printf '{"download":{"default_directory":"%s","prompt_for_download":false},"savefile":{"default_directory":"%s"}}\n' \
-    "$profile/downloads" "$profile/downloads" >"$profile/Default/Preferences"
-  "$binary" "${args[@]}" about:blank >"$log" 2>&1 &
+  [ -f "$profile/Default/Preferences" ] ||
+    printf '{"download":{"default_directory":"%s","prompt_for_download":false},"savefile":{"default_directory":"%s"}}\n' \
+      "$profile/downloads" "$profile/downloads" >"$profile/Default/Preferences"
+  "$binary" "${args[@]}" "$@" >>"$log" 2>&1 &
   browser=$!
   # Up once its window's sidebar is: the suites start from the window.
   for _ in $(seq 1 60); do
@@ -136,26 +145,35 @@ stop() {
   browser=""
 }
 
-# Runs suite $1 (script $2) on port $3; prints one line and returns its result.
+# Runs suite $1 (script $2) on port $3, restarting the browser when it asks
+# (exit 75); prints one line and returns its result.
 run() {
   local name=$1 script=$2 port=$3
-  local log="$work/$name.log" out="$work/$name.out" status=0
-  if ! launch "$name" "$port" "$work/$name" "$log"; then
+  local log="$work/$name.log" out="$work/$name.out" status=0 phase=1
+  local pages=(about:blank) runner watchdog
+  while :; do
+    if ! launch "$name" "$port" "$work/$name" "$log" ${pages[@]+"${pages[@]}"}; then
+      stop
+      echo "FAIL  $name: the browser did not start ($log)"
+      return 1
+    fi
+    CROMARC_TEST_PHASE=$phase CROMARC_TEST_LOG="$log" \
+      CROMARC_TEST_DOWNLOADS="$work/$name/downloads" \
+      node "$script" "$port" "$browser" >>"$out" 2>&1 &
+    runner=$!
+    # Off the output, so a pipe on this script closes when the suites end.
+    (sleep 300 && kill "$runner" 2>/dev/null) >/dev/null 2>&1 &
+    watchdog=$!
+    status=0
+    wait "$runner" || status=$?
+    pkill -P "$watchdog" sleep 2>/dev/null || true
+    kill "$watchdog" 2>/dev/null || true
+    wait "$watchdog" 2>/dev/null || true
     stop
-    echo "FAIL  $name: the browser did not start ($log)"
-    return 1
-  fi
-  CROMARC_TEST_LOG="$log" CROMARC_TEST_DOWNLOADS="$work/$name/downloads" \
-    node "$script" "$port" "$browser" >"$out" 2>&1 &
-  local runner=$!
-  # Off the output, so a pipe on this script closes when the suites end.
-  (sleep 300 && kill "$runner" 2>/dev/null) >/dev/null 2>&1 &
-  local watchdog=$!
-  wait "$runner" || status=$?
-  pkill -P "$watchdog" sleep 2>/dev/null || true
-  kill "$watchdog" 2>/dev/null || true
-  wait "$watchdog" 2>/dev/null || true
-  stop
+    [ "$status" -eq 75 ] && [ "$phase" -lt 3 ] || break
+    phase=$((phase + 1))
+    pages=()
+  done
   local fatal
   fatal="$(grep -m1 -E 'FATAL|dangling raw_ptr|dangling pointer' "$log" || true)"
   local passed
