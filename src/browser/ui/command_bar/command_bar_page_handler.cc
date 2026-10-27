@@ -236,8 +236,13 @@ void CommandBarPageHandler::Open(ResultPtr result) {
     case ResultKind::kPinned:
       tree_service_->Open(browser_, result->id);
       return;
-    case ResultKind::kSuggestion:
     case ResultKind::kArchive:
+      // Reopened, so no longer archived, as restoring from the Library does.
+      if (int64_t id; base::StringToInt64(result->id, &id)) {
+        archive_service_->Remove(id);
+      }
+      [[fallthrough]];
+    case ResultKind::kSuggestion:
       // Already pinned: focus it rather than opening a duplicate (design,
       // component 6).
       if (std::optional<std::string> item =
