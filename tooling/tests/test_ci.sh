@@ -99,7 +99,11 @@ mkdir -p "$state"
 python3 "$TOOLING_DIR/tests/gitiles_standin.py" "$upstream" "$state" > "$tmp/port" &
 standin=$!
 for _ in $(seq 100); do [ -s "$tmp/port" ] && break; sleep 0.1; done
-[ -s "$tmp/port" ] || { echo "the Gitiles stand-in did not start"; exit 1; }
+if [ ! -s "$tmp/port" ]; then
+  kill -0 "$standin" 2>/dev/null && how="still starting" || how="exited"
+  echo "the Gitiles stand-in did not start within 10 s ($how)"
+  exit 1
+fi
 base="http://127.0.0.1:$(cat "$tmp/port")"
 export CHROMIUM_URL="$upstream" CHROMIUM_GITILES="$base" CHROMIUM_DASH="$base"
 
