@@ -51,6 +51,16 @@ test_default_paths() {
   expect "paths: defaults under \$HOME" "got: $out" $?
 }
 
+test_chromium_locations() {
+  local out want="https://chromium.googlesource.com/chromium/src.git|https://chromium.googlesource.com/chromium/src|/m/src.git|http://127.0.0.1:1"
+  out="$(env -u CHROMIUM_URL -u CHROMIUM_GITILES \
+    bash -c ". '$TOOLING_DIR/lib.sh'; printf '%s|%s|' \"\$CHROMIUM_URL\" \"\$CHROMIUM_GITILES\"" 2>&1)"
+  out="$out$(CHROMIUM_URL=/m/src.git CHROMIUM_GITILES=http://127.0.0.1:1 in_lib 'printf "%s|%s" "$CHROMIUM_URL" "$CHROMIUM_GITILES"')"
+  [ "$out" = "$want" ]
+  expect "paths: Chromium's git remote and its Gitiles default to chromium.googlesource.com and can be pointed elsewhere" \
+    "got: $out" $?
+}
+
 test_free_gb_is_integer() {
   local out
   out="$(in_lib 'free_gb /')"
@@ -210,6 +220,7 @@ test_reexecs_native_under_rosetta
 test_pin_is_loaded
 test_tag_matches_milestone
 test_default_paths
+test_chromium_locations
 test_free_gb_is_integer
 test_require_free_gb_dies_when_short
 test_require_free_gb_passes_when_enough
