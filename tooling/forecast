@@ -1,0 +1,47 @@
+#!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# The forecast of the next bump: Chrome's newest release for Mac on a
+# channel, against the pin. When it is newer: do the hooks apply to it
+# (tooling/check-patches) and are the Chromium headers our code includes
+# still there (tooling/check-headers)? CI runs it daily for each channel.
+# Beta and Dev say it 4-8 weeks before a Stable needs it, so there a failure
+# warns, while on Stable it fails (.github/workflows/check.yml).
+#
+# Usage: tooling/forecast Stable|Beta|Dev
+
+# shellcheck source=tooling/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
+
+channel="${1:-}"
+case "$channel" in
+  Stable|Beta|Dev) ;;
+  -h|--help) sed -n '5,13p' "$0"; exit 0 ;;
+  *) die "a channel: Stable, Beta or Dev, got '$channel'" ;;
+esac
+dash="${CHROMIUM_DASH:-https://chromiumdash.appspot.com}"
+latest="$(curl -sf --retry 5 "$dash/fetch_releases?channel=$channel&platform=Mac&num=1" |
+  python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["version"])' 2>/dev/null)" ||
+  die "chromiumdash named no $channel release for Mac"
+
+echo "pin $CHROMIUM_TAG, newest $channel $latest"
+if [ "$latest" = "$CHROMIUM_TAG" ]; then
+  echo "up to date"
+  exit 0
+fi
+if [ "$(printf '%s\n%s\n' "$CHROMIUM_TAG" "$latest" | sort -V | tail -1)" = "$CHROMIUM_TAG" ]; then
+  # A tag can be pinned before Mac gets it on this channel.
+  echo "the pin is ahead of Mac $channel"
+  exit 0
+fi
+
+echo "::notice::Chrome $channel $latest is out"
+status=0
+"$CROMARC_ROOT/tooling/check-patches" "$latest" || status=1
+"$CROMARC_ROOT/tooling/check-headers" "$latest" || status=1
+if [ "$status" -ne 0 ] && [ "$channel" != Stable ]; then
+  echo "::warning::hooks or headers need work before Chrome $latest (see this job's log)"
+fi
+exit "$status"

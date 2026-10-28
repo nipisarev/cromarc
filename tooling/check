@@ -13,7 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 scripts=(tooling/lib.sh tooling/bootstrap tooling/sync tooling/apply tooling/export-patches tooling/build
-  tooling/check-patches tooling/bump tooling/zen-diff tooling/test-browser tooling/install branding/build_icons
+  tooling/check-patches tooling/forecast tooling/bump tooling/zen-diff tooling/test-browser tooling/install branding/build_icons
   tooling/check tooling/git-hooks/pre-commit tooling/git-hooks/commit-msg tooling/tests/*.sh)
 
 echo "==> bash -n"
@@ -28,7 +28,7 @@ else
 fi
 
 echo "==> python syntax"
-for f in tooling/arch-check tooling/check-headers tooling/check-locale-paks; do
+for f in tooling/arch-check tooling/check-headers tooling/check-locale-paks tooling/tests/*.py; do
   python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$f"
 done
 

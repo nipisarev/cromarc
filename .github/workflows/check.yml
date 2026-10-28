@@ -63,24 +63,4 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Hooks and headers against Chrome's newest ${{ matrix.channel }} for Mac
-        run: |
-          latest="$(curl -sf 'https://chromiumdash.appspot.com/fetch_releases?channel=${{ matrix.channel }}&platform=Mac&num=1' |
-            python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["version"])')"
-          . ./CHROMIUM_VERSION
-          echo "pin $CHROMIUM_TAG, newest stable $latest"
-          newer="$(printf '%s\n%s\n' "$CHROMIUM_TAG" "$latest" | sort -V | tail -1)"
-          if [ "$latest" = "$CHROMIUM_TAG" ]; then
-            echo "up to date"
-          elif [ "$newer" = "$CHROMIUM_TAG" ]; then
-            # A tag can be pinned before Mac stable gets it.
-            echo "the pin is ahead of Mac stable"
-          else
-            echo "::notice::Chrome ${{ matrix.channel }} $latest is out"
-            status=0
-            tooling/check-patches "$latest" || status=1
-            tooling/check-headers "$latest" || status=1
-            if [ "$status" -ne 0 ] && [ "${{ matrix.channel }}" != Stable ]; then
-              echo "::warning::hooks or headers need work before Chrome $latest (see this job's log)"
-            fi
-            exit "$status"
-          fi
+        run: tooling/forecast "${{ matrix.channel }}"
