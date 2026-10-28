@@ -18,13 +18,14 @@ case "$tag" in
   -h|--help) sed -n '5,12p' "$0"; exit 0 ;;
   *[!0-9.]*|'') die "a Chromium version tag like 156.0.8078.48, got '$tag'" ;;
 esac
-gitiles="https://chromium.googlesource.com/chromium/src/+/refs/tags/$tag"
+gitiles="$CHROMIUM_GITILES/+/refs/tags/$tag"
 [ -n "$(git ls-remote --tags "$CHROMIUM_URL" "refs/tags/$tag")" ] || die "Chromium has no tag $tag"
 
 patches=("$CROMARC_ROOT"/patches/hooks/*.patch)
 [ -e "${patches[0]}" ] || die "no patches in patches/hooks"
 
-work="$(mktemp -d)"
+# An explicit template: macOS's mktemp prefers its per-user folder to TMPDIR.
+work="$(mktemp -d "${TMPDIR:-/tmp}/check-patches.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 git -C "$work" init -q
 # No maintenance in the background: it could still be writing into .git when

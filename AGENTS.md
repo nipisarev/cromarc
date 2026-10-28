@@ -132,7 +132,8 @@ adapter, never an exception.
 
 1. Forecast without a checkout: `tooling/check-patches <tag>` (do the hooks
    apply?) and `tooling/check-headers <tag>` (are the headers our code includes
-   still there?). CI runs both daily against Stable, Beta and Dev.
+   still there?). CI runs both daily against Stable, Beta and Dev
+   (`tooling/forecast <channel>`).
 2. `tooling/bump <tag>`. When a hook does not apply, the bump stops after the
    sync with `git am` at that hook in `~/chromium/src`: find the place again
    from its contract in `patches/hooks/README.md`, put the same one-line call

@@ -20,7 +20,9 @@ import urllib.error
 import urllib.request
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-GITILES = 'https://chromium.googlesource.com/chromium/src/+/refs/tags/{tag}/{dir}/?format=JSON'
+# CHROMIUM_GITILES as in tooling/lib.sh.
+GITILES = (os.environ.get('CHROMIUM_GITILES', 'https://chromium.googlesource.com/chromium/src') +
+           '/+/refs/tags/{tag}/{dir}/?format=JSON')
 
 # Headers in Chromium's own repository (not DEPS) that exist before a build.
 IN_REPO = ('base/', 'build/', 'cc/', 'chrome/', 'components/', 'content/', 'mojo/',

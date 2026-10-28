@@ -14,6 +14,8 @@
 #   $CHROMIUM_ROOT    gclient checkout root    (default: ~/chromium)
 #   $CHROMIUM_SRC     Chromium source tree     (default: $CHROMIUM_ROOT/src)
 #   $GIT_CACHE_PATH   depot_tools git cache    (default: $CHROMIUM_ROOT/.git-cache)
+#   $CHROMIUM_URL     Chromium's git remote    (default: chromium.googlesource.com)
+#   $CHROMIUM_GITILES Gitiles' view of it      (default: chromium.googlesource.com)
 #
 # The Chromium tree lives outside this repository and is never committed here.
 
@@ -30,8 +32,11 @@ export CROMARC_ROOT DEPOT_TOOLS_DIR CHROMIUM_ROOT CHROMIUM_SRC GIT_CACHE_PATH
 . "$CROMARC_ROOT/CHROMIUM_VERSION"
 export CHROMIUM_TAG CHROMIUM_MILESTONE CHROMIUM_COMMIT CHROMIUM_CHANNEL CHROMIUM_PIN_DATE
 
-CHROMIUM_URL="https://chromium.googlesource.com/chromium/src.git"
-export CHROMIUM_URL
+CHROMIUM_URL="${CHROMIUM_URL:-https://chromium.googlesource.com/chromium/src.git}"
+# check-patches and check-headers read files and directory listings at a tag
+# from it, without a checkout.
+CHROMIUM_GITILES="${CHROMIUM_GITILES:-https://chromium.googlesource.com/chromium/src}"
+export CHROMIUM_URL CHROMIUM_GITILES
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*" >&2; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
