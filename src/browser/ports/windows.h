@@ -79,7 +79,8 @@ class Windows {
       base::RepeatingCallback<void(BrowserWindowInterface*)> callback) = 0;
 
   // A new normal window of `profile` at `bounds`, not yet shown, with no
-  // tabs. Null when Chrome can't create it.
+  // tabs. Chromium's session restore brings nothing back for it (LastSession
+  // does). Null when Chrome can't create it.
   virtual BrowserWindowInterface* Create(Profile* profile,
                                          const gfx::Rect& bounds,
                                          bool from_user_gesture) = 0;

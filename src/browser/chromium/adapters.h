@@ -10,6 +10,7 @@ namespace cromarc {
 class AppLifecycle;
 class DefaultBrowser;
 class Favicons;
+class LastSession;
 class Profiles;
 class SelectFilePolicies;
 class StripDefaults;
@@ -23,6 +24,7 @@ class Windows;
 Tabs& ChromiumTabs();
 Windows& ChromiumWindows();
 AppLifecycle& ChromiumAppLifecycle();
+LastSession& ChromiumLastSession();
 TabStripApi& ChromiumTabStripApi();
 Profiles& ChromiumProfiles();
 Theme& ChromiumTheme();

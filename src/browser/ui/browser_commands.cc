@@ -4,6 +4,7 @@
 
 #include "cromarc/browser/ui/browser_commands.h"
 
+#include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ref.h"
 #include "url/gurl.h"
@@ -83,6 +84,11 @@ void OnTargetURL(Tabs& tabs,
                  content::WebContents* source,
                  const GURL& url) {
   HoveredLink::Set(tabs, windows, source, url);
+}
+
+bool ReopenSpace(const base::FilePath& profile_path) {
+  // A space's id is its profile's directory name.
+  return SpaceController::Get()->Reopen(profile_path.BaseName().AsUTF8Unsafe());
 }
 
 bool OpenLittleInSpace(Windows& windows, BrowserWindowInterface* browser) {

@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Thu, 29 Oct 2026 21:42:50 +0100
+Subject: [PATCH] Cromarc H21: the Dock reopens the last active space
+
+
+diff --git a/chrome/browser/app_controller_mac.mm b/chrome/browser/app_controller_mac.mm
+index 054cfa33223e7..692271a1aaf0c 100644
+--- a/chrome/browser/app_controller_mac.mm
++++ b/chrome/browser/app_controller_mac.mm
+@@ -1901,6 +1901,10 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
+     return NO;
+   }
+ 
++  if (cromarc::hooks::ReopenSpace(lastProfilePath)) {  // Cromarc
++    return NO;
++  }
++
+   if (attemptRestore) {
+     // Load the profile and attempt session restore.
+     app_controller_mac::RunInLastProfileSafely(

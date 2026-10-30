@@ -71,6 +71,10 @@ bool OpenLittleInSpace(BrowserWindowInterface* browser) {
   return cromarc::OpenLittleInSpace(ChromiumWindows(), browser);
 }
 
+bool ReopenSpace(const base::FilePath& profile_path) {
+  return cromarc::ReopenSpace(profile_path);
+}
+
 void EnsureKeyedServiceFactoriesBuilt() {
   cromarc::EnsureKeyedServiceFactoriesBuilt();
 }

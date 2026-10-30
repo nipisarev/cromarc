@@ -25,6 +25,10 @@ class Profile;
 class SkPath;
 struct StartupTab;
 
+namespace base {
+class FilePath;
+}  // namespace base
+
 namespace content {
 class WebContents;
 class WebUIBrowserInterfaceBrokerRegistry;
@@ -148,6 +152,10 @@ bool PaintsOnSpaceTheme(const views::View* view,
                         const BrowserView* browser_view);
 bool TakesRoom(const views::View* combo_button);
 int ComboButtonWidth(const views::View* combo_button, int chrome_width);
+
+// H21: a click on the Dock icon with no window on screen brings back the last
+// active space with its tabs, as in Zen; true when Cromarc did.
+bool ReopenSpace(const base::FilePath& profile_path);
 
 }  // namespace cromarc::hooks
 
