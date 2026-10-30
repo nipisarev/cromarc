@@ -17,13 +17,21 @@ inline constexpr base::TimeDelta kIdleLimit = base::Hours(12);
 inline constexpr base::TimeDelta kAwayAfter = base::Minutes(15);
 // The sidebar shows the time left only within this window.
 inline constexpr base::TimeDelta kShowTimeLeftWithin = base::Hours(1);
+// After this much time unused a Little window goes to the archive, as Little
+// Arc windows do by default.
+inline constexpr base::TimeDelta kLittleIdleLimit = base::Hours(6);
 
 // The thresholds above; tests and --cromarc-idle-limit shorten them.
 struct Limits {
   base::TimeDelta idle = kIdleLimit;
   base::TimeDelta away = kAwayAfter;
   base::TimeDelta show_time_left_within = kShowTimeLeftWithin;
+  base::TimeDelta little_idle = kLittleIdleLimit;
 };
+
+// The limits, with --cromarc-idle-limit=SECONDS (a short idle limit to try
+// the lifecycle by hand or in a test; Little windows get half of it).
+Limits LimitsFromCommandLine();
 
 // What the lifecycle engine knows about one tab at one moment.
 struct TabFacts {
@@ -56,6 +64,11 @@ enum class Decision {
 Decision Decide(const TabFacts& facts,
                 base::Time now,
                 const Limits& limits = Limits());
+
+// A Little window last in use at `last_used` goes to the archive now.
+bool LittleIdledOut(base::Time last_used,
+                    base::Time now,
+                    const Limits& limits = Limits());
 
 // Time until Decide() archives or puts the tab to sleep, when that is within
 // `limits.show_time_left_within`; zero otherwise.

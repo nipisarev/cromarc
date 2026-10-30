@@ -44,6 +44,7 @@ class FakeWindows : public Windows {
       Profile* profile) override;
   bool IsOnScreen(BrowserWindowInterface* window) override;
   bool IsVisible(BrowserWindowInterface* window) override;
+  bool IsActive(BrowserWindowInterface* window) override;
   bool IsFullscreen(BrowserWindowInterface* window) override;
   gfx::Rect BoundsOf(BrowserWindowInterface* window) override;
   gfx::Rect RestoredBoundsOf(BrowserWindowInterface* window) override;
@@ -80,6 +81,7 @@ class FakeWindows : public Windows {
   // Every window, last activated first.
   std::vector<BrowserWindowInterface*> windows;
   std::set<BrowserWindowInterface*> off_screen;
+  std::set<BrowserWindowInterface*> active;
   std::set<BrowserWindowInterface*> fullscreen;
   std::set<BrowserWindowInterface*> not_normal;
   std::set<BrowserWindowInterface*> off_the_record;

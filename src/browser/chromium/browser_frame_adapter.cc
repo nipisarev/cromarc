@@ -21,6 +21,7 @@
 #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "components/prefs/pref_service.h"
+#include "cromarc/browser/chromium/glance_surface_adapter.h"
 #include "cromarc/browser/chromium/window_material.h"
 #include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
@@ -169,10 +170,12 @@ void PaintWindowBackground(gfx::Canvas* canvas,
   }
   if (!blend) {
     PaintSpaceTheme(canvas, bounds, theme, dark);
-    return;
+  } else {
+    PaintSpaceThemeBlend(canvas, bounds, theme, ParseSpaceTheme(blend->theme),
+                         blend->progress, dark);
   }
-  PaintSpaceThemeBlend(canvas, bounds, theme, ParseSpaceTheme(blend->theme),
-                       blend->progress, dark);
+  // Under a glance's card: the page it was opened from, dimmed.
+  ChromiumGlanceSurface().PaintBackdrop(canvas, browser_view);
 }
 
 bool KeepsGlass(BrowserWindowInterface* browser) {

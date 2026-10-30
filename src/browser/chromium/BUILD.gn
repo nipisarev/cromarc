@@ -22,6 +22,8 @@ source_set("adapters") {
     "local_sync_adapter.h",
     "omnibox_adapter.cc",
     "omnibox_adapter.h",
+    "presence_adapter.cc",
+    "presence_adapter.h",
     "profiles_adapter.cc",
     "profiles_adapter.h",
     "strip_defaults_adapter.cc",
@@ -65,6 +67,7 @@ source_set("adapters") {
     "//components/tabs:public",
     "//content/public/browser",
     "//ui/base",
+    "//ui/base/idle",
     "//url",
   ]
 }
@@ -76,6 +79,11 @@ source_set("chromium") {
     "browser_frame_adapter.h",
     "downloads_adapter.cc",
     "downloads_adapter.h",
+    "glance_menu_observer.cc",
+    "glance_menu_observer.h",
+    "glance_registry_get.cc",
+    "glance_surface_adapter.cc",
+    "glance_surface_adapter.h",
     "history_adapter.cc",
     "history_adapter.h",
     "library_ports_adapter.cc",
@@ -89,6 +97,7 @@ source_set("chromium") {
   ]
   public_deps = [
     ":adapters",
+    ":system_accent",
     ":window_material",
     "//chrome/browser:browser_public_dependencies",
     "//cromarc/browser/ports",
@@ -97,7 +106,11 @@ source_set("chromium") {
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui/browser_window",
     "//components/prefs",
+    "//cromarc/browser/archive:service",
     "//cromarc/browser/spaces",
+    "//cromarc/browser/tree:service",
+    "//cromarc/browser/ui/glance:registry",
+    "//cromarc/browser/ui/glance:spaces",
     "//cromarc/browser/ui/sidebar",
     "//cromarc/browser/ui/sidebar:mojo_bindings",
     "//cromarc/browser/ui/sidebar:space_theme_painter",
@@ -107,9 +120,20 @@ source_set("chromium") {
     "//components/download/public/common:public",
     "//components/history/core/browser",
     "//net",
+    "//chrome/app:command_ids",
+    "//chrome/app/vector_icons",
+    "//components/renderer_context_menu",
+    "//components/vector_icons",
+    "//components/viz/common",
+    "//content/public/browser",
+    "//cromarc/strings:cromarc_strings",
+    "//ui/base",
     "//ui/color",
     "//ui/compositor",
+    "//ui/events",
     "//ui/gfx",
+    "//ui/gfx/geometry:geometry_skia",
+    "//ui/menus",
     "//ui/views",
   ]
 }
@@ -123,6 +147,17 @@ source_set("window_material") {
     frameworks = [ "AppKit.framework" ]
   }
   public_deps = [ "//ui/gfx" ]
+}
+
+# The system's accent colour (AppKit only).
+source_set("system_accent") {
+  sources = [ "system_accent.h" ]
+  if (is_mac) {
+    sources += [ "system_accent_mac.mm" ]
+    frameworks = [ "AppKit.framework" ]
+  }
+  public_deps = [ "//skia" ]
+  deps = [ "//base" ]
 }
 
 # Tree in Chromium bookmarks.

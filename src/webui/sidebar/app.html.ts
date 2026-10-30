@@ -45,6 +45,12 @@ export function getHtml(this: SidebarAppElement) {
             <span class="favicon"
                 style="background-image: ${this.faviconFor_(e.homeUrl, e.tab, strip.favicons)}">
             </span>
+            ${this.glancesOf_(e.tab).map(glance => html`
+              <span class="glance-chip" title="${glance.title || glance.url}">
+                <span class="favicon"
+                    style="background-image: ${this.faviconFor_(glance.url, glance, strip.favicons)}">
+                </span>
+              </span>`)}
           </div>` : html`<div class="essential slot"></div>`)}`}
       </div>
       <div class="space-header ${
@@ -120,6 +126,12 @@ export function getHtml(this: SidebarAppElement) {
                                        this.strings.backToPinned}</span>` :
                     nothing}
               </span>`}
+            ${this.glancesOf_(row.tab).map(glance => html`
+              <span class="glance-chip" title="${glance.title || glance.url}">
+                <span class="favicon"
+                    style="background-image: ${this.faviconFor_(glance.url, glance, strip.favicons)}">
+                </span>
+              </span>`)}
             ${row.tab ? html`
               <button class="close" title="${this.strings.close}"
                   data-tab="${row.tab.id}" @click="${this.onCloseTabClick_}">
@@ -174,7 +186,7 @@ export function getHtml(this: SidebarAppElement) {
           @drop="${this.onTodayDrop_}">
         ${strip.view.today.map(tab => html`
           <div class="row today" data-id="${tab.id}" data-kind="tab"
-              draggable="true" ?active="${tab.isActive}"
+              draggable="true" ?active="${this.isActive_(tab)}"
               title="${this.todayTooltip_(tab)}"
               @click="${this.onTodayClick_}"
               @contextmenu="${this.onTodayContextmenu_}"
@@ -183,6 +195,12 @@ export function getHtml(this: SidebarAppElement) {
                 style="background-image: ${this.faviconFor_(tab.url, tab, strip.favicons)}">
             </span>
             <span class="title">${tab.title || tab.url}</span>
+            ${this.glancesOf_(tab).map(glance => html`
+              <span class="glance-chip" title="${glance.title || glance.url}">
+                <span class="favicon"
+                    style="background-image: ${this.faviconFor_(glance.url, glance, strip.favicons)}">
+                </span>
+              </span>`)}
             <button class="close" title="${this.strings.close}"
                 data-tab="${tab.id}" @click="${this.onCloseTabClick_}">
               <span class="svg"

@@ -61,6 +61,10 @@ bool FakeWindows::IsOnScreen(BrowserWindowInterface* window) {
   return !off_screen.contains(window);
 }
 
+bool FakeWindows::IsActive(BrowserWindowInterface* window) {
+  return active.contains(window);
+}
+
 bool FakeWindows::IsVisible(BrowserWindowInterface* window) {
   return !off_screen.contains(window);
 }
@@ -158,6 +162,7 @@ BrowserWindowInterface* FakeWindows::OpenPopup(Profile* profile,
   popups.erase(popups.begin());
   popup_urls.push_back(url);
   profiles[window] = profile;
+  bounds[window] = popup_bounds;
   return window;
 }
 

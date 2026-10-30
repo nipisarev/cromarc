@@ -22,7 +22,8 @@ struct ArchiveEntry {
   std::u16string title;
   base::Time closed_at;
   // Why the tab was archived: "idle" (12 h without use), "clear" (Today's
-  // Clear), "folder" (its folder was removed), "little" (a Little window).
+  // Clear), "folder" (its folder was removed), "little" (a Little window),
+  // "glance" (a glance its tab took along, or one open at a quit).
   std::string reason;
   // Titles of the folders the tab was in, " / "-separated; "" for Today.
   std::string folder_path;

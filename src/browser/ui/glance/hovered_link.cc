@@ -9,7 +9,11 @@
 #include "content/public/browser/web_contents.h"
 #include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ports/windows.h"
-#include "cromarc/browser/ui/glance/glance.h"
+#include "content/public/browser/page_navigator.h"
+#include "content/public/common/referrer.h"
+#include "cromarc/browser/ui/glance/glance_registry.h"
+#include "ui/base/page_transition_types.h"
+#include "ui/base/window_open_disposition.h"
 #include "third_party/blink/public/common/input/web_input_event.h"
 #include "third_party/blink/public/common/input/web_mouse_event.h"
 #include "ui/gfx/geometry/point_conversions.h"
@@ -27,9 +31,10 @@ constexpr int kModifiers =
 // static
 void HoveredLink::Set(Tabs& tabs,
                       Windows& windows,
+                      GlanceRegistry& glances,
                       content::WebContents* contents,
                       const GURL& url) {
-  CreateForWebContents(contents, tabs, windows);
+  CreateForWebContents(contents, tabs, windows, glances);
   HoveredLink* link = FromWebContents(contents);
   link->url_ = url;
   link->Watch(contents->GetPrimaryMainFrame()->GetRenderWidgetHost());
@@ -37,10 +42,12 @@ void HoveredLink::Set(Tabs& tabs,
 
 HoveredLink::HoveredLink(content::WebContents* contents,
                          Tabs& tabs,
-                         Windows& windows)
+                         Windows& windows,
+                         GlanceRegistry& glances)
     : WebContentsUserData(*contents),
       tabs_(tabs),
       windows_(windows),
+      glances_(glances),
       callback_(base::BindRepeating(&HoveredLink::OnMouseEvent,
                                     base::Unretained(this))) {}
 
@@ -75,8 +82,18 @@ bool HoveredLink::OnMouseEvent(const blink::WebMouseEvent& event) {
   }
   if (event.GetType() != blink::WebInputEvent::Type::kMouseDown ||
       event.button != blink::WebPointerProperties::Button::kLeft ||
-      (event.GetModifiers() & kModifiers) != blink::WebInputEvent::kAltKey ||
       event.click_count != 1 || !url_.SchemeIsHTTPOrHTTPS()) {
+    return false;
+  }
+  // Cmd+click asks for a tab, even from an Essential: no glance for it.
+  if (event.GetModifiers() & blink::WebInputEvent::kMetaKey) {
+    if (const std::optional<TabId> tab =
+            tabs_->FromContents(&GetWebContents())) {
+      glances_->ExpectTab(*tab);
+    }
+    return false;
+  }
+  if ((event.GetModifiers() & kModifiers) != blink::WebInputEvent::kAltKey) {
     return false;
   }
   const std::optional<TabId> tab = tabs_->FromContents(&GetWebContents());
@@ -84,9 +101,21 @@ bool HoveredLink::OnMouseEvent(const blink::WebMouseEvent& event) {
   if (!browser || !windows_->IsNormal(browser)) {
     return false;
   }
-  gfx::Point point = gfx::ToRoundedPoint(event.PositionInScreen());
-  Glance::Open(*tabs_, *windows_, browser, url_, point);
   swallow_mouse_up_ = true;
+  // Inside a glance nothing more opens (Zen's openGlance).
+  if (!glances_->Expect(
+          *tab, gfx::ToRoundedPoint(event.PositionInScreen()))) {
+    return true;
+  }
+  content::OpenURLParams params(
+      url_,
+      content::Referrer(GetWebContents().GetLastCommittedURL(),
+                        network::mojom::ReferrerPolicy::kDefault),
+      WindowOpenDisposition::NEW_FOREGROUND_TAB, ui::PAGE_TRANSITION_LINK,
+      /*is_renderer_initiated=*/false);
+  params.initiator_origin =
+      GetWebContents().GetPrimaryMainFrame()->GetLastCommittedOrigin();
+  tabs_->OpenFrom(*tab, params);
   return true;
 }
 

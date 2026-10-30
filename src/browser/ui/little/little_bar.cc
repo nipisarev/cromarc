@@ -31,6 +31,8 @@ namespace {
 constexpr int kIconSize = 16;
 // Menu commands from here on are "always open in" the space at the offset.
 constexpr int kAlwaysOpenCommand = 1000;
+// And from here on, "move this window to" the space at the offset.
+constexpr int kMoveWindowCommand = 2000;
 
 // A space's icon for a text menu: emoji or letter, nothing for Zen's icons.
 std::u16string TextIcon(const std::string& icon) {
@@ -49,6 +51,17 @@ std::u16string NameOf(const std::string& space_id) {
   return std::u16string();
 }
 
+// The space as its menus show it: icon and name.
+std::u16string LabelOf(const std::string& space_id) {
+  for (const SpaceController::Space& space :
+       SpaceController::Get()->GetSpaces()) {
+    if (space.id == space_id) {
+      return base::StrCat({TextIcon(space.icon), space.name});
+    }
+  }
+  return std::u16string();
+}
+
 }  // namespace
 
 LittleBar::LittleBar(LittleWindow* window) : window_(window->GetWeakPtr()) {
@@ -56,6 +69,15 @@ LittleBar::LittleBar(LittleWindow* window) : window_(window->GetWeakPtr()) {
       views::BoxLayout::Orientation::kHorizontal, gfx::Insets::VH(0, 4), 2));
   layout->set_cross_axis_alignment(
       views::BoxLayout::CrossAxisAlignment::kCenter);
+
+  // Arc's Little Arc names its space; the window can move to another.
+  auto space = std::make_unique<views::MdTextButton>(
+      base::BindRepeating(&LittleBar::ShowMoveMenu, base::Unretained(this)),
+      LabelOf(window->default_space()));
+  space->SetStyle(ui::ButtonStyle::kText);
+  space->SetTooltipText(
+      l10n_util::GetStringUTF16(IDS_CROMARC_LITTLE_MOVE_WINDOW_TOOLTIP));
+  space_button_ = AddChildView(std::move(space));
 
   auto open = std::make_unique<views::MdTextButton>(
       base::BindRepeating(
@@ -116,8 +138,41 @@ void LittleBar::ShowSpacesMenu() {
                           ui::mojom::MenuSourceType::kMouse);
 }
 
+void LittleBar::ShowMoveMenu() {
+  menu_spaces_.clear();
+  menu_model_ = std::make_unique<ui::SimpleMenuModel>(this);
+  for (const SpaceController::Space& space :
+       SpaceController::Get()->GetSpaces()) {
+    if (window_ && space.id == window_->default_space()) {
+      continue;
+    }
+    menu_model_->AddItem(
+        kMoveWindowCommand + static_cast<int>(menu_spaces_.size()),
+        l10n_util::GetStringFUTF16(
+            IDS_CROMARC_LITTLE_MOVE_WINDOW,
+            base::StrCat({TextIcon(space.icon), space.name})));
+    menu_spaces_.push_back(space.id);
+  }
+  if (menu_spaces_.empty()) {
+    return;
+  }
+  menu_runner_ = std::make_unique<views::MenuRunner>(
+      menu_model_.get(), views::MenuRunner::HAS_MNEMONICS);
+  menu_runner_->RunMenuAt(GetWidget(), nullptr,
+                          space_button_->GetBoundsInScreen(),
+                          views::MenuAnchorPosition::kTopLeft,
+                          ui::mojom::MenuSourceType::kMouse);
+}
+
 void LittleBar::ExecuteCommand(int command_id, int event_flags) {
   if (!window_) {
+    return;
+  }
+  if (command_id >= kMoveWindowCommand) {
+    const size_t index = static_cast<size_t>(command_id - kMoveWindowCommand);
+    if (index < menu_spaces_.size()) {
+      window_->MoveToSpace(menu_spaces_[index]);
+    }
     return;
   }
   const bool always = command_id >= kAlwaysOpenCommand;

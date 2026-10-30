@@ -10,10 +10,6 @@
 
 class Profile;
 
-namespace content {
-class WebContents;
-}  // namespace content
-
 namespace cromarc {
 
 // The browser's own life and what it knows of its pages. Profiles are
@@ -24,9 +20,6 @@ class AppLifecycle {
 
   // Session restore is still bringing back `profile`'s windows and tabs.
   virtual bool IsRestoringSession(Profile* profile) = 0;
-  // The user typed or edited something on the page: true when that cannot be
-  // known.
-  virtual bool MayHaveUserEdits(content::WebContents* contents) = 0;
   // Quits and starts again, as Chrome's relaunch does.
   virtual void Restart() = 0;
   // The process is about to exit with its tabs open: SIGTERM or logout.

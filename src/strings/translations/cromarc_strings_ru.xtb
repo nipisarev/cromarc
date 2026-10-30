@@ -493,8 +493,13 @@
 <translation id="3262198027729110870">Закрыть (уйдёт в архив)</translation>
 <!-- IDS_CROMARC_LITTLE_ALWAYS_OPEN -->
 <translation id="2211223404266253191">Всегда открывать <ph name="HOST"/> в «<ph name="SPACE"/>»</translation>
+<translation id="819576493860258696">Открыть ссылку в Glance</translation>
+<translation id="2310685836539241064">Перенести окно в «<ph name="SPACE"/>»</translation>
+<translation id="6340505789570572405">Перенести это окно в другой space</translation>
 <!-- IDS_CROMARC_GLANCE_OPEN_AS_TAB -->
 <translation id="96068224134230333">Открыть как вкладку</translation>
+<!-- IDS_CROMARC_GLANCE_CONFIRM -->
+<translation id="8131740175452115882">Подтвердить</translation>
 <!-- IDS_CROMARC_GLANCE_CLOSE -->
 <translation id="8823213626364929502">Закрыть (Esc)</translation>
 </translationbundle>

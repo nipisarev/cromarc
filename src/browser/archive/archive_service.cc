@@ -17,7 +17,6 @@
 #include "base/values.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
-#include "cromarc/browser/archive/archive_service_factory.h"
 #include "url/gurl.h"
 
 namespace cromarc {
@@ -57,11 +56,6 @@ std::optional<ArchiveEntry> FromValue(const base::Value& value) {
 }
 
 }  // namespace
-
-// static
-ArchiveService* ArchiveService::Get(Profile* profile) {
-  return ArchiveServiceFactory::GetForProfile(profile);
-}
 
 ArchiveService::ArchiveService(const base::FilePath& profile_path,
                                PrefService* prefs)

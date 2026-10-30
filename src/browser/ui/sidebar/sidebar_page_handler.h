@@ -91,6 +91,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   void NewTab() override;
   void ToggleCompactMode() override;
   void GetTabLifecycles(GetTabLifecyclesCallback callback) override;
+  void GetGlances(GetGlancesCallback callback) override;
   void KeepTab(const tabs_api::NodeId& tab) override;
   void ClearToday(ClearTodayCallback callback) override;
   void ReopenTabs(const std::vector<GURL>& urls) override;
@@ -169,8 +170,10 @@ class SidebarPageHandler : public mojom::PageHandler,
   void ArchiveFolder(const Tree::Node& folder,
                      const std::string& path);
   std::vector<mojom::TabLifecyclePtr> BuildLifecycles();
+  std::vector<mojom::GlancePtr> BuildGlances();
   void OnTreeChanged();
   void OnLifecyclesChanged();
+  void OnGlancesChanged();
   void OnContextMenuDone();
 
   class ContextMenu;
@@ -190,6 +193,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   const raw_ref<Shell> shell_;
   base::CallbackListSubscription tree_subscription_;
   base::CallbackListSubscription lifecycle_subscription_;
+  base::CallbackListSubscription glance_subscription_;
   std::unique_ptr<ContextMenu> context_menu_;
   std::unique_ptr<LibraryBackend> library_;
   std::unique_ptr<Downloads> downloads_;

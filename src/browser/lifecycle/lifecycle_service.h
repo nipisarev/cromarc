@@ -27,6 +27,8 @@ namespace cromarc {
 
 class AppLifecycle;
 class ArchiveService;
+class GlanceRegistry;
+class Presence;
 class TreeService;
 class Windows;
 
@@ -52,7 +54,9 @@ class LifecycleService : public KeyedService,
                    ArchiveService* archive_service,
                    Tabs& tabs,
                    Windows& windows,
-                   AppLifecycle& app_lifecycle);
+                   AppLifecycle& app_lifecycle,
+                   Presence& presence,
+                   GlanceRegistry& glances);
   LifecycleService(const LifecycleService&) = delete;
   LifecycleService& operator=(const LifecycleService&) = delete;
   ~LifecycleService() override;
@@ -83,6 +87,10 @@ class LifecycleService : public KeyedService,
                     base::TimeDelta user_away_for,
                     base::Time now);
   bool HasUnsavedInput(TabId tab);
+  bool IsGlance(TabId tab) const;
+  std::optional<TabId> GlanceOf(TabId tab) const;
+  // `tab` is the one `window` shows: active, or its glance is.
+  bool Shows(TabId tab, std::optional<TabId> active) const;
   // Returns the URL it archived the tab under; empty when it had none.
   GURL ArchiveAndClose(TabId tab, const char* reason);
   // After session restore: every pinned item starts asleep.
@@ -94,6 +102,10 @@ class LifecycleService : public KeyedService,
   const raw_ref<Tabs> tabs_;
   const raw_ref<Windows> windows_;
   const raw_ref<AppLifecycle> app_lifecycle_;
+  const raw_ref<Presence> presence_;
+  // A glance goes with its tab (Zen's and Arc's time out neither): it is not
+  // swept itself, and its tab is in use while it shows.
+  const raw_ref<GlanceRegistry> glances_;
   Limits limits_;
   std::map<TabId, base::Time> last_active_;
   std::set<TabId> deferred_;

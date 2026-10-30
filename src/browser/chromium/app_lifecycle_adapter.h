@@ -9,7 +9,7 @@
 
 namespace cromarc {
 
-// AppLifecycle on Chrome's SessionRestore and PerformanceManager.
+// AppLifecycle on Chrome's SessionRestore and application lifetime.
 class AppLifecycleAdapter : public AppLifecycle {
  public:
   AppLifecycleAdapter();
@@ -19,7 +19,6 @@ class AppLifecycleAdapter : public AppLifecycle {
 
   // AppLifecycle:
   bool IsRestoringSession(Profile* profile) override;
-  bool MayHaveUserEdits(content::WebContents* contents) override;
   void Restart() override;
   bool IsSessionEnding() override;
   base::CallbackListSubscription OnClosingAllWindows(

@@ -22,7 +22,11 @@ source_set("impl") {
     "//cromarc/browser/chromium",
     "//cromarc/browser/ui:browser_commands",
     "//cromarc/browser/ui:webui_registration",
+    "//cromarc/browser/ui/glance",
     "//cromarc/browser/ui/sidebar",
+    "//components/renderer_context_menu",
+    "//content/public/browser",
+    "//ui/base",
     "//ui/compositor",
     "//ui/views",
   ]

@@ -33,6 +33,7 @@
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/browser_commands.h"
+#include "cromarc/browser/ui/glance/glance_registry.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "cromarc/browser/ui/sidebar/theme_picker.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
@@ -234,6 +235,9 @@ SidebarPageHandler::SidebarPageHandler(
   if (SidebarView* view = SidebarView::ForBrowser(browser_)) {
     view->ShareSidebarState();
   }
+  glance_subscription_ = GlanceRegistry::Get()->RegisterOnChanged(
+      base::BindRepeating(&SidebarPageHandler::OnGlancesChanged,
+                          base::Unretained(this)));
 }
 
 SidebarPageHandler::~SidebarPageHandler() {
@@ -257,6 +261,13 @@ void SidebarPageHandler::OnTreeChanged() {
 }
 
 void SidebarPageHandler::OpenItem(const std::string& id) {
+  // An item whose tab has a glance shows the glance (Zen's
+  // getTabOrGlanceChild).
+  if (const std::optional<TabId> tab = tree_service_->GetLiveTab(id);
+      tab && GlanceRegistry::Get()->GlanceOf(*tab)) {
+    GlanceRegistry::Get()->ActivateTabOrGlance(*tab);
+    return;
+  }
   tree_service_->Open(browser_, id);
 }
 
@@ -465,6 +476,26 @@ void SidebarPageHandler::OnLifecyclesChanged() {
   page_->OnTabLifecyclesChanged(BuildLifecycles());
 }
 
+std::vector<mojom::GlancePtr> SidebarPageHandler::BuildGlances() {
+  std::vector<mojom::GlancePtr> result;
+  for (const GlanceRegistry::Entry& entry :
+       GlanceRegistry::Get()->GlancesIn(browser_)) {
+    auto glance = mojom::Glance::New();
+    glance->tab = tab_strip_api_->NodeIdOf(entry.glance);
+    glance->parent = tab_strip_api_->NodeIdOf(entry.parent);
+    result.push_back(std::move(glance));
+  }
+  return result;
+}
+
+void SidebarPageHandler::GetGlances(GetGlancesCallback callback) {
+  std::move(callback).Run(BuildGlances());
+}
+
+void SidebarPageHandler::OnGlancesChanged() {
+  page_->OnGlancesChanged(BuildGlances());
+}
+
 void SidebarPageHandler::KeepTab(const tabs_api::NodeId& tab_id) {
   if (std::optional<TabId> tab = tab_strip_api_->TabOf(tab_id)) {
     lifecycle_service_->Keep(*tab);
@@ -525,6 +556,15 @@ void SidebarPageHandler::GetSpaceSnapshot(const std::string& id,
                                  tree_service->tree().Root());
   if (BrowserWindowInterface* window = SpaceController::GetWindowFor(profile)) {
     snapshot->tabs = tab_strip_api_->Snapshot(window);
+    // Its glances are not listed, as in its own sidebar.
+    for (const GlanceRegistry::Entry& entry :
+         GlanceRegistry::Get()->GlancesIn(window)) {
+      const tabs_api::NodeId glance = tab_strip_api_->NodeIdOf(entry.glance);
+      std::erase_if(snapshot->tabs,
+                    [&glance](const tabs_api::mojom::TabPtr& tab) {
+                      return tab->id == glance;
+                    });
+    }
   }
   std::set<GURL> home_urls;
   CollectHomeUrls(snapshot->tree, home_urls);

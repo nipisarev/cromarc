@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Fri, 30 Oct 2026 22:06:21 +0100
+Subject: [PATCH] Cromarc H22: Cromarc sees a navigation before it starts
+
+
+diff --git a/chrome/browser/chrome_content_browser_client_navigation_throttles.cc b/chrome/browser/chrome_content_browser_client_navigation_throttles.cc
+index dfa341dccc511..c12a6123e02de 100644
+--- a/chrome/browser/chrome_content_browser_client_navigation_throttles.cc
++++ b/chrome/browser/chrome_content_browser_client_navigation_throttles.cc
+@@ -77,6 +77,7 @@
+ #include "content/public/browser/navigation_throttle_registry.h"
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/common/content_switches.h"
++#include "cromarc/hooks/hooks.h"  // Cromarc
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/extension_features.h"
+ #include "pdf/buildflags.h"
+@@ -307,6 +308,7 @@ void CreateAndAddChromeThrottlesForNavigation(
+ #if BUILDFLAG(IS_ANDROID)
+     CrossDeviceSigninFlowNavigationThrottle::MaybeCreateAndAdd(registry);
+ #endif  // BUILDFLAG(IS_ANDROID)
++    cromarc::hooks::AddNavigationThrottles(registry);  // Cromarc
+   }
+ 
+   DSEPrewarmNavigationThrottle::MaybeCreateAndAdd(registry);

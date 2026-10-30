@@ -9,6 +9,7 @@
 #include "cromarc/browser/chromium/default_browser_adapter.h"
 #include "cromarc/browser/chromium/favicons_adapter.h"
 #include "cromarc/browser/chromium/last_session_adapter.h"
+#include "cromarc/browser/chromium/presence_adapter.h"
 #include "cromarc/browser/chromium/profiles_adapter.h"
 #include "cromarc/browser/chromium/strip_defaults_adapter.h"
 #include "cromarc/browser/chromium/tab_strip_api_adapter.h"
@@ -36,6 +37,11 @@ AppLifecycle& ChromiumAppLifecycle() {
 LastSession& ChromiumLastSession() {
   static base::NoDestructor<LastSessionAdapter> last_session;
   return *last_session;
+}
+
+Presence& ChromiumPresence() {
+  static base::NoDestructor<PresenceAdapter> presence;
+  return *presence;
 }
 
 TabStripApi& ChromiumTabStripApi() {

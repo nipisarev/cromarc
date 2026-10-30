@@ -1,0 +1,29 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!doctype html>
+<title>Essential page</title>
+<!-- The server answers as 127.0.0.1 and as localhost: two hosts, one server.
+     Links to the other host are built from this page's own address. -->
+<body style="margin:0;font:20px sans-serif">
+<a id="same" style="display:block;height:50px">same site</a>
+<a id="other" style="display:block;height:50px">other site</a>
+<a id="blank" target="_blank" style="display:block;height:50px">other site, target=_blank</a>
+<button id="open" style="display:block;height:50px">other site, window.open</button>
+<a id="background" style="display:block;height:50px">other site, for Cmd+click</a>
+<a id="home" style="display:block;height:50px">back to 127.0.0.1</a>
+<form id="post" method="post"><button style="display:block;height:50px">other site, POST</button></form>
+<a id="download" download style="display:block;height:50px">other site, a download</a>
+<script>
+  const otherHost = location.hostname === 'localhost' ? '127.0.0.1' : 'localhost';
+  const other = `${location.protocol}//${otherHost}:${location.port}`;
+  const tag = location.search.slice(1);
+  document.querySelector('#same').href = `/icon.html?same-${tag}`;
+  document.querySelector('#other').href = `${other}/essentials.html?inner-${tag}`;
+  document.querySelector('#blank').href = `${other}/icon.html?blank-${tag}`;
+  document.querySelector('#open').onclick = () => window.open(`${other}/icon.html?open-${tag}`);
+  document.querySelector('#background').href = `${other}/icon.html?background-${tag}`;
+  document.querySelector('#home').href = `http://127.0.0.1:${location.port}/icon.html?home-${tag}`;
+  document.querySelector('#post').action = `${other}/icon.html?post-${tag}`;
+  document.querySelector('#download').href = `${other}/sample.bin`;
+</script>

@@ -86,6 +86,10 @@ bool WindowsAdapter::IsOnScreen(BrowserWindowInterface* window) {
          !base_window->IsMinimized();
 }
 
+bool WindowsAdapter::IsActive(BrowserWindowInterface* window) {
+  return window->IsActive();
+}
+
 bool WindowsAdapter::IsVisible(BrowserWindowInterface* window) {
   return window->GetWindow()->IsVisible();
 }

@@ -59,6 +59,8 @@ class Windows {
   virtual bool IsOnScreen(BrowserWindowInterface* window) = 0;
   // Shown, minimized or not.
   virtual bool IsVisible(BrowserWindowInterface* window) = 0;
+  // Has the keyboard focus: the app's window in front.
+  virtual bool IsActive(BrowserWindowInterface* window) = 0;
   // In native fullscreen.
   virtual bool IsFullscreen(BrowserWindowInterface* window) = 0;
   virtual gfx::Rect BoundsOf(BrowserWindowInterface* window) = 0;

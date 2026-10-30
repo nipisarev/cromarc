@@ -73,7 +73,9 @@ Where: `chrome/browser/ui/browser_command_controller.cc`,
 Calls: guards on `cromarc::hooks::ShowCommandBar`, `KeepWindowOnLastTabClose`,
 `OpenLittleInSpace`, each before Chrome's own handling.
 Contract: for IDC_NEW_TAB, IDC_FOCUS_LOCATION, IDC_CLOSE_TAB and IDC_OPEN_FILE
-Cromarc may handle the command and say so; otherwise Chrome's code runs.
+Cromarc may handle the command and say so (Cmd+W closes a glance shown or keeps
+a space window on its last tab, Cmd+O expands a glance or moves a Little
+window's page); otherwise Chrome's code runs.
 If it moved: Chrome's command dispatch for those IDC_ commands.
 
 ### H7 Cromarc's name and app icon
@@ -102,7 +104,8 @@ Kind: code
 Where: `chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc`,
 `BrowserWebContentsDelegate::UpdateTargetURL`.
 Calls: `cromarc::hooks::OnTargetURL(source, url)`.
-Contract: Cromarc sees the link under the cursor (Glance's Option+click).
+Contract: Cromarc sees the link under the cursor (Glance's Option+click, which
+opens it as a glance of the tab).
 If it moved: where the browser learns a page's hovered link.
 
 ### H11 the page is a card outside split view
@@ -112,8 +115,11 @@ Where: `chrome/browser/ui/views/frame/multi_contents_view.cc`,
 Calls: `cromarc::hooks::PageShowsBackground(...)` wrapping Chrome's
 `show_background`, and `available_space = cromarc::hooks::PageSpace(...)`.
 Contract: outside split view Cromarc gives the page's margins; with margins
-the page shows on a background, as a card.
-If it moved: the layout of the web contents area.
+the page shows on a background, as a card. While the active tab is a glance,
+the page area is the glance's card (7.5% in from each side) and shows on a
+background.
+If it moved: the layout of the web contents area, outside split view or while
+a glance shows.
 
 ### H12 the collapse button shows the sidebar icon
 Kind: code
@@ -140,7 +146,9 @@ Calls: `cromarc::hooks::PaintWindowBackground`; guards on `ThemesWindow`,
 Contract: in a space window Cromarc paints the theme under the whole window and
 Chrome's frame, toolbar and page backgrounds let it show. Once Chrome has made
 a space window non-opaque for its glass frame, Cromarc puts Zen's window
-material under it instead of Chrome's glass, tint and opaque backing.
+material under it instead of Chrome's glass, tint and opaque backing. While
+a glance shows, Cromarc paints its tab's page, dimmed and scaled to 0.97, over
+the theme and under the glance's card.
 If it moved: the Mac browser frame's painting; where the glass frame creates
 its background views.
 
@@ -225,3 +233,29 @@ window was closed, as in Zen; for a profile that is no space Chrome's code
 runs.
 If it moved: where Chrome handles the Dock icon's reopen with no window
 visible, once it knows the last used profile.
+
+### H22 Cromarc sees a tab's navigations before they start
+Kind: code
+Where: `chrome/browser/chrome_content_browser_client_navigation_throttles.cc`,
+`CreateAndAddChromeThrottlesForNavigation`, in the main frame's block after
+the throttles that only observe.
+Calls: `cromarc::hooks::AddNavigationThrottles(registry)`.
+Contract: Cromarc may add its throttles for a tab's main frame navigations:
+a link the user follows from an Essential's or a pinned tab's page to another
+site is cancelled there and opens in a glance over the tab, as Zen does on
+Firefox's app tabs; a tab a page opened learns its first address (window.open).
+If it moved: where Chrome adds its own navigation throttles for a navigation.
+
+### H23 Cromarc adds to the page's context menu
+Kind: code
+Where: `chrome/browser/renderer_context_menu/render_view_context_menu.cc`,
+`RenderViewContextMenu::InitMenu`, at its end.
+Calls: `cromarc::hooks::AddContextMenuItems(this, menu_model_, observers_)`.
+Contract: Cromarc joins the menu as a `RenderViewContextMenuObserver`, adds
+"Open Link in Glance" before the separator that ends the open-link items, and
+sees "Search … for …" before it runs, so its result opens as a glance, as in
+Zen; Chrome's items and their handling are untouched.
+If it moved: the end of the context menu's item building, where the menu
+model and its observer list are at hand. The hook takes `observers_` as
+Chromium declares it (now a `base::ReentrantObserverList`); its type follows
+that declaration.

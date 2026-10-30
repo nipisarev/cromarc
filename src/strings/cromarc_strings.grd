@@ -369,6 +369,10 @@
       <message name="IDS_CROMARC_LITTLE_ALWAYS_OPEN" desc="Little windows and Glance">Always open <ph name="HOST">$1<ex>example.com</ex></ph> in “<ph name="SPACE">$2<ex>Work</ex></ph>”</message>
       <message name="IDS_CROMARC_GLANCE_OPEN_AS_TAB" desc="Little windows and Glance">Open as Tab</message>
       <message name="IDS_CROMARC_GLANCE_CLOSE" desc="Little windows and Glance">Close (Esc)</message>
+      <message name="IDS_CROMARC_GLANCE_CONFIRM" desc="Little windows and Glance: beside the glance's close button while Esc in a text field asks to confirm, Zen's words">Confirm</message>
+      <message name="IDS_CROMARC_GLANCE_OPEN_LINK" desc="Little windows and Glance: the page context menu item, Zen's words">Open Link in Glance</message>
+      <message name="IDS_CROMARC_LITTLE_MOVE_WINDOW" desc="Little windows and Glance: the Little window, as a Little window, moves to the space">Move window to “<ph name="SPACE">$1<ex>Work</ex></ph>”</message>
+      <message name="IDS_CROMARC_LITTLE_MOVE_WINDOW_TOOLTIP" desc="Little windows and Glance: the space button of a Little window">Move this window to another space</message>
     </messages>
   </release>
 </grit>

@@ -6,13 +6,10 @@
 
 #include <utility>
 
-#include "base/memory/weak_ptr.h"
 #include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/lifetime/application_lifetime_desktop.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
 #include "chrome/browser/sessions/session_restore.h"
-#include "components/performance_manager/public/graph/page_node.h"
-#include "components/performance_manager/public/performance_manager.h"
 
 namespace cromarc {
 
@@ -21,16 +18,6 @@ AppLifecycleAdapter::~AppLifecycleAdapter() = default;
 
 bool AppLifecycleAdapter::IsRestoringSession(Profile* profile) {
   return SessionRestore::IsRestoring(profile);
-}
-
-bool AppLifecycleAdapter::MayHaveUserEdits(content::WebContents* contents) {
-  if (!performance_manager::PerformanceManager::IsAvailable()) {
-    return true;
-  }
-  base::WeakPtr<performance_manager::PageNode> page =
-      performance_manager::PerformanceManager::GetPrimaryPageNodeForWebContents(
-          contents);
-  return !page || page->HadUserEdits();
 }
 
 void AppLifecycleAdapter::Restart() {
