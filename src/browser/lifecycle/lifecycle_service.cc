@@ -151,7 +151,11 @@ void LifecycleService::Sweep() {
   for (BrowserWindowInterface* browser : windows_->NormalWindowsOf(profile_)) {
     const bool visible = windows_->IsOnScreen(browser);
     const std::optional<TabId> active = tabs_->GetActive(browser);
-    for (TabId tab : tabs_->List(browser)) {
+    const std::vector<TabId> tabs = tabs_->List(browser);
+    // Counted here, as a tab with unload listeners leaves the strip only
+    // later.
+    size_t open = tabs.size();
+    for (TabId tab : tabs) {
       seen.insert(tab);
       TabFacts facts = FactsFor(tab, visible && tab == active, away, now);
       Decision decision = Decide(facts, now, limits_);
@@ -161,7 +165,7 @@ void LifecycleService::Sweep() {
       }
       // A window keeps its last tab: an empty space window has no page.
       if ((decision == Decision::kArchive || decision == Decision::kSleep) &&
-          tabs_->List(browser).size() <= 1) {
+          open <= 1) {
         decision = Decision::kKeep;
       }
       switch (decision) {
@@ -173,9 +177,11 @@ void LifecycleService::Sweep() {
           break;
         case Decision::kArchive:
           ArchiveAndClose(tab, "idle");
+          --open;
           break;
         case Decision::kSleep:
           tabs_->Close(tab);
+          --open;
           break;
       }
     }
@@ -193,10 +199,13 @@ void LifecycleService::Sweep() {
 void LifecycleService::CloseRestoredPinnedTabs() {
   for (BrowserWindowInterface* browser : windows_->NormalWindowsOf(profile_)) {
     const std::vector<TabId> tabs = tabs_->List(browser);
-    for (auto it = tabs.rbegin(); it != tabs.rend(); ++it) {
-      if (tabs_->IsPinned(*it) && !tree_service_->GetItemForTab(*it) &&
-          tabs_->List(browser).size() > 1) {
+    // Counted here, as a tab with unload listeners leaves the strip only
+    // later: the window keeps a page.
+    size_t open = tabs.size();
+    for (auto it = tabs.rbegin(); it != tabs.rend() && open > 1; ++it) {
+      if (tabs_->IsPinned(*it) && !tree_service_->GetItemForTab(*it)) {
         tabs_->Close(*it);
+        --open;
       }
     }
   }
