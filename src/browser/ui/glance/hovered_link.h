@@ -19,18 +19,20 @@ class WebMouseEvent;
 
 namespace cromarc {
 
+class GlanceRegistry;
 class Tabs;
 class Windows;
 
 // The link under the cursor in a tab, as the status bubble shows it (hook
 // H10). While there is one, Option+click (Zen's default Glance modifier,
-// zen.glance.activation-method "alt") opens it in Glance instead of Chrome's
-// download.
+// zen.glance.activation-method "alt") opens it as a glance of the tab instead
+// of Chrome's download.
 class HoveredLink : public content::WebContentsUserData<HoveredLink>,
                     public content::RenderWidgetHostObserver {
  public:
   static void Set(Tabs& tabs,
                   Windows& windows,
+                  GlanceRegistry& glances,
                   content::WebContents* contents,
                   const GURL& url);
 
@@ -42,7 +44,10 @@ class HoveredLink : public content::WebContentsUserData<HoveredLink>,
  private:
   friend WebContentsUserData;
 
-  HoveredLink(content::WebContents* contents, Tabs& tabs, Windows& windows);
+  HoveredLink(content::WebContents* contents,
+              Tabs& tabs,
+              Windows& windows,
+              GlanceRegistry& glances);
 
   // Follows the main frame's widget, which a cross-site navigation replaces.
   void Watch(content::RenderWidgetHost* host);
@@ -50,6 +55,7 @@ class HoveredLink : public content::WebContentsUserData<HoveredLink>,
 
   const raw_ref<Tabs> tabs_;
   const raw_ref<Windows> windows_;
+  const raw_ref<GlanceRegistry> glances_;
   GURL url_;
   bool swallow_mouse_up_ = false;
   raw_ptr<content::RenderWidgetHost> host_ = nullptr;

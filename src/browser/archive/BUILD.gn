@@ -25,17 +25,27 @@ source_set("unit_tests") {
   ]
 }
 
-source_set("service") {
+source_set("archive_service") {
   sources = [
     "archive_service.cc",
     "archive_service.h",
+  ]
+  public_deps = [
+    ":archive",
+    "//components/keyed_service/core",
+  ]
+  deps = [ "//components/prefs" ]
+}
+
+# Its factory, the composition root.
+source_set("service") {
+  sources = [
     "archive_service_factory.cc",
     "archive_service_factory.h",
   ]
   public_deps = [
-    ":archive",
+    ":archive_service",
     "//chrome/browser:browser_public_dependencies",
-    "//components/keyed_service/core",
   ]
   deps = [
     "//chrome/browser/profiles:profile",

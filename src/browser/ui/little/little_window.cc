@@ -4,19 +4,19 @@
 
 #include "cromarc/browser/ui/little/little_window.h"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <utility>
 
 #include "base/functional/bind.h"
 #include "base/no_destructor.h"
-#include "content/public/browser/web_contents.h"
-#include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/ports/app_lifecycle.h"
-#include "cromarc/browser/spaces/space_controller.h"
-#include "cromarc/browser/ui/little/little_bar.h"
+#include "cromarc/browser/ports/presence.h"
+#include "cromarc/browser/ports/profiles.h"
 #include "ui/base/window_open_disposition.h"
 #include "ui/display/screen.h"
+#include "ui/views/view.h"
 
 namespace cromarc {
 
@@ -45,24 +45,22 @@ gfx::Rect CentredOnCursorScreen() {
 }  // namespace
 
 // static
-void LittleWindow::Open(Tabs& tabs,
-                        Windows& windows,
-                        AppLifecycle& app_lifecycle,
+void LittleWindow::Open(const Deps& deps,
                         Profile* profile,
-                        const GURL& url) {
+                        const GURL& url,
+                        std::optional<gfx::Rect> bounds) {
   // As in Arc, Little windows do not come back after a restart.
-  BrowserWindowInterface* browser =
-      windows.OpenPopup(profile, CentredOnCursorScreen(), url);
+  BrowserWindowInterface* browser = deps.windows->OpenPopup(
+      profile, bounds ? *bounds : CentredOnCursorScreen(), url);
   if (!browser) {
     return;
   }
-  auto window = base::WrapUnique(
-      new LittleWindow(tabs, windows, app_lifecycle, browser));
+  auto window = base::WrapUnique(new LittleWindow(deps, browser));
   LittleWindow* const little = window.get();
-  LittleWindows()[windows.IdOf(browser)] = std::move(window);
+  LittleWindows()[deps.windows->IdOf(browser)] = std::move(window);
   // The popup's toolbar is a FlexLayout row: the location bar stretches and
   // the bar takes its preferred width at the end.
-  windows.AddToToolbar(browser, std::make_unique<LittleBar>(little));
+  deps.windows->AddToToolbar(browser, deps.delegate->MakeBar(*little));
 }
 
 // static
@@ -72,109 +70,148 @@ LittleWindow* LittleWindow::From(Windows& windows,
   return it == LittleWindows().end() ? nullptr : it->second.get();
 }
 
-LittleWindow::LittleWindow(Tabs& tabs,
-                           Windows& windows,
-                           AppLifecycle& app_lifecycle,
-                           BrowserWindowInterface* browser)
-    : tabs_(tabs),
-      windows_(windows),
-      app_lifecycle_(app_lifecycle),
-      id_(windows.IdOf(browser)),
-      profile_(windows.ProfileOf(browser)),
-      default_space_(SpaceController::IdOf(profile_)) {
-  if (std::optional<TabId> tab = tabs_->GetActive(browser)) {
-    tab_subscription_ = tabs_->OnWillClose(
+LittleWindow::LittleWindow(const Deps& deps, BrowserWindowInterface* browser)
+    : deps_(deps),
+      id_(deps.windows->IdOf(browser)),
+      profile_(deps.windows->ProfileOf(browser)),
+      default_space_(deps.profiles->IdOf(profile_)),
+      limits_(LimitsFromCommandLine()),
+      last_used_(base::Time::Now()) {
+  if (std::optional<TabId> tab = deps_.tabs->GetActive(browser)) {
+    tab_subscription_ = deps_.tabs->OnWillClose(
         *tab, base::BindRepeating(&LittleWindow::OnTabWillClose,
                                   weak_factory_.GetWeakPtr(), *tab));
   }
-  close_subscription_ = windows_->OnClosed(
+  close_subscription_ = deps_.windows->OnClosed(
       browser, base::BindRepeating(&LittleWindow::OnWindowClosed,
                                    weak_factory_.GetWeakPtr()));
   closing_all_subscription_ =
-      app_lifecycle_->OnClosingAllWindows(base::BindRepeating(
+      deps_.app_lifecycle->OnClosingAllWindows(base::BindRepeating(
           &LittleWindow::OnClosingAllWindows, weak_factory_.GetWeakPtr()));
+  idle_timer_.Start(
+      FROM_HERE,
+      std::clamp(limits_.little_idle / 6, base::Seconds(1), base::Minutes(1)),
+      base::BindRepeating(&LittleWindow::CheckIdle,
+                          weak_factory_.GetWeakPtr()));
 }
 
 LittleWindow::~LittleWindow() = default;
 
 std::optional<TabId> LittleWindow::PageTab() const {
-  BrowserWindowInterface* little = windows_->FromId(id_);
-  return little ? tabs_->GetActive(little) : std::nullopt;
+  BrowserWindowInterface* little = deps_.windows->FromId(id_);
+  return little ? deps_.tabs->GetActive(little) : std::nullopt;
 }
 
 GURL LittleWindow::url() const {
   const std::optional<TabId> tab = PageTab();
-  content::WebContents* contents = tab ? tabs_->GetContents(*tab) : nullptr;
-  return contents ? contents->GetLastCommittedURL() : GURL();
+  return tab ? deps_.tabs->GetLastCommittedUrl(*tab) : GURL();
 }
 
 void LittleWindow::OpenInSpace(const std::string& space_id) {
-  SpaceController::Get()->ShowSpace(
+  deps_.delegate->ShowSpace(
       space_id, base::BindOnce(&LittleWindow::OnSpaceShown,
                                weak_factory_.GetWeakPtr()));
 }
 
 void LittleWindow::OnSpaceShown(BrowserWindowInterface* space_window) {
-  BrowserWindowInterface* little = windows_->FromId(id_);
+  BrowserWindowInterface* little = deps_.windows->FromId(id_);
   const std::optional<TabId> tab = PageTab();
   if (!space_window || !tab) {
     return;
   }
   moved_ = true;
-  if (windows_->ProfileOf(space_window) == windows_->ProfileOf(little)) {
+  if (deps_.windows->ProfileOf(space_window) ==
+      deps_.windows->ProfileOf(little)) {
     // The same profile: the page itself moves, state and all. The popup
     // closes with its last tab.
-    tabs_->MoveToWindow(*tab, space_window);
+    deps_.tabs->MoveToWindow(*tab, space_window);
     return;
   }
-  tabs_->Open(space_window, tabs_->GetContents(*tab)->GetLastCommittedURL(),
-              WindowOpenDisposition::NEW_FOREGROUND_TAB);
-  windows_->Close(little);
+  deps_.tabs->Open(space_window, deps_.tabs->GetLastCommittedUrl(*tab),
+                   WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  deps_.windows->Close(little);
 }
 
 void LittleWindow::Close() {
-  if (BrowserWindowInterface* little = windows_->FromId(id_)) {
-    windows_->Close(little);
+  if (BrowserWindowInterface* little = deps_.windows->FromId(id_)) {
+    deps_.windows->Close(little);
   }
+}
+
+void LittleWindow::MoveToSpace(const std::string& space_id) {
+  BrowserWindowInterface* little = deps_.windows->FromId(id_);
+  const GURL page = url();
+  if (!little || space_id == default_space_ || page.is_empty()) {
+    return;
+  }
+  const gfx::Rect bounds = deps_.windows->BoundsOf(little);
+  deps_.delegate->LoadSpace(
+      space_id,
+      base::BindOnce(
+          [](base::WeakPtr<LittleWindow> window, GURL page, gfx::Rect bounds,
+             Profile* profile) {
+            if (!window || !profile) {
+              return;
+            }
+            LittleWindow::Open(window->deps_, profile, page, bounds);
+            // The page lives on there: this one goes unarchived.
+            window->moved_ = true;
+            window->Close();
+          },
+          weak_factory_.GetWeakPtr(), page, bounds));
+}
+
+void LittleWindow::CheckIdle() {
+  BrowserWindowInterface* little = deps_.windows->FromId(id_);
+  if (!little || moved_) {
+    return;
+  }
+  const base::Time now = base::Time::Now();
+  base::TimeDelta away = deps_.presence->IdleFor();
+  if (deps_.presence->IsScreenLocked()) {
+    away = std::max(away, limits_.away);
+  }
+  if (deps_.windows->IsActive(little) && away < limits_.away) {
+    last_used_ = now;
+    return;
+  }
+  if (!LittleIdledOut(last_used_, now, limits_)) {
+    return;
+  }
+  const std::optional<TabId> tab = PageTab();
+  if (tab && deps_.tabs->MayLoseInput(*tab)) {
+    return;
+  }
+  Close();
 }
 
 void LittleWindow::OnTabWillClose(TabId tab) {
   if (moved_) {
     return;
   }
-  Archive(tabs_->GetContents(tab), /*session_ending=*/false);
+  Archive(tab, /*session_ending=*/false);
 }
 
 void LittleWindow::OnClosingAllWindows(bool closing) {
-  if (!closing || moved_ || !app_lifecycle_->IsSessionEnding()) {
+  if (!closing || moved_ || !deps_.app_lifecycle->IsSessionEnding()) {
     return;
   }
-  const std::optional<TabId> tab = PageTab();
-  if (tab) {
+  if (const std::optional<TabId> tab = PageTab()) {
     moved_ = true;
-    Archive(tabs_->GetContents(*tab), /*session_ending=*/true);
+    Archive(*tab, /*session_ending=*/true);
   }
 }
 
-void LittleWindow::Archive(content::WebContents* contents,
-                           bool session_ending) {
-  ArchiveService* archive = ArchiveService::Get(profile_);
-  if (!contents) {
-    return;
-  }
+void LittleWindow::Archive(TabId tab, bool session_ending) {
   ArchiveEntry entry;
-  entry.url = contents->GetLastCommittedURL();
-  entry.title = contents->GetTitle();
+  entry.url = deps_.tabs->GetLastCommittedUrl(tab);
+  entry.title = deps_.tabs->GetTitle(tab);
   entry.closed_at = base::Time::Now();
   entry.reason = "little";
-  if (!archive || !entry.url.is_valid() || entry.url.is_empty()) {
+  if (!entry.url.is_valid() || entry.url.is_empty()) {
     return;
   }
-  if (session_ending) {
-    archive->AddAtSessionEnd(entry);
-  } else {
-    archive->Add(std::move(entry));
-  }
+  deps_.delegate->Archive(profile_, std::move(entry), session_ending);
 }
 
 void LittleWindow::OnWindowClosed(BrowserWindowInterface* browser) {

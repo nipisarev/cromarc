@@ -11,6 +11,11 @@
 namespace cromarc {
 
 // static
+ArchiveService* ArchiveService::Get(Profile* profile) {
+  return ArchiveServiceFactory::GetForProfile(profile);
+}
+
+// static
 ArchiveService* ArchiveServiceFactory::GetForProfile(Profile* profile) {
   return static_cast<ArchiveService*>(
       GetInstance()->GetServiceForBrowserContext(profile, /*create=*/true));

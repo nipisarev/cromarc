@@ -101,6 +101,7 @@ source_set("impl") {
     "//cromarc/browser/chromium:adapters",
     "//cromarc/browser/chromium:window_material",
     "//cromarc/browser/lifecycle:service",
+    "//cromarc/browser/ui/glance:registry",
     "//cromarc/browser/routing",
     "//cromarc/browser/sync",
     "//cromarc/browser/spaces",

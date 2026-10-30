@@ -4,33 +4,79 @@
 
 assert(!is_android)
 
+# What makes a page a glance, and where it goes; no Chromium in it.
+source_set("rules") {
+  sources = [
+    "glance_menu.cc",
+    "glance_menu.h",
+    "glance_rules.cc",
+    "glance_rules.h",
+  ]
+  public_deps = [ "//url" ]
+  deps = [ "//base" ]
+}
+
+source_set("registry") {
+  sources = [
+    "glance_registry.cc",
+    "glance_registry.h",
+  ]
+  public_deps = [
+    ":rules",
+    "//cromarc/browser/ports",
+  ]
+  deps = [ "//base" ]
+}
+
 source_set("glance") {
   sources = [
-    "glance.cc",
-    "glance.h",
+    "glance_navigation_throttle.cc",
+    "glance_navigation_throttle.h",
     "hovered_link.cc",
     "hovered_link.h",
   ]
-  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  public_deps = [ ":registry" ]
   deps = [
-    "//cromarc/strings:cromarc_strings",
     "//cromarc/browser/ports",
     "//base",
-    "//chrome/app/vector_icons",
-    "//chrome/browser/profiles:profile",
-    "//chrome/browser/ui/browser_window",
-    "//components/input",
-    "//components/tabs:public",
-    "//components/vector_icons",
     "//content/public/browser",
-    "//skia",
+    "//content/public/common",
+    "//third_party/blink/public/common",
     "//ui/base",
-    "//ui/color",
-    "//ui/compositor",
-    "//ui/events",
     "//ui/gfx",
-    "//ui/views",
-    "//ui/views/controls/webview",
+    "//url",
+  ]
+}
+
+# A glance's space: its tab's place in the tree, and the archive.
+source_set("spaces") {
+  sources = [
+    "glance_spaces.cc",
+    "glance_spaces.h",
+  ]
+  public_deps = [ ":registry" ]
+  deps = [
+    "//base",
+    "//cromarc/browser/archive:service",
+    "//cromarc/browser/ports",
+    "//cromarc/browser/tree:service",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [
+    "glance_menu_unittest.cc",
+    "glance_registry_unittest.cc",
+    "glance_rules_unittest.cc",
+  ]
+  deps = [
+    ":registry",
+    ":rules",
+    "//base/test:test_support",
+    "//content/public/browser",
+    "//cromarc/browser/ports:test_support",
+    "//testing/gtest",
     "//url",
   ]
 }

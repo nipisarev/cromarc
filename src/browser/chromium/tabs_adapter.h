@@ -25,6 +25,12 @@ class TabsAdapter : public Tabs {
   content::WebContents* GetContents(TabId tab) override;
   BrowserWindowInterface* GetWindow(TabId tab) override;
   std::optional<TabId> FromContents(content::WebContents* contents) override;
+  GURL GetUrl(TabId tab) override;
+  GURL GetLastCommittedUrl(TabId tab) override;
+  std::u16string GetTitle(TabId tab) override;
+  base::Time GetLastActiveTime(TabId tab) override;
+  bool IsAudibleOrCaptured(TabId tab) override;
+  bool MayLoseInput(TabId tab) override;
   std::vector<TabId> List(BrowserWindowInterface* window) override;
   std::optional<TabId> GetActive(BrowserWindowInterface* window) override;
   bool IsPinned(TabId tab) override;
@@ -55,6 +61,10 @@ class TabsAdapter : public Tabs {
       WindowOpenDisposition disposition,
       const blink::mojom::WindowFeatures& window_features) override;
   void MoveToWindow(TabId tab, BrowserWindowInterface* window) override;
+  void OpenFrom(TabId tab, const content::OpenURLParams& params) override;
+  void MoveToFirstUnpinned(TabId tab) override;
+  base::CallbackListSubscription OnInserted(BrowserWindowInterface* window,
+                                            InsertedCallback callback) override;
   base::CallbackListSubscription OnOpenedInBackground(
       BrowserWindowInterface* window,
       base::RepeatingClosure callback) override;

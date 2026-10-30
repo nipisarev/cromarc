@@ -17,9 +17,13 @@
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
 #include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/chromium/browser_frame_adapter.h"
+#include "cromarc/browser/chromium/glance_menu_observer.h"
+#include "cromarc/browser/chromium/glance_surface_adapter.h"
 #include "cromarc/browser/chromium/sidebar_installer.h"
 #include "cromarc/browser/keyed_services.h"
 #include "cromarc/browser/ui/browser_commands.h"
+#include "cromarc/browser/ui/glance/glance_navigation_throttle.h"
+#include "cromarc/browser/ui/glance/glance_registry.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
 #include "cromarc/browser/ui/webui_registration.h"
 #include "third_party/skia/include/core/SkColor.h"
@@ -55,7 +59,7 @@ bool OpenExternalLinks(const std::vector<StartupTab>& tabs, Profile* profile) {
   }
   return cromarc::OpenExternalLinks(ChromiumProfiles(), ChromiumTabs(),
                                     ChromiumWindows(), ChromiumAppLifecycle(),
-                                    urls, profile);
+                                    ChromiumPresence(), urls, profile);
 }
 
 bool ShowCommandBar(BrowserWindowInterface* browser, bool edit_current_url) {
@@ -80,23 +84,32 @@ void EnsureKeyedServiceFactoriesBuilt() {
 }
 
 void OnTargetURL(content::WebContents* source, const GURL& url) {
-  cromarc::OnTargetURL(ChromiumTabs(), ChromiumWindows(), source, url);
+  cromarc::OnTargetURL(ChromiumTabs(), ChromiumWindows(),
+                       *cromarc::GlanceRegistry::Get(), source, url);
 }
 
 bool PageShowsBackground(BrowserView* browser_view,
                          bool in_split_view,
                          bool chrome_shows) {
   return chrome_shows ||
-         (!in_split_view && !cromarc::PageInsets(browser_view).IsEmpty());
+         (!in_split_view && (!cromarc::PageInsets(browser_view).IsEmpty() ||
+                             cromarc::ChromiumGlanceSurface().CardIn(
+                                 browser_view, gfx::Rect())));
 }
 
 gfx::Rect PageSpace(BrowserView* browser_view,
                     bool in_split_view,
                     const gfx::Rect& space) {
-  gfx::Rect page = space;
-  if (!in_split_view) {
-    page.Inset(cromarc::PageInsets(browser_view));
+  if (in_split_view) {
+    return space;
   }
+  // A glance: the page is a card over its parent's.
+  if (std::optional<gfx::Rect> card =
+          cromarc::ChromiumGlanceSurface().CardIn(browser_view, space)) {
+    return *card;
+  }
+  gfx::Rect page = space;
+  page.Inset(cromarc::PageInsets(browser_view));
   return page;
 }
 
@@ -206,6 +219,19 @@ bool ShowsTopSeparator(BrowserView* browser_view,
 bool PaintsOnSpaceTheme(const views::View* view,
                         const BrowserView* browser_view) {
   return cromarc::PaintsOnSpaceTheme(view, browser_view);
+}
+
+void AddNavigationThrottles(content::NavigationThrottleRegistry& registry) {
+  cromarc::GlanceNavigationThrottle::MaybeAdd(
+      registry, cromarc::ChromiumTabs(), *cromarc::GlanceRegistry::Get());
+}
+
+void AddContextMenuItems(
+    RenderViewContextMenu* menu,
+    ui::SimpleMenuModel& model,
+    base::ReentrantObserverList<RenderViewContextMenuObserver>::
+        UncheckedAndDanglingUntriaged& observers) {
+  cromarc::GlanceMenuObserver::Attach(menu, model, observers);
 }
 
 }  // namespace cromarc::hooks

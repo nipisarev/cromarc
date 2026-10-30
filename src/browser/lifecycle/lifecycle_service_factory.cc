@@ -14,6 +14,7 @@
 #include "cromarc/browser/lifecycle/lifecycle_service.h"
 #include "cromarc/browser/tree/tree_service.h"
 #include "cromarc/browser/tree/tree_service_factory.h"
+#include "cromarc/browser/ui/glance/glance_registry.h"
 
 namespace cromarc {
 
@@ -61,7 +62,8 @@ LifecycleServiceFactory::BuildServiceInstanceForBrowserContext(
   return std::make_unique<LifecycleService>(
       profile, TreeServiceFactory::GetForProfile(profile),
       ArchiveServiceFactory::GetForProfile(profile), ChromiumTabs(),
-      ChromiumWindows(), ChromiumAppLifecycle());
+      ChromiumWindows(), ChromiumAppLifecycle(), ChromiumPresence(),
+      *GlanceRegistry::Get());
 }
 
 bool LifecycleServiceFactory::ServiceIsCreatedWithBrowserContext() const {

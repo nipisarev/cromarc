@@ -6,6 +6,7 @@
 
 #include <algorithm>
 
+#include "content/public/browser/page_navigator.h"
 #include "content/public/browser/web_contents.h"
 
 namespace cromarc {
@@ -21,8 +22,51 @@ FakeTabs::Tab* FakeTabs::Find(TabId tab) {
 TabId FakeTabs::Add(BrowserWindowInterface* window, bool pinned) {
   const TabId id(next_id_++);
   tabs_.push_back({id, window, pinned});
-  active_.try_emplace(window, id);
+  const bool active = active_.try_emplace(window, id).second;
+  NotifyInserted(id, std::nullopt, active);
+  if (active) {
+    NotifyActiveChanged(window);
+  }
   return id;
+}
+
+TabId FakeTabs::AddFrom(BrowserWindowInterface* window,
+                        std::optional<TabId> opener,
+                        const GURL& url,
+                        bool active) {
+  const TabId id(next_id_++);
+  tabs_.push_back({id, window, false, url});
+  const bool first = active_.try_emplace(window, id).second;
+  if (active && !first) {
+    active_[window] = id;
+  }
+  // Chrome activates an inserted tab before observers hear of the insertion.
+  NotifyInserted(id, opener, active || first);
+  if (active || first) {
+    NotifyActiveChanged(window);
+  }
+  return id;
+}
+
+void FakeTabs::NotifyActiveChanged(BrowserWindowInterface* window) {
+  if (auto it = active_changed_.find(window); it != active_changed_.end()) {
+    it->second->Notify();
+  }
+}
+
+void FakeTabs::SetUrl(TabId tab, const GURL& url) {
+  if (Tab* t = Find(tab)) {
+    t->url = url;
+  }
+}
+
+void FakeTabs::NotifyInserted(TabId tab,
+                              std::optional<TabId> opener,
+                              bool active) {
+  BrowserWindowInterface* window = GetWindow(tab);
+  if (auto it = inserted_.find(window); it != inserted_.end()) {
+    it->second->Notify(tab, opener, active);
+  }
 }
 
 void FakeTabs::Remove(TabId tab) {
@@ -69,6 +113,33 @@ std::optional<TabId> FakeTabs::FromContents(content::WebContents* contents) {
   return std::nullopt;
 }
 
+GURL FakeTabs::GetUrl(TabId tab) {
+  Tab* t = Find(tab);
+  return t ? t->url : GURL();
+}
+
+GURL FakeTabs::GetLastCommittedUrl(TabId tab) {
+  return GetUrl(tab);
+}
+
+std::u16string FakeTabs::GetTitle(TabId tab) {
+  auto it = titles.find(tab);
+  return it == titles.end() ? std::u16string() : it->second;
+}
+
+base::Time FakeTabs::GetLastActiveTime(TabId tab) {
+  Tab* t = Find(tab);
+  return t ? t->last_active : base::Time();
+}
+
+bool FakeTabs::IsAudibleOrCaptured(TabId tab) {
+  return audible.contains(tab);
+}
+
+bool FakeTabs::MayLoseInput(TabId tab) {
+  return may_lose_input.contains(tab);
+}
+
 std::vector<TabId> FakeTabs::List(BrowserWindowInterface* window) {
   std::vector<TabId> list;
   for (const Tab& tab : tabs_) {
@@ -98,22 +169,27 @@ void FakeTabs::Activate(TabId tab) {
     return;
   }
   active_[t->window] = tab;
-  if (auto it = active_changed_.find(t->window); it != active_changed_.end()) {
-    it->second->Notify();
-  }
+  t->last_active = base::Time::Now();
+  NotifyActiveChanged(t->window);
 }
 
 void FakeTabs::SetPinned(TabId tab, bool pinned) {
-  if (Tab* t = Find(tab)) {
-    t->pinned = pinned;
+  Tab* t = Find(tab);
+  if (!t || t->pinned == pinned) {
+    return;
   }
+  t->pinned = pinned;
+  // As Chrome's strip: pinned tabs come first.
+  MoveToFirstUnpinned(tab);
 }
 
 void FakeTabs::Close(TabId tab) {
+  closed.push_back(tab);
   Remove(tab);
 }
 
 void FakeTabs::CloseByUser(TabId tab) {
+  closed.push_back(tab);
   Remove(tab);
 }
 
@@ -130,6 +206,7 @@ void FakeTabs::Open(BrowserWindowInterface* window,
                     WindowOpenDisposition disposition) {
   opened.emplace_back(window, url);
   const TabId tab = Add(window);
+  SetUrl(tab, url);
   if (disposition != WindowOpenDisposition::NEW_BACKGROUND_TAB) {
     Activate(tab);
   }
@@ -182,8 +259,43 @@ content::WebContents* FakeTabs::AddNewContents(
 void FakeTabs::MoveToWindow(TabId tab, BrowserWindowInterface* window) {
   if (Tab* t = Find(tab)) {
     t->window = window;
-    Activate(tab);
+    active_[window] = tab;
+    NotifyInserted(tab, std::nullopt, /*active=*/true);
+    NotifyActiveChanged(window);
   }
+}
+
+void FakeTabs::OpenFrom(TabId tab, const content::OpenURLParams& params) {
+  opened_from.emplace_back(tab, params.url);
+  if (BrowserWindowInterface* window = GetWindow(tab)) {
+    AddFrom(window, tab, params.url,
+            params.disposition == WindowOpenDisposition::NEW_FOREGROUND_TAB);
+  }
+}
+
+void FakeTabs::MoveToFirstUnpinned(TabId tab) {
+  auto it = std::ranges::find(tabs_, tab, &Tab::id);
+  if (it == tabs_.end()) {
+    return;
+  }
+  // Where the window's pinned tabs end.
+  Tab moved = *it;
+  tabs_.erase(it);
+  auto to = std::ranges::find_if(tabs_, [&moved](const Tab& t) {
+    return t.window == moved.window && !t.pinned;
+  });
+  tabs_.insert(to, moved);
+}
+
+base::CallbackListSubscription FakeTabs::OnInserted(
+    BrowserWindowInterface* window,
+    InsertedCallback callback) {
+  auto& list = inserted_[window];
+  if (!list) {
+    list = std::make_unique<
+        base::RepeatingCallbackList<void(TabId, std::optional<TabId>, bool)>>();
+  }
+  return list->Add(std::move(callback));
 }
 
 base::CallbackListSubscription FakeTabs::OnOpenedInBackground(

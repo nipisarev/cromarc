@@ -12,36 +12,62 @@ source_set("policy") {
 
 source_set("unit_tests") {
   testonly = true
-  sources = [ "policy_unittest.cc" ]
+  sources = [
+    "lifecycle_service_unittest.cc",
+    "policy_unittest.cc",
+  ]
   deps = [
+    ":lifecycle_service",
     ":policy",
+    "//base/test:test_support",
+    "//components/prefs:test_support",
+    "//content/public/browser",
+    "//cromarc/browser/archive:archive_service",
+    "//cromarc/browser/ports:test_support",
+    "//cromarc/browser/tree:tree_service",
+    "//cromarc/browser/ui/glance:registry",
     "//testing/gtest",
+    "//url",
   ]
 }
 
-source_set("service") {
+source_set("lifecycle_service") {
   sources = [
     "lifecycle_service.cc",
     "lifecycle_service.h",
+  ]
+  public_deps = [
+    ":policy",
+    "//components/keyed_service/core",
+    "//cromarc/browser/ports",
+    "//url",
+  ]
+  deps = [
+    "//base",
+    "//cromarc/browser/archive:archive_service",
+    "//cromarc/browser/tree:tree_service",
+    "//cromarc/browser/ui/glance:registry",
+  ]
+}
+
+# Its factory, the composition root.
+source_set("service") {
+  sources = [
     "lifecycle_service_factory.cc",
     "lifecycle_service_factory.h",
   ]
   public_deps = [
-    ":policy",
+    ":lifecycle_service",
     "//chrome/browser:browser_public_dependencies",
-    "//components/keyed_service/core",
-    "//cromarc/browser/ports",
-    "//url",
   ]
   deps = [
     "//chrome/browser/prefs:util",
     "//chrome/browser/profiles:profile",
     "//chrome/common:constants",
     "//components/pref_registry",
-    "//content/public/browser",
     "//cromarc/browser/archive:service",
     "//cromarc/browser/chromium:adapters",
     "//cromarc/browser/tree:service",
-    "//ui/base/idle",
+    "//cromarc/browser/ui/glance:registry",
   ]
 }

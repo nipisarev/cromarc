@@ -13,17 +13,19 @@
 
 #include "base/callback_list.h"
 #include "base/functional/callback_forward.h"
+#include "base/time/time.h"
 #include "base/types/strong_alias.h"
 #include "ui/base/window_open_disposition.h"
+#include "url/gurl.h"
 
 class BrowserWindowInterface;
-class GURL;
 
 namespace blink::mojom {
 class WindowFeatures;
 }  // namespace blink::mojom
 
 namespace content {
+struct OpenURLParams;
 class WebContents;
 }  // namespace content
 
@@ -46,6 +48,21 @@ class Tabs {
   virtual BrowserWindowInterface* GetWindow(TabId tab) = 0;
   // The tab showing `contents`, if it is one.
   virtual std::optional<TabId> FromContents(content::WebContents* contents) = 0;
+  // The page's address as its row shows it: the one it is loading, else the
+  // last one it showed. Empty once the tab is gone.
+  virtual GURL GetUrl(TabId tab) = 0;
+  // The address of the last page the tab showed: empty while it loads its
+  // first one, and once the tab is gone.
+  virtual GURL GetLastCommittedUrl(TabId tab) = 0;
+  virtual std::u16string GetTitle(TabId tab) = 0;
+  // When the tab was last the active tab of its window; a restored tab keeps
+  // the time from the previous session.
+  virtual base::Time GetLastActiveTime(TabId tab) = 0;
+  // Playing sound, or capturing the camera, the microphone or the screen.
+  virtual bool IsAudibleOrCaptured(TabId tab) = 0;
+  // Closing the tab could lose what the user typed: the page asks before it
+  // unloads, and it may have been edited.
+  virtual bool MayLoseInput(TabId tab) = 0;
 
   // `window`'s tabs, in their order.
   virtual std::vector<TabId> List(BrowserWindowInterface* window) = 0;
@@ -99,12 +116,25 @@ class Tabs {
       const blink::mojom::WindowFeatures& window_features) = 0;
   // Moves the tab, page and all, to the end of `window`, active there.
   virtual void MoveToWindow(TabId tab, BrowserWindowInterface* window) = 0;
+  // Opens `params` from `tab`'s page as a link of that page does: with its
+  // referrer and initiator, and `tab` as the opener of a new tab.
+  virtual void OpenFrom(TabId tab, const content::OpenURLParams& params) = 0;
+  // Moves the tab to the first place after its window's pinned tabs.
+  virtual void MoveToFirstUnpinned(TabId tab) = 0;
 
   // Called once per insertion of tabs into `window` that leaves its active tab
   // as it was.
   virtual base::CallbackListSubscription OnOpenedInBackground(
       BrowserWindowInterface* window,
       base::RepeatingClosure callback) = 0;
+  // Called for each tab inserted into `window`, opened or moved there: the
+  // tab it was opened from, if Chrome keeps that, and whether it became the
+  // active tab.
+  using InsertedCallback = base::RepeatingCallback<
+      void(TabId tab, std::optional<TabId> opener, bool active)>;
+  virtual base::CallbackListSubscription OnInserted(
+      BrowserWindowInterface* window,
+      InsertedCallback callback) = 0;
   // Called when `window`'s active tab changes.
   virtual base::CallbackListSubscription OnActiveChanged(
       BrowserWindowInterface* window,

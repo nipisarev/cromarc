@@ -31,6 +31,7 @@ class WindowsAdapter : public Windows {
       Profile* profile) override;
   bool IsOnScreen(BrowserWindowInterface* window) override;
   bool IsVisible(BrowserWindowInterface* window) override;
+  bool IsActive(BrowserWindowInterface* window) override;
   bool IsFullscreen(BrowserWindowInterface* window) override;
   gfx::Rect BoundsOf(BrowserWindowInterface* window) override;
   gfx::Rect RestoredBoundsOf(BrowserWindowInterface* window) override;

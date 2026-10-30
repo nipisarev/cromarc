@@ -6,7 +6,7 @@ import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
 import {DownloadCommand, SwipeType} from '../sidebar.mojom-webui.js';
-import type {Download, ICloudSpace, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
+import type {Download, Glance, ICloudSpace, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 import {TabNetworkState} from '/tab_strip_api/tabs.mojom-webui.js';
 import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_api/tab_strip_api_events.mojom-webui.js';
@@ -117,6 +117,7 @@ export class SidebarAppElement extends CrLitElement {
       resetAccel_: {type: Boolean},
       strings: {type: Object},
       minutesLeft_: {type: Object},
+      glances_: {type: Array},
       cleared_: {type: Array},
       spaces_: {type: Array},
       snapshots_: {type: Object},
@@ -161,6 +162,8 @@ export class SidebarAppElement extends CrLitElement {
   protected accessor resetAccel_: boolean = false;
   // Today tabs close to the archive: tab id → minutes left.
   protected accessor minutesLeft_: Map<string, number> = new Map();
+  // The window's glances: tabs of other tabs, which the sidebar does not list.
+  protected accessor glances_: Glance[] = [];
   // URLs closed by the last Clear while its undo toast shows.
   protected accessor cleared_: string[] = [];
   // Spaces in order; each has a strip (design, component 4).
@@ -300,6 +303,10 @@ export class SidebarAppElement extends CrLitElement {
         (tabs: TabLifecycle[]) => this.setLifecycles_(tabs));
     this.proxy_.handler.getTabLifecycles().then(
         ({tabs}) => this.setLifecycles_(tabs));
+    this.proxy_.callbackRouter.onGlancesChanged.addListener(
+        (glances: Glance[]) => this.glances_ = glances);
+    this.proxy_.handler.getGlances().then(
+        ({glances}) => this.glances_ = glances);
     const router = this.proxy_.callbackRouter;
     router.onSpacesChanged.addListener(
         (spaces: Space[]) => this.setSpaces_(spaces));
@@ -322,9 +329,12 @@ export class SidebarAppElement extends CrLitElement {
     super.willUpdate(changed);
     if (changed.has('tabs_' as keyof SidebarAppElement) ||
         changed.has('tree_' as keyof SidebarAppElement) ||
-        changed.has('minutesLeft_' as keyof SidebarAppElement)) {
+        changed.has('minutesLeft_' as keyof SidebarAppElement) ||
+        changed.has('glances_' as keyof SidebarAppElement)) {
+      const glances = new Set(this.glances_.map(g => g.tab));
       this.view_ = buildSidebar(
-          this.tree_, this.tabs_, this.deferred_, this.pinnedTabs_);
+          this.tree_, this.tabs_.filter(t => !glances.has(t.id)),
+          this.deferred_, this.pinnedTabs_);
       this.fillTitles_();
       this.checkPins_();
     }
@@ -1395,8 +1405,24 @@ export class SidebarAppElement extends CrLitElement {
     return known ? `url("${known}")` : getFaviconForPageURL(url, false);
   }
 
+  // A tab whose glance shows is the current one, as in Zen.
   protected isActive_(tab: Tab|null): boolean {
-    return !!tab && tab.isActive;
+    if (!tab) {
+      return false;
+    }
+    const glance = this.glanceTabOf_(tab.id);
+    return tab.isActive || !!glance?.isActive;
+  }
+
+  private glanceTabOf_(id: string): Tab|undefined {
+    const glance = this.glances_.find(g => g.parent === id);
+    return glance && this.tabs_.find(t => t.id === glance.tab);
+  }
+
+  // Zen's glance tab inside its parent's, for the chip: none or one.
+  protected glancesOf_(tab: Tab|null): Tab[] {
+    const glance = tab ? this.glanceTabOf_(tab.id) : undefined;
+    return glance ? [glance] : [];
   }
 
   protected dropClass_(id: string): string {
@@ -1437,8 +1463,10 @@ export class SidebarAppElement extends CrLitElement {
   protected onTodayClick_(e: Event) {
     const id = this.idOf_(e);
     if (id) {
-      // The tab may close before the call lands; the next event resyncs.
-      this.proxy_.tabStrip.activateTab(id).catch(() => {});
+      // A tab with a glance shows its glance (Zen's getTabOrGlanceChild). The
+      // tab may close before the call lands; the next event resyncs.
+      this.proxy_.tabStrip.activateTab(this.glanceTabOf_(id)?.id ?? id)
+          .catch(() => {});
     }
   }
 

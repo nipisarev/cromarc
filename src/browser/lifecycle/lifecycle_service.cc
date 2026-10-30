@@ -7,18 +7,14 @@
 #include <algorithm>
 #include <utility>
 
-#include "base/command_line.h"
 #include "base/functional/bind.h"
-#include "base/strings/string_number_conversions.h"
 #include "base/power_monitor/power_monitor.h"
-#include "content/public/browser/render_frame_host.h"
-#include "content/public/browser/web_contents.h"
 #include "cromarc/browser/archive/archive_service.h"
 #include "cromarc/browser/ports/app_lifecycle.h"
+#include "cromarc/browser/ports/presence.h"
 #include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/tree/tree_service.h"
-#include "third_party/blink/public/mojom/frame/sudden_termination_disabler_type.mojom-shared.h"
-#include "ui/base/idle/idle.h"
+#include "cromarc/browser/ui/glance/glance_registry.h"
 
 namespace cromarc {
 
@@ -28,23 +24,6 @@ constexpr base::TimeDelta kSweepInterval = base::Minutes(1);
 // Lets session restore and the first window settle before the first sweep.
 constexpr base::TimeDelta kFirstSweepDelay = base::Seconds(10);
 
-// --cromarc-idle-limit=SECONDS: a short idle limit to try the lifecycle by
-// hand or in a test; sweeps run more often to match.
-constexpr char kIdleLimitSwitch[] = "cromarc-idle-limit";
-
-Limits LimitsFromCommandLine() {
-  Limits limits;
-  int seconds = 0;
-  if (base::StringToInt(base::CommandLine::ForCurrentProcess()
-                            ->GetSwitchValueASCII(kIdleLimitSwitch),
-                        &seconds) &&
-      seconds > 0) {
-    limits.idle = base::Seconds(seconds);
-    limits.show_time_left_within = limits.idle / 2;
-  }
-  return limits;
-}
-
 }  // namespace
 
 LifecycleService::LifecycleService(Profile* profile,
@@ -52,13 +31,17 @@ LifecycleService::LifecycleService(Profile* profile,
                                    ArchiveService* archive_service,
                                    Tabs& tabs,
                                    Windows& windows,
-                                   AppLifecycle& app_lifecycle)
+                                   AppLifecycle& app_lifecycle,
+                                   Presence& presence,
+                                   GlanceRegistry& glances)
     : profile_(profile),
       tree_service_(tree_service),
       archive_service_(archive_service),
       tabs_(tabs),
       windows_(windows),
       app_lifecycle_(app_lifecycle),
+      presence_(presence),
+      glances_(glances),
       limits_(LimitsFromCommandLine()) {
   const base::TimeDelta interval =
       std::clamp(limits_.idle / 6, base::Seconds(1), kSweepInterval);
@@ -93,36 +76,39 @@ base::CallbackListSubscription LifecycleService::RegisterOnChanged(
 }
 
 bool LifecycleService::HasUnsavedInput(TabId tab) {
-  content::WebContents* contents = tabs_->GetContents(tab);
-  bool has_handler = false;
-  contents->GetPrimaryMainFrame()->ForEachRenderFrameHost(
-      [&has_handler](content::RenderFrameHost* frame) {
-        if (frame->GetSuddenTerminationDisablerState(
-                blink::mojom::SuddenTerminationDisablerType::
-                    kBeforeUnloadHandler)) {
-          has_handler = true;
-        }
-      });
-  return has_handler && app_lifecycle_->MayHaveUserEdits(contents);
+  // A tab and its glance close together: input in either is at stake.
+  const std::optional<TabId> glance = GlanceOf(tab);
+  return tabs_->MayLoseInput(tab) || (glance && tabs_->MayLoseInput(*glance));
+}
+
+bool LifecycleService::IsGlance(TabId tab) const {
+  return glances_->IsGlance(tab);
+}
+
+std::optional<TabId> LifecycleService::GlanceOf(TabId tab) const {
+  return glances_->GlanceOf(tab);
+}
+
+bool LifecycleService::Shows(TabId tab, std::optional<TabId> active) const {
+  return active && (tab == *active || GlanceOf(tab) == active);
 }
 
 TabFacts LifecycleService::FactsFor(TabId tab,
                                     bool active_in_visible_window,
                                     base::TimeDelta user_away_for,
                                     base::Time now) {
-  content::WebContents* contents = tabs_->GetContents(tab);
   auto it = last_active_.find(tab);
   if (it == last_active_.end()) {
     // First sight: when the tab was last shown (restored tabs keep the time
     // from the previous session).
-    it = last_active_.emplace(tab, contents->GetLastActiveTime()).first;
+    it = last_active_.emplace(tab, tabs_->GetLastActiveTime(tab)).first;
   }
 
   TabFacts facts;
   facts.pinned_item = tree_service_->GetItemForTab(tab).has_value();
   facts.active_in_visible_window = active_in_visible_window;
   facts.user_away_for = user_away_for;
-  facts.paused = contents->IsCurrentlyAudible() || contents->IsBeingCaptured();
+  facts.paused = tabs_->IsAudibleOrCaptured(tab);
   facts.kept_by_user = kept_.contains(tab);
   if ((active_in_visible_window && user_away_for < limits_.away) ||
       facts.paused) {
@@ -142,8 +128,8 @@ void LifecycleService::Sweep() {
   }
 
   const base::Time now = base::Time::Now();
-  base::TimeDelta away = base::Seconds(ui::CalculateIdleTime());
-  if (ui::CheckIdleStateIsLocked()) {
+  base::TimeDelta away = presence_->IdleFor();
+  if (presence_->IsScreenLocked()) {
     away = std::max(away, limits_.away);
   }
 
@@ -153,11 +139,15 @@ void LifecycleService::Sweep() {
     const std::optional<TabId> active = tabs_->GetActive(browser);
     const std::vector<TabId> tabs = tabs_->List(browser);
     // Counted here, as a tab with unload listeners leaves the strip only
-    // later.
-    size_t open = tabs.size();
+    // later. A glance is no page the window keeps: it goes with its tab.
+    size_t open = std::ranges::count_if(
+        tabs, [this](TabId tab) { return !IsGlance(tab); });
     for (TabId tab : tabs) {
       seen.insert(tab);
-      TabFacts facts = FactsFor(tab, visible && tab == active, away, now);
+      if (IsGlance(tab)) {
+        continue;
+      }
+      TabFacts facts = FactsFor(tab, visible && Shows(tab, active), away, now);
       Decision decision = Decide(facts, now, limits_);
       if (decision != Decision::kKeep) {
         facts.unsaved_input = HasUnsavedInput(tab);
@@ -212,14 +202,14 @@ void LifecycleService::CloseRestoredPinnedTabs() {
 }
 
 GURL LifecycleService::ArchiveAndClose(TabId tab, const char* reason) {
-  content::WebContents* contents = tabs_->GetContents(tab);
   ArchiveEntry entry;
   // A page still loading has committed nothing: it goes under the address
   // it is loading, the one its row shows.
-  entry.url = contents->GetLastCommittedURL().is_empty()
-                  ? contents->GetVisibleURL()
-                  : contents->GetLastCommittedURL();
-  entry.title = contents->GetTitle();
+  entry.url = tabs_->GetLastCommittedUrl(tab);
+  if (entry.url.is_empty()) {
+    entry.url = tabs_->GetUrl(tab);
+  }
+  entry.title = tabs_->GetTitle(tab);
   entry.closed_at = base::Time::Now();
   entry.reason = reason;
   GURL archived;
@@ -235,11 +225,14 @@ std::vector<LifecycleService::TabState> LifecycleService::GetTabStates(
     BrowserWindowInterface* browser) {
   std::vector<TabState> states;
   const base::Time now = base::Time::Now();
-  base::TimeDelta away = base::Seconds(ui::CalculateIdleTime());
+  base::TimeDelta away = presence_->IdleFor();
   const std::optional<TabId> active = tabs_->GetActive(browser);
   const bool visible = windows_->IsOnScreen(browser);
   for (TabId tab : tabs_->List(browser)) {
-    TabFacts facts = FactsFor(tab, visible && tab == active, away, now);
+    if (IsGlance(tab)) {
+      continue;
+    }
+    TabFacts facts = FactsFor(tab, visible && Shows(tab, active), away, now);
     TabState state;
     state.tab = tab;
     state.deferred = deferred_.contains(tab);
@@ -260,7 +253,9 @@ void LifecycleService::Keep(TabId tab) {
 
 std::vector<GURL> LifecycleService::ClearToday(
     BrowserWindowInterface* browser) {
-  const std::vector<TabId> tabs = tabs_->List(browser);
+  std::vector<TabId> tabs = tabs_->List(browser);
+  // Glances go with their tabs.
+  std::erase_if(tabs, [this](TabId tab) { return IsGlance(tab); });
   std::vector<TabId> today;
   for (TabId tab : tabs) {
     if (!tree_service_->GetItemForTab(tab)) {

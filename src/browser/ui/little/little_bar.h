@@ -24,8 +24,9 @@ namespace cromarc {
 
 class LittleWindow;
 
-// The right end of a Little window's toolbar: "Open in <space>", a menu of
-// the other spaces, and close.
+// The right end of a Little window's toolbar: its space (a menu moves the
+// window to another), "Open in <space>", a menu of the other spaces, and
+// close.
 class LittleBar : public views::View, public ui::SimpleMenuModel::Delegate {
   METADATA_HEADER(LittleBar, views::View)
 
@@ -40,10 +41,12 @@ class LittleBar : public views::View, public ui::SimpleMenuModel::Delegate {
 
  private:
   void ShowSpacesMenu();
+  void ShowMoveMenu();
 
   // The window outlives its bar only until it closes.
   base::WeakPtr<LittleWindow> window_;
   raw_ptr<views::View> menu_button_ = nullptr;
+  raw_ptr<views::View> space_button_ = nullptr;
   std::vector<std::string> menu_spaces_;
   std::unique_ptr<ui::SimpleMenuModel> menu_model_;
   std::unique_ptr<views::MenuRunner> menu_runner_;

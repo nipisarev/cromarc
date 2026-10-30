@@ -18,6 +18,7 @@
 #include "cromarc/browser/chromium/adapters.h"
 #include "cromarc/browser/chromium/browser_frame_adapter.h"
 #include "cromarc/browser/chromium/vertical_strip_adapter.h"
+#include "cromarc/browser/ui/glance/glance_registry.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "ui/views/view.h"
 #include "ui/views/view_utils.h"
@@ -65,6 +66,8 @@ void InstallSidebar(views::View* parent,
   host.windows = &ChromiumWindows();
   parent->AddChildViewAt(std::make_unique<SidebarView>(std::move(host)),
                          *index + 1);
+  // What its Essentials and pinned tabs open may be their glances.
+  GlanceRegistry::Get()->Watch(browser);
 }
 
 }  // namespace cromarc

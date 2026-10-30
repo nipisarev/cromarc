@@ -4,31 +4,59 @@
 
 assert(!is_android)
 
+# A Little window's page, its life and its moves, through ports and a
+# delegate.
+source_set("little_window") {
+  sources = [
+    "little_window.cc",
+    "little_window.h",
+  ]
+  public_deps = [
+    "//base",
+    "//cromarc/browser/archive",
+    "//cromarc/browser/lifecycle:policy",
+    "//cromarc/browser/ports",
+    "//ui/gfx",
+    "//url",
+  ]
+  deps = [
+    "//ui/base",
+    "//ui/display",
+    "//ui/views",
+  ]
+}
+
+# Its bar, and the delegate on the spaces and the archive.
 source_set("little") {
   sources = [
     "little_bar.cc",
     "little_bar.h",
-    "little_window.cc",
-    "little_window.h",
+    "little_spaces.cc",
+    "little_spaces.h",
   ]
-  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  public_deps = [ ":little_window" ]
   deps = [
-    "//cromarc/strings:cromarc_strings",
-    "//cromarc/browser/ports",
     "//base",
-    "//chrome/browser/lifetime",
-    "//chrome/browser/profiles:profile",
-    "//chrome/browser/ui/browser_window",
-    "//components/sessions",
-    "//components/tabs:public",
     "//components/vector_icons",
-    "//content/public/browser",
     "//cromarc/browser/archive:service",
     "//cromarc/browser/routing",
     "//cromarc/browser/spaces",
+    "//cromarc/strings:cromarc_strings",
     "//ui/base",
-    "//ui/display",
     "//ui/menus",
+    "//ui/views",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "little_window_unittest.cc" ]
+  deps = [
+    ":little_window",
+    "//base/test:test_support",
+    "//cromarc/browser/ports:test_support",
+    "//testing/gtest",
+    "//ui/gfx",
     "//ui/views",
     "//url",
   ]

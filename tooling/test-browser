@@ -124,7 +124,7 @@ launch() {
   [ -n "${CROMARC_TEST_WINDOWED:-}" ] || args+=(--headless=new)
   # Headless gives every window it opens this size; Little windows size
   # themselves, on a screen they fit on.
-  if [ "$name" = little ]; then
+  if [ "$name" = little ] || [ "$name" = little_archive ]; then
     args+=("--screen-info={0,0 1600x1200}")
   else
     args+=("--window-size=1100,800")
@@ -132,6 +132,10 @@ launch() {
   case "$name" in
     theme | compact) args+=(--cromarc-test-log-background) ;;
     library_spaces) args+=(--cromarc-test-log-spaces) ;;
+    # Pages idle out in seconds; a Little window in half that.
+    glance_sleep) args+=(--cromarc-idle-limit=8) ;;
+    # Whether a person is at the Mac must not decide the run.
+    little_archive) args+=(--cromarc-idle-limit=8 --cromarc-user-away) ;;
     import) args+=(--cromarc-arc-sidebar="$fixtures/arc_sidebar.json") ;;
     import_export)
       args+=(--cromarc-arc-sidebar="$work/no-arc.json"

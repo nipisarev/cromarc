@@ -50,6 +50,8 @@ test("cromarc_unittests") {
     "//cromarc/browser/routing:unit_tests",
     "//cromarc/browser/spaces:unit_tests",
     "//cromarc/browser/tree:unit_tests",
+    "//cromarc/browser/ui/glance:unit_tests",
+    "//cromarc/browser/ui/little:unit_tests",
     "//cromarc/browser/ui:unit_tests",
     "//cromarc/browser/ui/sidebar:unit_tests",
     "//cromarc/strings:unit_tests",

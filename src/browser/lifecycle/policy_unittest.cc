@@ -4,6 +4,8 @@
 
 #include "cromarc/browser/lifecycle/policy.h"
 
+#include "base/command_line.h"
+#include "base/test/scoped_command_line.h"
 #include "base/time/time.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -76,6 +78,28 @@ TEST_F(PolicyTest, RemainingTimeIsShownInTheLastHourOnly) {
   TabFacts active = Today(base::Hours(11) + base::Minutes(30));
   active.active_in_visible_window = true;
   EXPECT_EQ(TimeToArchive(active, now_), base::TimeDelta());
+}
+
+// Little Arc windows archive every 6 h by default, half the tab limit.
+TEST_F(PolicyTest, ALittleWindowUnusedForSixHoursGoes) {
+  EXPECT_FALSE(LittleIdledOut(now_ - base::Hours(5) - base::Minutes(59), now_));
+  EXPECT_TRUE(LittleIdledOut(now_ - base::Hours(6), now_));
+}
+
+TEST_F(PolicyTest, TheIdleSwitchGivesLittleWindowsHalf) {
+  base::test::ScopedCommandLine command_line;
+  command_line.GetProcessCommandLine()->AppendSwitchASCII("cromarc-idle-limit",
+                                                          "8");
+  const Limits limits = LimitsFromCommandLine();
+  EXPECT_EQ(limits.idle, base::Seconds(8));
+  EXPECT_EQ(limits.little_idle, base::Seconds(4));
+  EXPECT_TRUE(LittleIdledOut(now_ - base::Seconds(4), now_, limits));
+}
+
+TEST_F(PolicyTest, WithoutTheSwitchTheLimitsAreArcs) {
+  const Limits limits = LimitsFromCommandLine();
+  EXPECT_EQ(limits.idle, base::Hours(12));
+  EXPECT_EQ(limits.little_idle, base::Hours(6));
 }
 
 }  // namespace

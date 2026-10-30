@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "base/functional/bind.h"
+#include "base/memory/weak_ptr.h"
 #include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/browser_tabrestore.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: as above
@@ -19,8 +20,13 @@
 #include "chrome/common/webui_url_constants.h"
 #include "components/sessions/core/serialized_navigation_entry.h"
 #include "components/sessions/core/serialized_user_agent_override.h"
+#include "components/performance_manager/public/graph/page_node.h"
+#include "components/performance_manager/public/performance_manager.h"
 #include "components/tabs/public/tab_interface.h"
+#include "content/public/browser/page_navigator.h"
+#include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
+#include "third_party/blink/public/mojom/frame/sudden_termination_disabler_type.mojom-shared.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
@@ -54,15 +60,30 @@ class TabsAdapter::WindowEvents : public TabStripModelObserver {
     return opened_in_background_;
   }
   base::RepeatingClosureList& active_changed() { return active_changed_; }
+  base::RepeatingCallbackList<void(TabId, std::optional<TabId>, bool)>&
+  inserted() {
+    return inserted_;
+  }
 
   // TabStripModelObserver:
   void OnTabStripModelChanged(
       TabStripModel* tab_strip_model,
       const TabStripModelChange& change,
       const TabStripSelectionChange& selection) override {
-    if (change.type() == TabStripModelChange::kInserted &&
-        !selection.active_tab_changed()) {
-      opened_in_background_.Notify();
+    if (change.type() == TabStripModelChange::kInserted) {
+      for (const TabStripModelChange::ContentsWithIndex& inserted :
+           change.GetInsert()->contents) {
+        const tabs::TabInterface* opener =
+            tab_strip_model->GetOpenerOfTabAt(inserted.index);
+        inserted_.Notify(IdOf(inserted.tab),
+                         opener ? std::make_optional(IdOf(opener))
+                                : std::nullopt,
+                         selection.active_tab_changed() &&
+                             selection.new_tab == inserted.tab);
+      }
+      if (!selection.active_tab_changed()) {
+        opened_in_background_.Notify();
+      }
     }
     if (selection.active_tab_changed()) {
       active_changed_.Notify();
@@ -72,6 +93,8 @@ class TabsAdapter::WindowEvents : public TabStripModelObserver {
  private:
   base::RepeatingClosureList opened_in_background_;
   base::RepeatingClosureList active_changed_;
+  base::RepeatingCallbackList<void(TabId, std::optional<TabId>, bool)>
+      inserted_;
   base::CallbackListSubscription window_did_close_;
 };
 
@@ -99,6 +122,60 @@ std::optional<TabId> TabsAdapter::FromContents(content::WebContents* contents) {
     return std::nullopt;
   }
   return IdOf(tab);
+}
+
+GURL TabsAdapter::GetUrl(TabId tab) {
+  content::WebContents* contents = GetContents(tab);
+  return contents ? contents->GetVisibleURL() : GURL();
+}
+
+GURL TabsAdapter::GetLastCommittedUrl(TabId tab) {
+  content::WebContents* contents = GetContents(tab);
+  return contents ? contents->GetLastCommittedURL() : GURL();
+}
+
+std::u16string TabsAdapter::GetTitle(TabId tab) {
+  content::WebContents* contents = GetContents(tab);
+  return contents ? contents->GetTitle() : std::u16string();
+}
+
+base::Time TabsAdapter::GetLastActiveTime(TabId tab) {
+  content::WebContents* contents = GetContents(tab);
+  return contents ? contents->GetLastActiveTime() : base::Time();
+}
+
+bool TabsAdapter::IsAudibleOrCaptured(TabId tab) {
+  content::WebContents* contents = GetContents(tab);
+  return contents &&
+         (contents->IsCurrentlyAudible() || contents->IsBeingCaptured());
+}
+
+bool TabsAdapter::MayLoseInput(TabId tab) {
+  content::WebContents* contents = GetContents(tab);
+  if (!contents) {
+    return false;
+  }
+  bool has_handler = false;
+  contents->GetPrimaryMainFrame()->ForEachRenderFrameHost(
+      [&has_handler](content::RenderFrameHost* frame) {
+        if (frame->GetSuddenTerminationDisablerState(
+                blink::mojom::SuddenTerminationDisablerType::
+                    kBeforeUnloadHandler)) {
+          has_handler = true;
+        }
+      });
+  if (!has_handler) {
+    return false;
+  }
+  // Whether the user edited the page; when that cannot be known, they may
+  // have.
+  if (!performance_manager::PerformanceManager::IsAvailable()) {
+    return true;
+  }
+  base::WeakPtr<performance_manager::PageNode> page =
+      performance_manager::PerformanceManager::GetPrimaryPageNodeForWebContents(
+          contents);
+  return !page || page->HadUserEdits();
 }
 
 std::vector<TabId> TabsAdapter::List(BrowserWindowInterface* window) {
@@ -272,6 +349,24 @@ void TabsAdapter::MoveToWindow(TabId tab, BrowserWindowInterface* window) {
                           AddTabTypes::ADD_ACTIVE);
 }
 
+void TabsAdapter::OpenFrom(TabId tab, const content::OpenURLParams& params) {
+  if (content::WebContents* contents = GetContents(tab)) {
+    contents->OpenURL(params, /*navigation_handle_callback=*/{});
+  }
+}
+
+void TabsAdapter::MoveToFirstUnpinned(TabId tab) {
+  tabs::TabInterface* interface = TabOf(tab);
+  if (!interface) {
+    return;
+  }
+  TabStripModel* model =
+      interface->GetBrowserWindowInterface()->GetTabStripModel();
+  model->MoveWebContentsAt(model->GetIndexOfTab(interface),
+                           model->IndexOfFirstNonPinnedTab(),
+                           /*select_after_move=*/false);
+}
+
 TabsAdapter::WindowEvents& TabsAdapter::EventsOf(
     BrowserWindowInterface* window) {
   std::unique_ptr<WindowEvents>& events = events_[window];
@@ -285,6 +380,12 @@ base::CallbackListSubscription TabsAdapter::OnOpenedInBackground(
     BrowserWindowInterface* window,
     base::RepeatingClosure callback) {
   return EventsOf(window).opened_in_background().Add(std::move(callback));
+}
+
+base::CallbackListSubscription TabsAdapter::OnInserted(
+    BrowserWindowInterface* window,
+    InsertedCallback callback) {
+  return EventsOf(window).inserted().Add(std::move(callback));
 }
 
 base::CallbackListSubscription TabsAdapter::OnActiveChanged(

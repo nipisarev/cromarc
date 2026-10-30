@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Fri, 30 Oct 2026 22:11:01 +0100
+Subject: [PATCH] Cromarc H23: Cromarc adds to the page's context menu
+
+
+diff --git a/chrome/browser/renderer_context_menu/render_view_context_menu.cc b/chrome/browser/renderer_context_menu/render_view_context_menu.cc
+index 5d69014d012d5..3ebc08ba1be22 100644
+--- a/chrome/browser/renderer_context_menu/render_view_context_menu.cc
++++ b/chrome/browser/renderer_context_menu/render_view_context_menu.cc
+@@ -252,6 +252,7 @@
+ #include "content/public/common/referrer.h"
+ #include "content/public/common/url_constants.h"
+ #include "content/public/common/url_utils.h"
++#include "cromarc/hooks/hooks.h"  // Cromarc
+ #include "extensions/buildflags/buildflags.h"
+ #include "media/base/media_switches.h"
+ #include "mojo/public/cpp/bindings/associated_remote.h"
+@@ -1618,6 +1619,7 @@ void RenderViewContextMenu::InitMenu() {
+       AppendReadAnythingItem();
+     }
+   }
++  cromarc::hooks::AddContextMenuItems(this, menu_model_, observers_);  // Cromarc
+ }
+ 
+ Profile* RenderViewContextMenu::GetProfile() const {

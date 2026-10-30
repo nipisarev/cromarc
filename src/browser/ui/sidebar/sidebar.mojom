@@ -159,6 +159,13 @@ struct TreeNode {
   array<TreeNode> children;
 };
 
+// A glance (Zen's): a tab of the tab it was opened from. The sidebar does not
+// list it; its parent's row or tile shows its favicon.
+struct Glance {
+  tabs_api.mojom.NodeId tab;
+  tabs_api.mojom.NodeId parent;
+};
+
 // Lifecycle state of a tab worth showing: deferred, or about to be archived.
 struct TabLifecycle {
   tabs_api.mojom.NodeId tab;
@@ -253,6 +260,8 @@ interface PageHandler {
   ToggleCompactMode();
 
   GetTabLifecycles() => (array<TabLifecycle> tabs);
+  // The window's glances.
+  GetGlances() => (array<Glance> glances);
   // "Keep" on a deferred tab: its clock restarts.
   KeepTab(tabs_api.mojom.NodeId tab);
   // Today's "Clear": archives and closes the Today tabs of this window.
@@ -357,6 +366,7 @@ interface PageHandler {
 interface Page {
   OnTreeChanged(array<TreeNode> nodes);
   OnTabLifecyclesChanged(array<TabLifecycle> tabs);
+  OnGlancesChanged(array<Glance> glances);
   OnSpacesChanged(array<Space> spaces);
   // A hotkey or the wheel asked for `id`: animate, then SwitchToSpace().
   OnSwitchRequested(string id);

@@ -15,12 +15,15 @@
 #include "base/containers/flat_set.h"
 #include "base/memory/raw_ptr.h"
 #include "base/feature_list.h"
+#include "base/observer_list.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/gfx/geometry/size.h"
 
 class BrowserView;
 class BrowserWindowInterface;
+class RenderViewContextMenu;
+class RenderViewContextMenuObserver;
 class GURL;
 class Profile;
 class SkPath;
@@ -31,6 +34,7 @@ class FilePath;
 }  // namespace base
 
 namespace content {
+class NavigationThrottleRegistry;
 class WebContents;
 class WebUIBrowserInterfaceBrokerRegistry;
 class WebUIConfigMap;
@@ -43,6 +47,7 @@ struct VectorIcon;
 
 namespace ui {
 class Layer;
+class SimpleMenuModel;
 }  // namespace ui
 
 namespace views {
@@ -155,6 +160,18 @@ bool PaintsOnSpaceTheme(const views::View* view,
 // H21: a click on the Dock icon with no window on screen brings back the last
 // active space with its tabs, as in Zen; true when Cromarc did.
 bool ReopenSpace(const base::FilePath& profile_path);
+
+// H22: Cromarc sees a tab's navigations before they start: a link from an
+// Essential or a pinned tab to another site opens in Glance instead.
+void AddNavigationThrottles(content::NavigationThrottleRegistry& registry);
+
+// H23: Cromarc adds to the page's context menu ("Open Link in Glance", search
+// in Glance), through Chrome's own menu observers.
+void AddContextMenuItems(
+    RenderViewContextMenu* menu,
+    ui::SimpleMenuModel& model,
+    base::ReentrantObserverList<RenderViewContextMenuObserver>::
+        UncheckedAndDanglingUntriaged& observers);
 
 }  // namespace cromarc::hooks
 
