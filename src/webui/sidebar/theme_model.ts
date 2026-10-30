@@ -431,6 +431,80 @@ function isRgb(value: unknown): value is Rgb {
       value.every(v => typeof v === 'number');
 }
 
+// ZenGradientGenerator.luminance: relative luminance (sRGB).
+export function luminance([r, g, b]: Rgb): number {
+  const [lr, lg, lb] = [r, g, b].map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  }) as Rgb;
+  return lr * 0.2126 + lg * 0.7152 + lb * 0.0722;
+}
+
+// ZenGradientGenerator.contrastRatio.
+export function contrastRatio(a: Rgb, b: Rgb): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+// ZenGradientGenerator.blendColors: `percentage` of `a`, the rest of `b`.
+export function blendColors(a: Rgb, b: Rgb, percentage: number): Rgb {
+  const p = percentage / 100;
+  return [
+    Math.round(a[0] * p + b[0] * (1 - p)),
+    Math.round(a[1] * p + b[1] * (1 - p)),
+    Math.round(a[2] * p + b[2] * (1 - p)),
+  ];
+}
+
+// zen.theme.dark-mode-bias (prefs/zen/theme.yaml).
+export const DARK_MODE_BIAS = 0.3;
+
+// ZenGradientGenerator.getToolbarColor in a window that can be transparent
+// (canBeTransparent, as macOS windows are): text at .9, a quarter of the
+// accent mixed in when there is one.
+export function toolbarColor(isDark: boolean, accent?: Rgb): [number, number, number, number] {
+  const opacity = 0.9;
+  const base: Rgb = isDark ? [255, 255, 255] : [0, 0, 0];
+  return [...(accent ? blendColors(accent, base, 25) : base), opacity] as
+      [number, number, number, number];
+}
+
+// ZenGradientGenerator.shouldBeDarkMode in a window that can be transparent:
+// light text when it reads better on `accent` than dark text, the light one
+// counted fainter by the bias.
+export function shouldBeDarkMode(accent: Rgb): boolean {
+  const dark = toolbarColor(true);
+  const light = toolbarColor(false);
+  light[3] -= DARK_MODE_BIAS;
+  const darkText = blendColors(
+      accent, [dark[0], dark[1], dark[2]], (1 - dark[3]) * 100);
+  const lightText = blendColors(
+      accent, [light[0], light[1], light[2]], (1 - light[3]) * 100);
+  return contrastRatio(accent, darkText) > contrastRatio(accent, lightText);
+}
+
+// ZenGradientGenerator.getPrimaryColor: the middle colour of the theme.
+export function dominantColor(theme: SpaceTheme): Rgb|undefined {
+  return theme.colors.length ?
+      theme.colors[Math.floor(theme.colors.length / 2)] :
+      undefined;
+}
+
+// ZenGradientGenerator.getAccentColorForUI: as it is on a dark toolbar; on a
+// light one more saturated and pulled to Zen's lightness for the window's
+// scheme, greys kept (gh-15142).
+export function accentColorForUI(
+    accent: Rgb, isDark: boolean, windowIsDark: boolean): Rgb {
+  const [r, g, b] = accent;
+  if (isDark || (r === g && g === b)) {
+    return accent;
+  }
+  const [h, s, l] = rgbToHsl(accent);
+  const lightness = l * 0.4 + (windowIsDark ? 0.62 : 0.42) * 0.6;
+  return hslToRgb(h / 360, Math.min(1, s + 0.3), lightness);
+}
+
 export function themeFromJson(json: string): SpaceTheme {
   try {
     const value = JSON.parse(json);

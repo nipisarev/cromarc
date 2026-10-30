@@ -502,4 +502,9 @@
 <translation id="8131740175452115882">Подтвердить</translation>
 <!-- IDS_CROMARC_GLANCE_CLOSE -->
 <translation id="8823213626364929502">Закрыть (Esc)</translation>
+<translation id="8630137342712112018">Переключить компактный режим</translation>
+<translation id="4777133298553838927">Перейти на одну страницу назад (⌘[)</translation>
+<translation id="5964648084187410796">Перейти на одну страницу вперёд (⌘])</translation>
+<translation id="1674773732762429588">Обновить текущую страницу (⌘R)</translation>
+<translation id="2461508640340873389">Остановить загрузку этой страницы (Esc)</translation>
 </translationbundle>

@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "base/callback_list.h"
 #include "base/functional/callback_helpers.h"
@@ -17,8 +18,12 @@
 #include "base/process/kill.h"
 #include "base/time/time.h"
 #include "components/prefs/pref_change_registrar.h"
+#include "third_party/blink/public/mojom/page/draggable_region.mojom.h"
+#include "third_party/skia/include/core/SkRegion.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/geometry/insets.h"
+#include "ui/gfx/geometry/point.h"
+#include "ui/gfx/geometry/size.h"
 #include "ui/gfx/native_ui_types.h"
 #include "ui/views/controls/webview/unhandled_keyboard_event_handler.h"
 #include "ui/views/controls/webview/webview.h"
@@ -110,12 +115,24 @@ class SidebarView : public views::WebView {
   // padding). The Library takes both while it is out (hook H19); the page
   // keeps the sidebar under it still by as much. Empty while it is out.
   gfx::Insets ColumnInsets() const;
+  // The room the window's controls take at the sidebar's top left (Zen's top
+  // row leaves it).
+  gfx::Size WindowButtons() const;
+  // Chromium's back or forward history menu at `point_in_page`, a point in
+  // the sidebar's page.
+  void ShowNavigationHistory(bool forward, const gfx::Point& point_in_page);
 
   // content::WebContentsDelegate (through views::WebView):
   // Browser shortcuts (Cmd+T, Cmd+W, ...) keep working while the sidebar has
   // focus.
   bool HandleKeyboardEvent(content::WebContents* source,
                            const input::NativeWebKeyboardEvent& event) override;
+  void DraggableRegionsChanged(
+      const std::vector<blink::mojom::DraggableRegionPtr>& regions,
+      content::WebContents* contents) override;
+
+  // True where the page leaves room that moves the window (hook H25).
+  bool IsDragRegion(const gfx::Point& point_in_view) const;
 
   // content::WebContentsObserver (through views::WebView): the window has no
   // other tab UI, so a crashed sidebar loads again instead of a sad tab.
@@ -142,6 +159,7 @@ class SidebarView : public views::WebView {
   base::TimeTicks first_reload_;
   int reloads_ = 0;
   base::CallbackListSubscription fullscreen_subscription_;
+  SkRegion drag_region_;
   std::optional<std::string> theme_preview_;
   std::optional<Blend> theme_blend_;
   int library_width_ = 0;

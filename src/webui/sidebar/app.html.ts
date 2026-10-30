@@ -11,6 +11,65 @@ export function getHtml(this: SidebarAppElement) {
   // clang-format off
   return html`<!--_html_template_start_-->
 <div id="toolbox" style="${this.toolboxStyle_()}">
+<div id="zen-sidebar-top-buttons">
+  <div class="titlebar-buttonbox-container"
+      style="width: ${this.windowButtons_.width}px"></div>
+  <button id="zen-toggle-compact-mode" class="toolbarbutton-1"
+      title="${this.strings.toggleCompactMode}"
+      @click="${this.onToggleCompactClick_}">
+    <span class="toolbarbutton-icon">
+      <span class="svg" style="mask-image: url(sidebar/ui_icons/dock-to-left.svg)">
+      </span>
+    </span>
+  </button>
+  <div id="zen-sidebar-top-buttons-separator"></div>
+  <button id="back-button" class="toolbarbutton-1"
+      title="${this.strings.navBack}"
+      ?disabled="${!this.navigation_.canGoBack}"
+      @click="${this.onNavClick_}" @pointerdown="${this.onNavPointerdown_}"
+      @pointerup="${this.onNavPointerup_}"
+      @pointerleave="${this.onNavPointerleave_}"
+      @contextmenu="${this.onNavContextmenu_}">
+    <span class="toolbarbutton-icon">
+      <span class="svg" style="mask-image: url(sidebar/ui_icons/nav-back.svg)">
+      </span>
+    </span>
+  </button>
+  <button id="forward-button" class="toolbarbutton-1"
+      title="${this.strings.navForward}"
+      ?disabled="${!this.navigation_.canGoForward}"
+      @click="${this.onNavClick_}" @pointerdown="${this.onNavPointerdown_}"
+      @pointerup="${this.onNavPointerup_}"
+      @pointerleave="${this.onNavPointerleave_}"
+      @contextmenu="${this.onNavContextmenu_}">
+    <span class="toolbarbutton-icon">
+      <span class="svg" style="mask-image: url(sidebar/ui_icons/nav-forward.svg)">
+      </span>
+    </span>
+  </button>
+  <button id="reload-button" class="toolbarbutton-1"
+      title="${this.navigation_.loading ? this.strings.navStop :
+                                          this.strings.navReload}"
+      @click="${this.onNavClick_}">
+    <span class="toolbarbutton-icon">
+      <span class="svg" style="mask-image: url(sidebar/ui_icons/${
+          this.navigation_.loading ? 'close' : 'refresh'}.svg)">
+      </span>
+    </span>
+  </button>
+</div>
+<div id="nav-bar">
+  <div id="urlbar" class="urlbar" @click="${this.onUrlbarClick_}">
+    <div class="urlbar-background"></div>
+    <div class="urlbar-input-container">
+      <div id="identity-icon-box">
+        <span class="svg" style="mask-image: ${this.identityIcon_()}"></span>
+      </div>
+      <span class="urlbar-input" ?placeholder="${!this.navigation_.display}">${
+          this.navigation_.display || this.strings.urlbarPlaceholder}</span>
+    </div>
+  </div>
+</div>
 <div id="viewport" ?editing="${!!this.editor_}"
     ?stack-open="${this.stackOpen_}"
     ?stack-closing="${this.stackClosing_}">
@@ -209,6 +268,7 @@ export function getHtml(this: SidebarAppElement) {
             <span class="countdown" style="width: ${this.countdown_(tab)}"></span>
           </div>`)}
       </div>
+      <div class="zen-workspace-empty-space"></div>
       </div>
     </div>
   </div>`)}

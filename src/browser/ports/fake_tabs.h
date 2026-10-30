@@ -52,6 +52,7 @@ class FakeTabs : public Tabs {
   std::u16string GetTitle(TabId tab) override;
   base::Time GetLastActiveTime(TabId tab) override;
   bool IsAudibleOrCaptured(TabId tab) override;
+  SiteSecurity GetSiteSecurity(TabId tab) override;
   bool MayLoseInput(TabId tab) override;
   std::vector<TabId> List(BrowserWindowInterface* window) override;
   std::optional<TabId> GetActive(BrowserWindowInterface* window) override;
@@ -106,6 +107,7 @@ class FakeTabs : public Tabs {
   std::vector<TabId> closed;
   std::map<TabId, std::u16string> titles;
   std::set<TabId> audible;
+  std::map<TabId, SiteSecurity> security;
   std::set<TabId> may_lose_input;
 
  private:

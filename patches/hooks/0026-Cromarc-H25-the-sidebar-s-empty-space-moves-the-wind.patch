@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 31 Oct 2026 01:37:37 +0100
+Subject: [PATCH] Cromarc H25: the sidebar's empty space moves the window
+
+
+diff --git a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+index f336d2f8d8f4a..d4de2f67639f5 100644
+--- a/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc
+@@ -330,6 +330,11 @@ bool VerticalTabStripRegionView::IsPositionInWindowCaption(
+     return bottom_button_container_->IsPositionInWindowCaption(point_in_child);
+   }
+ 
++  // Cromarc: the sidebar's own empty space moves the window, as Zen's does.
++  if (cromarc::hooks::IsSidebarCaption(browser_view()->browser(), this, point)) {
++    return true;
++  }
++
+   // For any of the other children, absorb the click as non window caption.
+   for (views::View* child : children()) {
+     if (child == content_area_view_) {

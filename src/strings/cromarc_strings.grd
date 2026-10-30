@@ -111,6 +111,12 @@
       <message name="IDS_CROMARC_NEW_FOLDER" desc="The sidebar and its menus">New Folder</message>
       <message name="IDS_CROMARC_IMPORT_FROM_ARC" desc="The sidebar and its menus">Import from Arc…</message>
       <message name="IDS_CROMARC_HIDE_SIDEBAR" desc="The sidebar and its menus">Hide sidebar  ⌘S</message>
+      <message name="IDS_CROMARC_TOGGLE_COMPACT_MODE" desc="Tooltip of the compact mode button at the top of the sidebar (Zen's zen-toggle-compact-mode-button)">Toggle Compact Mode</message>
+      <message name="IDS_CROMARC_NAV_BACK" desc="Tooltip of the back button at the top of the sidebar (Firefox's)">Go back one page (⌘[)</message>
+      <message name="IDS_CROMARC_NAV_FORWARD" desc="Tooltip of the forward button at the top of the sidebar (Firefox's)">Go forward one page (⌘])</message>
+      <message name="IDS_CROMARC_NAV_RELOAD" desc="Tooltip of the reload button at the top of the sidebar (Firefox's)">Reload current page (⌘R)</message>
+      <message name="IDS_CROMARC_NAV_STOP" desc="Tooltip of the stop button at the top of the sidebar while a page loads (Firefox's)">Stop loading this page (Esc)</message>
+      <message name="IDS_CROMARC_URLBAR_PLACEHOLDER" desc="What the sidebar's address field shows on a new tab (Firefox's urlbar placeholder)">Search or enter address</message>
       <message name="IDS_CROMARC_SPACE_ACTIONS" desc="The sidebar and its menus">Space Actions</message>
       <message name="IDS_CROMARC_EDIT_SPACE" desc="The sidebar and its menus">Change Name…</message>
       <message name="IDS_CROMARC_CHANGE_ICON" desc="The sidebar and its menus">Change Icon…</message>

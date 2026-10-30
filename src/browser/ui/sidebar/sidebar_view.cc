@@ -32,6 +32,7 @@
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/gfx/geometry/size.h"
+#include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/views/layout/flex_layout_types.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
@@ -133,6 +134,9 @@ SidebarView::SidebarView(Host host)
   // TabStripService.
   frame_->AttachWebUI(contents.get());
   contents->SetPageBaseBackgroundColor(SK_ColorTRANSPARENT);
+  // The page marks the empty space that moves the window (app-region: drag),
+  // as Zen's draggable sidebar (zen.view.draggable-sidebar).
+  contents->SetSupportsDraggableRegions(true);
   SetOwnedWebContents(std::move(contents));
   theme_pref_.Init(host.prefs);
   theme_pref_.Add(kSpaceThemePref,
@@ -183,6 +187,34 @@ gfx::Insets SidebarView::ColumnInsets() const {
   const gfx::Rect own = GetBoundsInScreen();
   return gfx::Insets::TLBR(std::max(0, own.y() - region->y()), 0,
                            std::max(0, region->bottom() - own.bottom()), 0);
+}
+
+void SidebarView::DraggableRegionsChanged(
+    const std::vector<blink::mojom::DraggableRegionPtr>& regions,
+    content::WebContents* contents) {
+  // In order: a later region wins where they overlap, as app-region does.
+  drag_region_.setEmpty();
+  for (const blink::mojom::DraggableRegionPtr& region : regions) {
+    drag_region_.op(gfx::RectToSkIRect(region->bounds),
+                    region->draggable ? SkRegion::kUnion_Op
+                                      : SkRegion::kDifference_Op);
+  }
+}
+
+bool SidebarView::IsDragRegion(const gfx::Point& point_in_view) const {
+  return GetVisible() && HitTestPoint(point_in_view) &&
+         drag_region_.contains(point_in_view.x(), point_in_view.y());
+}
+
+gfx::Size SidebarView::WindowButtons() const {
+  return frame_->WindowButtons();
+}
+
+void SidebarView::ShowNavigationHistory(bool forward,
+                                        const gfx::Point& point_in_page) {
+  gfx::Point point = point_in_page;
+  views::View::ConvertPointToScreen(this, &point);
+  frame_->ShowNavigationHistory(forward, point);
 }
 
 bool SidebarView::HandleKeyboardEvent(

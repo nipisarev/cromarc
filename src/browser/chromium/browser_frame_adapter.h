@@ -5,12 +5,21 @@
 #ifndef CROMARC_BROWSER_CHROMIUM_BROWSER_FRAME_ADAPTER_H_
 #define CROMARC_BROWSER_CHROMIUM_BROWSER_FRAME_ADAPTER_H_
 
+#include <memory>
 #include <optional>
 
 #include "base/memory/raw_ptr.h"
 #include "cromarc/browser/ports/browser_frame.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
+
+namespace ui {
+class MenuModel;
+}  // namespace ui
+
+namespace views {
+class MenuRunner;
+}  // namespace views
 
 class BrowserView;
 class BrowserWindowInterface;
@@ -41,12 +50,22 @@ class BrowserFrameAdapter : public BrowserFrame {
   base::CallbackListSubscription OnFullscreenChanged(
       base::RepeatingClosure callback) override;
   void AttachWebUI(content::WebContents* contents) override;
+  gfx::Size WindowButtons() const override;
+  void ShowNavigationHistory(bool forward,
+                             const gfx::Point& point_in_screen) override;
 
  private:
   const raw_ptr<BrowserWindowInterface> browser_;
+  std::unique_ptr<ui::MenuModel> history_model_;
+  std::unique_ptr<views::MenuRunner> history_runner_;
 };
 
 // What the frame hooks call (patches/hooks/README.md).
+
+// Hooks H19 and H24: a space window's sidebar holds the toolbar, as Zen's
+// single toolbar does: no toolbar above the page and no row of Chromium's
+// top buttons above the sidebar.
+bool SidebarHoldsToolbar(BrowserWindowInterface* browser);
 
 // Hook H11, called by MultiContentsView's layout outside split view: the
 // space round the page in a window with the sidebar, so the page is a card on

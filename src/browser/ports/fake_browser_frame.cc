@@ -34,4 +34,14 @@ base::CallbackListSubscription FakeBrowserFrame::OnFullscreenChanged(
 
 void FakeBrowserFrame::AttachWebUI(content::WebContents* contents) {}
 
+gfx::Size FakeBrowserFrame::WindowButtons() const {
+  return window_buttons;
+}
+
+void FakeBrowserFrame::ShowNavigationHistory(
+    bool forward,
+    const gfx::Point& point_in_screen) {
+  history_menus.emplace_back(forward, point_in_screen);
+}
+
 }  // namespace cromarc

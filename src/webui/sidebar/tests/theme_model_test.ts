@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
-import {calculateCompliments, clampToPad, colorFromPosition, DEFAULT_THEME, gradientOf, harmoniesFor, hslToRgb, initialPosition, LINE_PATH, opacityProgress, PAD, rgbToHsl, SINE_PATH, textureAt, textureDotLit, themeFromJson, wavePath} from '../theme_model.ts';
+import {accentColorForUI, blendColors, calculateCompliments, clampToPad, colorFromPosition, contrastRatio, DEFAULT_THEME, dominantColor, gradientOf, harmoniesFor, hslToRgb, initialPosition, LINE_PATH, opacityProgress, PAD, rgbToHsl, SINE_PATH, textureAt, textureDotLit, shouldBeDarkMode, themeFromJson, toolbarColor, wavePath} from '../theme_model.ts';
 import type {PickerDot} from '../theme_model.ts';
 
 const near = (a: number, b: number, eps = 1.5) =>
@@ -170,4 +170,44 @@ test('dots come back with their colours, all or none', () => {
     dots: [{x: 10, y: 20, type: 'float'}, {x: 30, type: 'float'}],
   }));
   assert.deepEqual(broken.dots, []);
+});
+
+// ZenGradientGenerator.shouldBeDarkMode / getToolbarColor / getAccentColorForUI.
+test('light text on a dark theme, dark text on a light one', () => {
+  assert.equal(shouldBeDarkMode([20, 30, 60]), true);
+  assert.equal(shouldBeDarkMode([235, 225, 200]), false);
+});
+
+test('the bias leans to light text on a middle colour', () => {
+  // Mid grey: dark text at Zen's .9 would read better, but the bias counts it
+  // .3 fainter, so the toolbar goes dark.
+  assert.equal(shouldBeDarkMode([128, 128, 128]), true);
+});
+
+test('contrast is symmetric and 21 for black on white', () => {
+  assert.equal(Math.round(contrastRatio([0, 0, 0], [255, 255, 255])), 21);
+  assert.equal(contrastRatio([10, 20, 30], [200, 210, 220]),
+               contrastRatio([200, 210, 220], [10, 20, 30]));
+});
+
+test('blending takes the percentage of the first colour', () => {
+  assert.deepEqual(blendColors([200, 100, 0], [0, 100, 200], 25), [50, 100, 150]);
+});
+
+test('the toolbar text takes a quarter of the accent, at .9', () => {
+  assert.deepEqual(toolbarColor(true), [255, 255, 255, 0.9]);
+  assert.deepEqual(toolbarColor(false, [100, 100, 100]), [25, 25, 25, 0.9]);
+});
+
+test('the dominant colour is the middle one', () => {
+  const theme = {...DEFAULT_THEME, colors: [[1, 1, 1], [2, 2, 2], [3, 3, 3]] as Array<[number, number, number]>};
+  assert.deepEqual(dominantColor(theme), [2, 2, 2]);
+  assert.equal(dominantColor(DEFAULT_THEME), undefined);
+});
+
+test('a dark toolbar keeps the accent; a light one saturates it, greys stay', () => {
+  assert.deepEqual(accentColorForUI([64, 140, 170], true, false), [64, 140, 170]);
+  assert.deepEqual(accentColorForUI([90, 90, 90], false, false), [90, 90, 90]);
+  const light = accentColorForUI([64, 140, 170], false, false);
+  assert.notDeepEqual(light, [64, 140, 170]);
 });

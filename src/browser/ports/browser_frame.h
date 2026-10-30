@@ -7,7 +7,9 @@
 
 #include "base/callback_list.h"
 #include "base/functional/callback_forward.h"
+#include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
+#include "ui/gfx/geometry/size.h"
 
 namespace content {
 class WebContents;
@@ -34,6 +36,13 @@ class BrowserFrame {
   // Gives `contents`, a WebUI of the window's own chrome, its window, as
   // Chrome's top chrome WebUIs have it.
   virtual void AttachWebUI(content::WebContents* contents) = 0;
+  // The room the window's controls (the traffic lights) take at its top left,
+  // padding included; empty in fullscreen.
+  virtual gfx::Size WindowButtons() const = 0;
+  // Chromium's menu of the active tab's back or forward history at
+  // `point_in_screen`.
+  virtual void ShowNavigationHistory(bool forward,
+                                     const gfx::Point& point_in_screen) = 0;
 };
 
 }  // namespace cromarc

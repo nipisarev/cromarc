@@ -136,7 +136,9 @@ source_set("compact_mode") {
   ]
   deps = [
     ":compact_hover",
+    ":navigation",
     "//ui/gfx/geometry",
+    "//url",
   ]
 }
 
@@ -165,6 +167,21 @@ source_set("compact_hover") {
   deps = [
     "//base",
     "//ui/gfx/geometry",
+    "//url",
+  ]
+}
+
+source_set("navigation") {
+  sources = [
+    "sidebar_navigation.cc",
+    "sidebar_navigation.h",
+  ]
+  public_deps = [ ":mojo_bindings" ]
+  deps = [
+    "//base",
+    "//content/public/browser",
+    "//cromarc/browser/ports",
+    "//url",
   ]
 }
 
@@ -173,16 +190,19 @@ source_set("unit_tests") {
   sources = [
     "compact_hover_unittest.cc",
     "compact_mode_unittest.cc",
+    "sidebar_navigation_unittest.cc",
     "space_theme_painter_unittest.cc",
   ]
   deps = [
     ":compact_hover",
     ":compact_mode",
+    ":navigation",
     ":space_theme_painter",
     "//base",
     "//base/test:test_support",
     "//cromarc/browser/ports:test_support",
     "//testing/gtest",
     "//ui/gfx/geometry",
+    "//url",
   ]
 }

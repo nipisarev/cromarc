@@ -8,7 +8,8 @@
 
 #include "base/functional/bind.h"
 #include "base/memory/weak_ptr.h"
-#include "chrome/browser/ui/browser_commands.h"  // nogncheck: //chrome/browser links //cromarc
+#include "chrome/browser/ssl/chrome_security_state_util.h"  // nogncheck: //chrome/browser links //cromarc
+#include "chrome/browser/ui/browser_commands.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_tabrestore.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_tabstrip.h"  // nogncheck: as above
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -22,10 +23,12 @@
 #include "components/sessions/core/serialized_user_agent_override.h"
 #include "components/performance_manager/public/graph/page_node.h"
 #include "components/performance_manager/public/performance_manager.h"
+#include "components/security_state/core/security_state.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/page_navigator.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
+#include "content/public/common/url_constants.h"
 #include "third_party/blink/public/mojom/frame/sudden_termination_disabler_type.mojom-shared.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
@@ -148,6 +151,24 @@ bool TabsAdapter::IsAudibleOrCaptured(TabId tab) {
   content::WebContents* contents = GetContents(tab);
   return contents &&
          (contents->IsCurrentlyAudible() || contents->IsBeingCaptured());
+}
+
+SiteSecurity TabsAdapter::GetSiteSecurity(TabId tab) {
+  content::WebContents* contents = GetContents(tab);
+  if (!contents) {
+    return SiteSecurity::kNone;
+  }
+  switch (chrome_security_state::GetSecurityLevel(contents)) {
+    case security_state::SECURE:
+      return SiteSecurity::kSecure;
+    case security_state::WARNING:
+    case security_state::DANGEROUS:
+      return SiteSecurity::kNotSecure;
+    default:
+      return contents->GetVisibleURL().SchemeIs(content::kChromeUIScheme)
+                 ? SiteSecurity::kBrowserPage
+                 : SiteSecurity::kNone;
+  }
 }
 
 bool TabsAdapter::MayLoseInput(TabId tab) {

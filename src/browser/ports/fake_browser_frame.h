@@ -5,6 +5,9 @@
 #ifndef CROMARC_BROWSER_PORTS_FAKE_BROWSER_FRAME_H_
 #define CROMARC_BROWSER_PORTS_FAKE_BROWSER_FRAME_H_
 
+#include <utility>
+#include <vector>
+
 #include "base/callback_list.h"
 #include "cromarc/browser/ports/browser_frame.h"
 
@@ -24,8 +27,15 @@ class FakeBrowserFrame : public BrowserFrame {
   base::CallbackListSubscription OnFullscreenChanged(
       base::RepeatingClosure callback) override;
   void AttachWebUI(content::WebContents* contents) override;
+  gfx::Size WindowButtons() const override;
+  void ShowNavigationHistory(bool forward,
+                             const gfx::Point& point_in_screen) override;
 
   gfx::Rect bounds = gfx::Rect(0, 0, 1100, 800);
+  // macOS's traffic lights with Chromium's padding.
+  gfx::Size window_buttons = gfx::Size(78, 38);
+  // (forward, point) of each history menu shown.
+  std::vector<std::pair<bool, gfx::Point>> history_menus;
   int background_repaints = 0;
   int page_corner_updates = 0;
 

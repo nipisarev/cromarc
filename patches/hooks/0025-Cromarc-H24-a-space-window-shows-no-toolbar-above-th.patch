@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sat, 31 Oct 2026 01:37:35 +0100
+Subject: [PATCH] Cromarc H24: a space window shows no toolbar above the page
+
+
+diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
+index d441b8a76bd24..ac3d4d7e3624a 100644
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -308,6 +308,7 @@
+ #include "content/public/common/content_features.h"
+ #include "content/public/common/content_switches.h"
+ #include "content/public/common/drop_data.h"
++#include "cromarc/hooks/hooks.h"  // Cromarc
+ #include "extensions/common/command.h"
+ #include "media/capture/capture_switches.h"
+ #include "third_party/blink/public/common/features.h"
+@@ -3076,11 +3077,15 @@ bool BrowserView::IsToolbarVisible() const {
+   // It's possible to reach here before we've been notified of being added to a
+   // widget, so |toolbar_| is still null.  Return false in this case so callers
+   // don't assume they can access the toolbar yet.
+-  return (WindowFeatureController::From(browser_)->SupportsWindowFeature(
+-              WindowFeatureController::WindowFeature::kFeatureToolbar) ||
+-          WindowFeatureController::From(browser_)->SupportsWindowFeature(
+-              WindowFeatureController::WindowFeature::kFeatureLocationBar)) &&
+-         toolbar_;
++  // Cromarc: none in a space window, whose sidebar holds the toolbar (Zen's
++  // single toolbar).
++  return cromarc::hooks::ToolbarVisible(
++      browser_.get(),
++      (WindowFeatureController::From(browser_)->SupportsWindowFeature(
++           WindowFeatureController::WindowFeature::kFeatureToolbar) ||
++       WindowFeatureController::From(browser_)->SupportsWindowFeature(
++           WindowFeatureController::WindowFeature::kFeatureLocationBar)) &&
++          toolbar_);
+ }
+ 
+ bool BrowserView::IsToolbarShowing() const {
