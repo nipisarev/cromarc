@@ -132,8 +132,9 @@ base::flat_set<BrowserWindowInterface*> WithSpaceWindows(
 // H16: the Library widens the region while it is out.
 gfx::Size RegionSize(BrowserWindowInterface* browser, const gfx::Size& size);
 
-// H19: while the Library is out it takes the region's whole height: no row of
-// top buttons above the sidebar, no padding below it.
+// H19: Cromarc draws the region's top row (Zen's single toolbar), so it takes
+// the region's whole height; while the Library is out, no padding below it
+// either.
 gfx::Size RegionTopRowSize(BrowserWindowInterface* browser,
                            const gfx::Size& size);
 bool RegionTopRowVisible(BrowserWindowInterface* browser, bool visible);
@@ -157,6 +158,15 @@ bool PaintsOnSpaceTheme(const views::View* view,
                         const BrowserView* browser_view);
 bool TakesRoom(const views::View* combo_button);
 int ComboButtonWidth(const views::View* combo_button, int chrome_width);
+
+// H24: no toolbar above the page in a space window, whose sidebar holds it.
+bool ToolbarVisible(BrowserWindowInterface* browser, bool chrome_visible);
+
+// H25: true where `point`, in `region`'s coordinates, is on the sidebar's
+// empty space that moves the window (Zen's draggable sidebar).
+bool IsSidebarCaption(BrowserWindowInterface* browser,
+                      const views::View* region,
+                      const gfx::Point& point);
 
 // H21: a click on the Dock icon with no window on screen brings back the last
 // active space with its tabs, as in Zen; true when Cromarc did.

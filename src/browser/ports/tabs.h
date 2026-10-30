@@ -34,6 +34,9 @@ namespace cromarc {
 // A tab for as long as it lives, through discards and moves between windows.
 using TabId = base::StrongAlias<class TabIdTag, int32_t>;
 
+// How far a page's site can be trusted, as Chromium's security state sees it.
+enum class SiteSecurity { kNone, kSecure, kNotSecure, kBrowserPage };
+
 // The tabs of the browser's windows. Windows are BrowserWindowInterface
 // pointers, used as handles only.
 class Tabs {
@@ -60,6 +63,7 @@ class Tabs {
   virtual base::Time GetLastActiveTime(TabId tab) = 0;
   // Playing sound, or capturing the camera, the microphone or the screen.
   virtual bool IsAudibleOrCaptured(TabId tab) = 0;
+  virtual SiteSecurity GetSiteSecurity(TabId tab) = 0;
   // Closing the tab could lose what the user typed: the page asks before it
   // unloads, and it may have been edited.
   virtual bool MayLoseInput(TabId tab) = 0;

@@ -91,6 +91,139 @@ button {
   position: relative;
 }
 
+/* Zen's single toolbar (zen.view.use-single-toolbar): the top row
+ * (#zen-sidebar-top-buttons, vertical-tabs.css "Single Toolbar Mode", 38px on
+ * macOS) holds the window's controls, the compact mode button and, past the
+ * separator, back, forward and reload (ZenVerticalTabsManager.mjs
+ * #updateSingleToolbar); the address field (#urlbar-container) takes the next
+ * row. Buttons: zen-single-components.css .toolbarbutton-1 over Firefox's
+ * toolbarbuttons.css. */
+#zen-sidebar-top-buttons {
+  align-items: center;
+  app-region: drag;
+  display: flex;
+  flex-shrink: 0;
+  height: 38px;
+  margin: calc(var(--toolbox-padding) / 2) 0;
+  /* sidebar.inc.css: the toolbox padding less the buttons' outer padding. */
+  padding-inline: calc(var(--toolbox-padding) - 1px);
+}
+
+.titlebar-buttonbox-container {
+  flex-shrink: 0;
+  height: 100%;
+}
+
+#zen-sidebar-top-buttons-separator {
+  flex: 1;
+  height: 100%;
+}
+
+.toolbarbutton-1 {
+  align-items: center;
+  app-region: no-drag;
+  appearance: none;
+  background: none;
+  border: none;
+  color: inherit;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  margin: 0;
+  padding: 0 1px;
+  transition: background-color 0.1s, transform 0.2s;
+}
+
+.toolbarbutton-1 > .toolbarbutton-icon {
+  align-items: center;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  display: flex;
+  height: 28px;
+  justify-content: center;
+  padding: 6px;
+  width: 28px;
+}
+
+.toolbarbutton-1:not([disabled]):hover > .toolbarbutton-icon {
+  background-color: var(--hover);
+}
+
+.toolbarbutton-1:not([disabled]):hover:active > .toolbarbutton-icon {
+  background-color: var(--pressed);
+}
+
+.toolbarbutton-1[disabled] {
+  opacity: 0.3;
+}
+
+/* zen.view.draggable-sidebar: the room under the tabs moves the window
+ * (zen-workspaces.css, .zen-workspace-empty-space). */
+.zen-workspace-empty-space {
+  app-region: drag;
+  flex: 1;
+  min-height: 0;
+}
+
+/* zen-omnibox.css: the address field, not opened (breakout-extend). */
+#nav-bar {
+  flex-shrink: 0;
+  padding: 0 var(--toolbox-padding) 4px;
+}
+
+#urlbar {
+  height: 32px;
+  padding: 1px;
+  position: relative;
+}
+
+.urlbar-background {
+  background: var(--zen-toolbar-element-bg);
+  border-radius: 8px;
+  inset: 1px;
+  position: absolute;
+}
+
+#urlbar:hover .urlbar-background {
+  background-color: light-dark(rgba(0, 0, 0, .08), rgba(255, 255, 255, .1));
+}
+
+.urlbar-input-container {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+  height: 100%;
+  padding-inline: 4px;
+  position: relative;
+}
+
+#identity-icon-box {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  flex-shrink: 0;
+  padding: 6px;
+}
+
+#identity-icon-box > .svg {
+  height: 14px;
+  width: 14px;
+}
+
+.urlbar-input {
+  flex: 1;
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.urlbar-input[placeholder] {
+  color: var(--text-dim);
+}
+
 #viewport {
   flex: 1;
   overflow: hidden;

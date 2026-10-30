@@ -5,8 +5,8 @@
 import {getFaviconForPageURL} from '//resources/js/icon.js';
 import {CrLitElement} from '//resources/lit/v3_0/lit.rollup.js';
 import type {PropertyValues} from '//resources/lit/v3_0/lit.rollup.js';
-import {DownloadCommand, SwipeType} from '../sidebar.mojom-webui.js';
-import type {Download, Glance, ICloudSpace, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
+import {DownloadCommand, NavigationCommand, SiteSecurity, SwipeType} from '../sidebar.mojom-webui.js';
+import type {Download, Glance, ICloudSpace, Navigation, Space, SpaceSnapshot, Swipe, TabLifecycle, TreeNode} from '../sidebar.mojom-webui.js';
 import type {Tab} from '/tab_strip_api/tab_strip_api_data_model.mojom-webui.js';
 import {TabNetworkState} from '/tab_strip_api/tabs.mojom-webui.js';
 import {OnDataChangedEventFieldTags, whichOnDataChangedEvent} from '/tab_strip_api/tab_strip_api_events.mojom-webui.js';
@@ -25,7 +25,7 @@ import type {SpaceEdit} from './space_editor.js';
 import {setTestMenuChoice, showMenu, testMenuChoice} from './menu.js';
 import type {MenuItem} from './menu.js';
 import {iconMask} from './space_icon.js';
-import {themeFromJson} from './theme_model.js';
+import {accentColorForUI, dominantColor, shouldBeDarkMode, themeFromJson, toolbarColor} from './theme_model.js';
 import {canRetry, hasFile, hasProgress, isPending, progressOf, stackEntries, statusText} from './downloads_model.js';
 import {downloadsStore} from './downloads_store.js';
 import {libraryStrings} from './library_strings.js';
@@ -139,10 +139,23 @@ export class SidebarAppElement extends CrLitElement {
       stackBadge_: {type: Boolean},
       addProgress_: {type: Number},
       pinsCollapsed_: {type: Boolean},
+      navigation_: {type: Object},
+      windowButtons_: {type: Object},
     };
   }
 
   protected accessor tabs_: Tab[] = [];
+  // The active tab's navigation: Zen's top buttons and address field.
+  protected accessor navigation_: Navigation = {
+    canGoBack: false,
+    canGoForward: false,
+    loading: false,
+    display: '',
+    security: SiteSecurity.kNone,
+  };
+  // The room the window's controls take at the top left.
+  protected accessor windowButtons_ = {width: 0, height: 0};
+  private historyPressTimer_ = 0;
   // Tabs in Chrome's collection of pinned tabs, set with tabs_.
   private pinnedTabs_: Set<string> = new Set();
   protected accessor tree_: TreeNode[] = [];
@@ -313,6 +326,12 @@ export class SidebarAppElement extends CrLitElement {
     router.onSwitchRequested.addListener((id: string) => this.switchTo_(id));
     router.onSwipe.addListener((swipe: Swipe) => this.onSwipe_(swipe));
     this.proxy_.handler.getSpaces().then(({spaces}) => this.setSpaces_(spaces));
+    router.onNavigationChanged.addListener(
+        (navigation: Navigation) => this.navigation_ = navigation);
+    this.proxy_.handler.getNavigation().then(
+        ({navigation}) => this.navigation_ = navigation);
+    this.proxy_.handler.getWindowButtons().then(
+        buttons => this.windowButtons_ = buttons);
     this.connectTabs_();
     this.resizeObserver_.observe(this);
     downloadsStore().subscribe(downloads => this.onDownloads_(downloads));
@@ -471,17 +490,29 @@ export class SidebarAppElement extends CrLitElement {
     this.proxy_.handler.blendSpaceTheme(theme, progress);
   }
 
-  // Zen's --zen-primary-color: the theme's first colour, the accent without
-  // one (ZenGradientGenerator).
+  // ZenGradientGenerator.onWorkspaceChange: from the theme's dominant
+  // colour, whether the toolbar reads dark (zen-should-be-dark-mode), its
+  // --zen-primary-color and its text (--toolbox-textcolor); the system's
+  // look and accent for a theme without colours.
   private updatePrimary_() {
     const space = this.spaces_[this.currentIndex_];
-    const primary = themeFromJson(space?.theme ?? '').colors[0];
-    if (primary) {
-      this.style.setProperty('--zen-primary-color', `rgb(${primary.join(', ')})`);
-    } else {
-      this.style.removeProperty('--zen-primary-color');
+    const dominant = dominantColor(themeFromJson(space?.theme ?? ''));
+    if (!dominant) {
+      for (const name of ['--zen-primary-color', '--text', 'color-scheme']) {
+        this.style.removeProperty(name);
+      }
+      this.primary_ = '';
+      return;
     }
-    this.primary_ = primary ? primary.join(',') : '';
+    const windowIsDark =
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const dark = shouldBeDarkMode(dominant);
+    const primary = accentColorForUI(dominant, dark, windowIsDark);
+    const text = toolbarColor(dark, primary);
+    this.style.setProperty('--zen-primary-color', `rgb(${primary.join(', ')})`);
+    this.style.setProperty('--text', `rgba(${text.join(', ')})`);
+    this.style.setProperty('color-scheme', dark ? 'dark' : 'light');
+    this.primary_ = primary.join(',');
   }
 
   // The other spaces' content, for their strips while switching: fresh at
@@ -761,6 +792,72 @@ export class SidebarAppElement extends CrLitElement {
         `${this.libraryWidth_}px`;
     return `width: ${width}; transform: translateX(${
         (this.libraryProgress_ - 1) * 100}%)`;
+  }
+
+  protected onToggleCompactClick_() {
+    this.proxy_.handler.toggleCompactMode();
+  }
+
+  protected onNavClick_(e: MouseEvent) {
+    const button = e.currentTarget as HTMLElement;
+    const command = button.id === 'back-button' ? NavigationCommand.kBack :
+        button.id === 'forward-button'          ? NavigationCommand.kForward :
+        this.navigation_.loading                ? NavigationCommand.kStop :
+                                                  NavigationCommand.kReload;
+    this.proxy_.handler.navigate(command);
+  }
+
+  // Firefox's back and forward buttons show their history on a press held
+  // for ui.click_hold_context_menus.delay (500 ms) or a right click.
+  protected onNavPointerdown_(e: PointerEvent) {
+    if (e.button !== 0) {
+      return;
+    }
+    const button = e.currentTarget as HTMLButtonElement;
+    clearTimeout(this.historyPressTimer_);
+    this.historyPressTimer_ = setTimeout(() => {
+      this.historyPressTimer_ = 0;
+      this.showHistory_(button);
+    }, 500);
+  }
+
+  protected onNavPointerup_() {
+    clearTimeout(this.historyPressTimer_);
+    this.historyPressTimer_ = 0;
+  }
+
+  protected onNavPointerleave_() {
+    this.onNavPointerup_();
+  }
+
+  protected onNavContextmenu_(e: MouseEvent) {
+    e.preventDefault();
+    this.showHistory_(e.currentTarget as HTMLButtonElement);
+  }
+
+  private showHistory_(button: HTMLButtonElement) {
+    if (button.disabled) {
+      return;
+    }
+    const rect = button.getBoundingClientRect();
+    this.proxy_.handler.showNavigationHistory(
+        button.id === 'forward-button', Math.round(rect.left),
+        Math.round(rect.bottom));
+  }
+
+  protected onUrlbarClick_() {
+    this.proxy_.handler.editAddress();
+  }
+
+  protected identityIcon_(): string {
+    switch (this.navigation_.security) {
+      case SiteSecurity.kSecure:
+        return 'url(sidebar/ui_icons/lock.svg)';
+      case SiteSecurity.kNotSecure:
+        return 'url(sidebar/ui_icons/lock-open.svg)';
+      default:
+        return 'url(sidebar/ui_icons/search.svg)';
+    }
   }
 
   // Zen's toolbox under the Library: it fades and shrinks a little as the

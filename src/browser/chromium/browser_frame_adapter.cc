@@ -10,13 +10,18 @@
 #include "base/command_line.h"
 #include "base/logging.h"
 #include "build/build_config.h"
+#include "cc/paint/paint_flags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"  // nogncheck: //chrome/browser/ui links //cromarc
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"  // nogncheck: as above
 #include "chrome/browser/ui/tabs/vertical_tab_strip_state_controller.h"  // nogncheck: as above
+#include "chrome/browser/ui/toolbar/back_forward_menu_model.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/bookmarks/bookmark_bar_view.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/browser_frame_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/browser_widget.h"  // nogncheck: as above
+#include "chrome/browser/ui/views/frame/layout/browser_view_layout_params.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/multi_contents_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
@@ -28,14 +33,22 @@
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "cromarc/browser/ui/sidebar/space_theme_painter.h"
 #include "ui/base/base_window.h"
+#include "ui/base/models/menu_model.h"
+#include "ui/base/mojom/menu_source_type.mojom.h"
 #include "ui/color/color_id.h"
 #include "ui/color/color_provider.h"
 #include "ui/compositor/layer.h"
+#include "ui/gfx/canvas.h"
 #include "ui/gfx/color_utils.h"
+#include "ui/gfx/shadow_value.h"
+#include "ui/gfx/skia_paint_util.h"
 #include "ui/gfx/geometry/rect_f.h"
+#include "ui/gfx/geometry/size_conversions.h"
+#include "ui/views/controls/menu/menu_runner.h"
 #include "ui/views/view.h"
 #include "ui/views/view_utils.h"
 #include "ui/views/widget/widget.h"
+#include "ui/views/window/non_client_view.h"
 
 namespace cromarc {
 
@@ -111,6 +124,73 @@ void BrowserFrameAdapter::AttachWebUI(content::WebContents* contents) {
   webui::SetBrowserWindowInterface(contents, browser_);
 }
 
+bool SidebarHoldsToolbar(BrowserWindowInterface* browser) {
+  // Zen's single toolbar. An incognito window has no command bar to type an
+  // address into, so it keeps Chromium's.
+  return browser && SidebarView::ForBrowser(browser) &&
+         !browser->GetProfile()->IsOffTheRecord();
+}
+
+namespace {
+
+// Zen's --zen-big-shadow under the page card (zen-browser-container.css,
+// .browserSidebarContainer; zen-theme.css): rgba(0, 0, 0, .24) 0 3px 8px.
+constexpr SkColor kZenBigShadowColor = SkColorSetA(SK_ColorBLACK, 0x3D);
+constexpr gfx::Vector2d kZenBigShadowOffset(0, 3);
+constexpr int kZenBigShadowBlur = 8;
+
+void PaintCardShadow(gfx::Canvas* canvas, BrowserView* browser_view) {
+  views::View* contents = browser_view->multi_contents_view();
+  const gfx::Insets insets = PageInsets(browser_view);
+  if (!contents || insets.IsEmpty()) {
+    return;
+  }
+  gfx::Rect card = contents->GetLocalBounds();
+  card.Inset(insets);
+  card = views::View::ConvertRectToTarget(
+      contents, browser_view->GetWidget()->non_client_view()->frame_view(),
+      card);
+  cc::PaintFlags flags;
+  flags.setAntiAlias(true);
+  // The card covers the shape itself; only the shadow round it shows.
+  flags.setColor(SK_ColorBLACK);
+  flags.setLooper(gfx::CreateShadowDrawLooper({gfx::ShadowValue(
+      kZenBigShadowOffset, kZenBigShadowBlur, kZenBigShadowColor)}));
+  canvas->DrawRoundRect(gfx::RectF(card), kPageCornerRadius, flags);
+}
+
+}  // namespace
+
+gfx::Size BrowserFrameAdapter::WindowButtons() const {
+  BrowserView* view = BrowserView::GetBrowserViewForBrowser(browser_);
+  BrowserFrameView* frame =
+      view && view->browser_widget() ? view->browser_widget()->GetFrameView()
+                                     : nullptr;
+  if (!frame) {
+    return gfx::Size();
+  }
+  return gfx::ToCeiledSize(
+      frame->GetBrowserLayoutParams().leading_exclusion.ContentWithPadding());
+}
+
+void BrowserFrameAdapter::ShowNavigationHistory(
+    bool forward,
+    const gfx::Point& point_in_screen) {
+  BrowserView* view = BrowserView::GetBrowserViewForBrowser(browser_);
+  if (!view) {
+    return;
+  }
+  history_model_ = std::make_unique<BackForwardMenuModel>(
+      browser_, forward ? BackForwardMenuModel::ModelType::kForward
+                        : BackForwardMenuModel::ModelType::kBackward);
+  history_runner_ = std::make_unique<views::MenuRunner>(
+      history_model_.get(), views::MenuRunner::HAS_MNEMONICS);
+  history_runner_->RunMenuAt(view->GetWidget(), nullptr,
+                             gfx::Rect(point_in_screen, gfx::Size()),
+                             views::MenuAnchorPosition::kTopLeft,
+                             ui::mojom::MenuSourceType::kMouse);
+}
+
 gfx::Insets PageInsets(BrowserView* browser_view) {
   BrowserWindowInterface* browser = browser_view->browser();
   ExclusiveAccessManager* manager = ExclusiveAccessManager::From(browser);
@@ -119,7 +199,13 @@ gfx::Insets PageInsets(BrowserView* browser_view) {
     return gfx::Insets();
   }
   auto* controller = tabs::VerticalTabStripStateController::From(browser);
-  return CardInsets(controller && controller->IsCollapsed());
+  const bool compact = controller && controller->IsCollapsed();
+  // Zen's zenThemeModifier.updateElementSeparation: no separation in a
+  // fullscreen window in compact mode (zen.view.borderless-fullscreen).
+  if (compact && browser_view->IsFullscreen()) {
+    return gfx::Insets();
+  }
+  return CardInsets(compact, !SidebarHoldsToolbar(browser));
 }
 
 gfx::RoundedCornersF PageCorners(BrowserView* browser_view,
@@ -174,6 +260,7 @@ void PaintWindowBackground(gfx::Canvas* canvas,
     PaintSpaceThemeBlend(canvas, bounds, theme, ParseSpaceTheme(blend->theme),
                          blend->progress, dark);
   }
+  PaintCardShadow(canvas, browser_view);
   // Under a glance's card: the page it was opened from, dimmed.
   ChromiumGlanceSurface().PaintBackdrop(canvas, browser_view);
 }

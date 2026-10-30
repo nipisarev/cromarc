@@ -39,7 +39,9 @@ bool LibraryTakesRegion(BrowserWindowInterface* browser);
 // (Zen's element separation): margin on its far sides, none toward the
 // sidebar and the toolbar; in compact mode, where the sidebar is not there,
 // on its side too (compact-mode/sidebar.inc.css, #zen-tabbox-wrapper).
-gfx::Insets CardInsets(bool compact);
+// The page card's distance from the window edges: Zen's separation on every
+// side but the sidebar's (unless compact) and a toolbar's, when there is one.
+gfx::Insets CardInsets(bool compact, bool under_toolbar);
 
 }  // namespace cromarc
 

@@ -19,8 +19,9 @@ bool LibraryTakesRegion(BrowserWindowInterface* browser) {
   return sidebar && sidebar->library_width() > 0;
 }
 
-gfx::Insets CardInsets(bool compact) {
-  return gfx::Insets::TLBR(0, compact ? kPageSeparation : 0, kPageSeparation,
+gfx::Insets CardInsets(bool compact, bool under_toolbar) {
+  return gfx::Insets::TLBR(under_toolbar ? 0 : kPageSeparation,
+                           compact ? kPageSeparation : 0, kPageSeparation,
                            kPageSeparation);
 }
 

@@ -194,7 +194,7 @@ no room in the top row.
 If it moved: the browser view's content corners, the multi contents top
 separator, the themed background, the vertical tab strip's top container layout.
 
-### H19 the Library takes the region's whole height
+### H19 the sidebar takes the region's whole height
 Kind: code
 Where: `chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc`,
 `VerticalTabStripRegionView::CalculateProposedLayout`.
@@ -203,10 +203,11 @@ row preferred size>)`, `.visible = cromarc::hooks::RegionTopRowVisible(browser,
 true)` for the top row's layout and `vertical_padding =
 cromarc::hooks::RegionBottomPadding(browser, <Chrome's padding constant>)`, each
 wrapping Chrome's value.
-Contract: while the Library is out, the row of top buttons is hidden with no
-height and there is no padding under the content, so the sidebar runs from the
-window's top to its bottom edge with only the window buttons over it, as Zen's
-Library does; otherwise Chrome's values.
+Contract: in a space window the row of top buttons is hidden with no height:
+the sidebar draws Zen's top row itself (single toolbar, see H24), running from
+the window's top with only the window buttons over it. While the Library is out
+there is also no padding under the content, so it reaches the bottom edge, as
+Zen's Library does. Other windows (incognito) get Chrome's values.
 If it moved: the vertical tab strip region's layout of its top button row and
 the padding at its bottom.
 
@@ -259,3 +260,31 @@ If it moved: the end of the context menu's item building, where the menu
 model and its observer list are at hand. The hook takes `observers_` as
 Chromium declares it (now a `base::ReentrantObserverList`); its type follows
 that declaration.
+
+### H24 a space window shows no toolbar above the page
+Kind: code
+Where: `chrome/browser/ui/views/frame/browser_view.cc`,
+`BrowserView::IsToolbarVisible`, its final return.
+Calls: `return cromarc::hooks::ToolbarVisible(browser_.get(), <Chrome's
+value>);`, wrapping Chrome's value.
+Contract: in a window whose sidebar holds the toolbar (a space window, not an
+incognito one) the toolbar is not visible: the page runs to the window's top
+and the sidebar holds the window buttons, back, forward, reload and the
+address field, as Zen's single toolbar does; Chrome lays out, anchors bubbles
+and handles keys as it does for a window without a toolbar. Elsewhere Chrome's
+value.
+If it moved: the BrowserView method layouts and bubbles ask for whether the
+toolbar shows.
+
+### H25 the sidebar's empty space moves the window
+Kind: code
+Where: `chrome/browser/ui/views/frame/vertical_tab_strip_region_view.cc`,
+`VerticalTabStripRegionView::IsPositionInWindowCaption`, before the loop that
+absorbs clicks on the region's children.
+Calls: a guard on `cromarc::hooks::IsSidebarCaption(browser, this, point)`.
+Contract: a point on the part of Cromarc's sidebar page marked
+`app-region: drag` (its empty space, as Zen's draggable sidebar) counts as the
+window's caption, so a drag there moves the window; other points on the
+sidebar stay clicks on it, and Chrome's own rules apply elsewhere.
+If it moved: where the vertical tab strip region answers whether a point is
+window caption.

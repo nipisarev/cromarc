@@ -217,6 +217,35 @@ struct Swipe {
   int32 direction;
 };
 
+// How far the active page's site can be trusted, for the address field's
+// identity icon.
+enum SiteSecurity {
+  kNone,
+  kSecure,
+  kNotSecure,
+  kBrowserPage,
+};
+
+// The active tab's navigation: Zen's back, forward and reload buttons and its
+// address field (single toolbar).
+struct Navigation {
+  bool can_go_back;
+  bool can_go_forward;
+  bool loading;
+  // What the field shows: the host, as Zen's
+  // zen.urlbar.show-domain-only-in-sidebar does; the whole address when there
+  // is none.
+  string display;
+  SiteSecurity security;
+};
+
+enum NavigationCommand {
+  kBack,
+  kForward,
+  kReload,
+  kStop,
+};
+
 interface PageHandlerFactory {
   CreatePageHandler(pending_remote<Page> page,
                     pending_receiver<PageHandler> handler);
@@ -299,6 +328,19 @@ interface PageHandler {
   // False for the last space.
   DeleteSpace(string id) => (bool deleted);
 
+  // The active tab's navigation; OnNavigationChanged follows it.
+  GetNavigation() => (Navigation navigation);
+  Navigate(NavigationCommand command);
+  // Chromium's back or forward history under the button at (x, y) in the
+  // page, on a long press or a right click.
+  ShowNavigationHistory(bool forward, int32 x, int32 y);
+  // The address field was clicked: the command bar on the page's address, as
+  // Cmd+L.
+  EditAddress();
+  // The window's controls at the sidebar's top left, in DIPs: Zen's top row
+  // leaves them room.
+  GetWindowButtons() => (int32 width, int32 height);
+
   // As the Library slides out and back, the width the window's sidebar
   // column takes for it; 0 once it is shut.
   SetLibraryWidth(int32 width);
@@ -371,6 +413,7 @@ interface Page {
   // A hotkey or the wheel asked for `id`: animate, then SwitchToSpace().
   OnSwitchRequested(string id);
   OnSwipe(Swipe swipe);
+  OnNavigationChanged(Navigation navigation);
   // History or the archive changed while the Library may be showing them.
   OnHistoryChanged();
   // A download came, changed or went; at most four times a second.
