@@ -15,8 +15,8 @@ namespace cromarc {
 // static
 SpaceController* SpaceController::Get() {
   static base::NoDestructor<SpaceController> instance(
-      ChromiumProfiles(), ChromiumWindows(), ChromiumTabs(), ChromiumTheme(),
-      ChromiumStripDefaults());
+      ChromiumProfiles(), ChromiumWindows(), ChromiumTabs(),
+      ChromiumLastSession(), ChromiumTheme(), ChromiumStripDefaults());
   return instance.get();
 }
 

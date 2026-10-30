@@ -7,6 +7,7 @@
 
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,7 @@
 #include "base/no_destructor.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
+#include "cromarc/browser/ports/tabs.h"
 #include "cromarc/browser/ports/windows.h"
 #include "cromarc/browser/spaces/shared_sidebar_state.h"
 #include "cromarc/browser/spaces/swipe_tracker.h"
@@ -31,9 +33,9 @@ class Profile;
 
 namespace cromarc {
 
+class LastSession;
 class Profiles;
 class StripDefaults;
-class Tabs;
 class Theme;
 class VerticalStrip;
 
@@ -73,6 +75,7 @@ class SpaceController {
   SpaceController(Profiles& profiles,
                   Windows& windows,
                   Tabs& tabs,
+                  LastSession& last_session,
                   Theme& theme,
                   StripDefaults& strip_defaults);
   ~SpaceController();
@@ -124,6 +127,10 @@ class SpaceController {
   // Little windows' "Open in".
   void ShowSpace(const std::string& id,
                  base::OnceCallback<void(BrowserWindowInterface*)> then);
+  // A click on the Dock icon with no window on screen (hook H21): space
+  // `id`, the last active one, comes back as ShowSpace() brings it, with its
+  // tabs if its window was closed, as in Zen. False when `id` is no space.
+  bool Reopen(const std::string& id);
 
   void OnSwipe(BrowserWindowInterface* browser, const SwipeTracker::Event& event);
 
@@ -185,7 +192,7 @@ class SpaceController {
   // Warm switching: every space gets a hidden window after startup, so a
   // switch only has to swap windows (design, component 4).
   void PrepareWarmWindows();
-  // Closing the visible space window closes the hidden ones of the other
+  // Closing the last space window shown closes the hidden ones of the other
   // spaces too: they are one window to the user.
   void OnSpaceWindowClosed(BrowserWindowInterface* browser);
   void SwitchToLoaded(WindowId from_id, Profile* target);
@@ -201,6 +208,14 @@ class SpaceController {
   // `profile`'s space window, created with `bounds` when it has none.
   BrowserWindowInterface* EnsureWindow(Profile* profile,
                                        const gfx::Rect& bounds);
+  // A space window Cromarc opens gets its space's last session, when that is
+  // due, in itself: Chromium's own restore would bring each saved window back
+  // as a window of its own. The new tab that holds `window` until the tabs
+  // come then goes.
+  void BringBackLastSession(BrowserWindowInterface* window);
+  void OnLastSessionBack(WindowId window_id,
+                         std::optional<TabId> placeholder,
+                         size_t added);
   void PrepareLoaded(WindowId from_id, Profile* target);
   // Back to normal, ordered out when `hide`.
   void ClearPrepared(bool hide);
@@ -209,13 +224,18 @@ class SpaceController {
   const raw_ref<Profiles> profiles_;
   const raw_ref<Windows> windows_;
   const raw_ref<Tabs> tabs_;
+  const raw_ref<LastSession> last_session_;
   const raw_ref<Theme> theme_;
   const raw_ref<StripDefaults> strip_defaults_;
   std::map<BrowserWindowInterface*, raw_ptr<Sidebar>> sidebars_;
   std::map<BrowserWindowInterface*, base::CallbackListSubscription>
       close_subscriptions_;
+  // The hidden windows OnSpaceWindowClosed() closes, until they have.
+  std::set<WindowId> closing_hidden_;
   SharedSidebarState sidebar_state_;
+  // Until the last window on screen closes.
   bool warm_windows_scheduled_ = false;
+  base::OneShotTimer warm_windows_timer_;
   // The window PrepareSwitch() brought over the visible one, and the space it
   // was asked for while its profile loads.
   std::optional<WindowId> prepared_;

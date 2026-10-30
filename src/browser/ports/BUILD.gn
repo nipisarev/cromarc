@@ -10,6 +10,7 @@ source_set("ports") {
     "browser_frame.h",
     "default_browser.h",
     "favicons.h",
+    "last_session.h",
     "library.h",
     "local_sync.h",
     "omnibox.h",
@@ -43,6 +44,8 @@ source_set("test_support") {
   sources = [
     "fake_browser_frame.cc",
     "fake_browser_frame.h",
+    "fake_last_session.cc",
+    "fake_last_session.h",
     "fake_profiles.cc",
     "fake_profiles.h",
     "fake_tabs.cc",

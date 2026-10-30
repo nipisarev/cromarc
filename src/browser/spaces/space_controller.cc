@@ -16,6 +16,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "components/prefs/pref_service.h"
+#include "cromarc/browser/ports/last_session.h"
 #include "cromarc/browser/ports/profiles.h"
 #include "cromarc/browser/ports/strip_defaults.h"
 #include "cromarc/browser/ports/tabs.h"
@@ -57,11 +58,13 @@ Theme::Scheme SchemeOf(const std::string& scheme) {
 SpaceController::SpaceController(Profiles& profiles,
                                  Windows& windows,
                                  Tabs& tabs,
+                                 LastSession& last_session,
                                  Theme& theme,
                                  StripDefaults& strip_defaults)
     : profiles_(profiles),
       windows_(windows),
       tabs_(tabs),
+      last_session_(last_session),
       theme_(theme),
       strip_defaults_(strip_defaults),
       sidebar_state_(base::BindRepeating(
@@ -192,14 +195,31 @@ void SpaceController::SeedSidebarState(Profile* profile) {
 
 void SpaceController::OnSpaceWindowClosed(BrowserWindowInterface* browser) {
   close_subscriptions_.erase(browser);
-  if (!IsOnScreen(browser)) {
+  // One this closes itself.
+  if (closing_hidden_.erase(windows_->IdOf(browser))) {
     return;
   }
+  // Whether `browser` was on screen is gone by now (Chrome orders a window
+  // out before it closes its tabs), so what is left decides.
+  std::vector<BrowserWindowInterface*> hidden;
   for (BrowserWindowInterface* other : windows_->All()) {
-    if (other != browser && windows_->IsNormal(other) &&
-        !windows_->IsOffTheRecord(other) && !IsOnScreen(other)) {
-      windows_->Close(other);
+    if (other == browser || !windows_->IsNormal(other) ||
+        windows_->IsOffTheRecord(other) ||
+        closing_hidden_.contains(windows_->IdOf(other))) {
+      continue;
     }
+    // Another window shown, minimized or not: only this one closes.
+    if (windows_->IsVisible(other)) {
+      return;
+    }
+    hidden.push_back(other);
+  }
+  // The next window opened prepares them again.
+  warm_windows_scheduled_ = false;
+  warm_windows_timer_.Stop();
+  for (BrowserWindowInterface* other : hidden) {
+    closing_hidden_.insert(windows_->IdOf(other));
+    windows_->Close(other);
   }
 }
 
@@ -248,13 +268,36 @@ BrowserWindowInterface* SpaceController::EnsureHiddenWindow(Profile* profile) {
     }
   }
   SeedSidebarState(profile);
+  const bool due = last_session_->IsDue(profile);
   BrowserWindowInterface* browser =
       windows_->Create(profile, bounds, /*from_user_gesture=*/false);
   if (!browser) {
     return nullptr;
   }
   tabs_->AddNewTabPage(browser, /*keep_window_hidden=*/true);
+  if (due) {
+    BringBackLastSession(browser);
+  }
   return browser;
+}
+
+void SpaceController::BringBackLastSession(BrowserWindowInterface* window) {
+  last_session_->RestoreInto(
+      window, base::BindOnce(&SpaceController::OnLastSessionBack,
+                             weak_factory_.GetWeakPtr(), windows_->IdOf(window),
+                             tabs_->GetActive(window)));
+}
+
+void SpaceController::OnLastSessionBack(WindowId window_id,
+                                        std::optional<TabId> placeholder,
+                                        size_t added) {
+  BrowserWindowInterface* window = windows_->FromId(window_id);
+  if (!window || added == 0 || !placeholder ||
+      tabs_->GetWindow(*placeholder) != window ||
+      tabs_->List(window).size() <= 1) {
+    return;
+  }
+  tabs_->Close(*placeholder);
 }
 
 void SpaceController::RequestSwitchTo(BrowserWindowInterface* from,
@@ -434,10 +477,15 @@ BrowserWindowInterface* SpaceController::EnsureWindow(Profile* profile,
     return window;
   }
   SeedSidebarState(profile);
+  const bool due = last_session_->IsDue(profile);
   BrowserWindowInterface* window =
       windows_->Create(profile, bounds, /*from_user_gesture=*/true);
-  if (window) {
-    tabs_->OpenNewTabPage(window);
+  if (!window) {
+    return nullptr;
+  }
+  tabs_->OpenNewTabPage(window);
+  if (due) {
+    BringBackLastSession(window);
   }
   return window;
 }
@@ -472,6 +520,14 @@ void SpaceController::ShowLoadedSpace(
                                         base::Time::Now());
   }
   std::move(then).Run(WindowFor(target));
+}
+
+bool SpaceController::Reopen(const std::string& id) {
+  if (!std::ranges::contains(GetSpaces(), id, &Space::id)) {
+    return false;
+  }
+  ShowSpace(id, base::DoNothing());
+  return true;
 }
 
 BrowserWindowInterface* SpaceController::GetVisibleSpaceWindow() {
@@ -638,11 +694,10 @@ void SpaceController::OnSwipe(BrowserWindowInterface* browser,
 void SpaceController::OnWindowCreated(BrowserWindowInterface* browser) {
   if (!warm_windows_scheduled_ && !windows_->IsOffTheRecord(browser)) {
     warm_windows_scheduled_ = true;
-    base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
-        FROM_HERE,
+    warm_windows_timer_.Start(
+        FROM_HERE, kWarmWindowsDelay,
         base::BindOnce(&SpaceController::PrepareWarmWindows,
-                       weak_factory_.GetWeakPtr()),
-        kWarmWindowsDelay);
+                       base::Unretained(this)));
   }
   if (base::TimeTicks::Now() - started_ > kStartupWindow) {
     profiles_->PrefsOf(windows_->ProfileOf(browser))

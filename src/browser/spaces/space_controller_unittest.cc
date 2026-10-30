@@ -13,6 +13,7 @@
 #include "base/test/task_environment.h"
 #include "base/time/time.h"
 #include "components/prefs/testing_pref_service.h"
+#include "cromarc/browser/ports/fake_last_session.h"
 #include "cromarc/browser/ports/fake_profiles.h"
 #include "cromarc/browser/ports/fake_tabs.h"
 #include "cromarc/browser/ports/fake_theme.h"
@@ -48,7 +49,7 @@ class SpaceControllerTest : public testing::Test {
     windows_.bounds[personal_window_] = gfx::Rect(10, 20, 1000, 700);
     tabs_.Add(personal_window_);
     controller_ = std::make_unique<SpaceController>(
-        profiles_, windows_, tabs_, theme_, strip_defaults_);
+        profiles_, windows_, tabs_, last_session_, theme_, strip_defaults_);
   }
 
   void AddWindow(BrowserWindowInterface* window, Profile* profile) {
@@ -70,6 +71,7 @@ class SpaceControllerTest : public testing::Test {
   FakeProfiles profiles_;
   FakeWindows windows_;
   FakeTabs tabs_;
+  FakeLastSession last_session_;
   FakeTheme theme_;
   FakeStripDefaults strip_defaults_;
   raw_ptr<Profile> personal_ = nullptr;
@@ -198,6 +200,151 @@ TEST_F(SpaceControllerTest, OtherSpacesGetHiddenWindowsHalfAMinuteAfterStartup) 
   EXPECT_TRUE(windows_.IsOnScreen(personal_window_));
 }
 
+TEST_F(SpaceControllerTest, ASwitchBringsTheLastSessionIntoTheSpacesWindow) {
+  windows_.popups = {work_window_};
+  last_session_.due.insert(work_);
+  controller_->SwitchTo(personal_window_, "Profile 1");
+  ASSERT_EQ(std::vector<BrowserWindowInterface*>{work_window_.get()},
+            last_session_.restored);
+  const TabId placeholder = tabs_.List(work_window_)[0];
+  tabs_.Add(work_window_);
+  tabs_.Add(work_window_);
+  last_session_.Finish(2);
+  // The new tab that held the window goes; the space has this one window,
+  // on screen.
+  EXPECT_FALSE(tabs_.Exists(placeholder));
+  EXPECT_EQ(2u, tabs_.List(work_window_).size());
+  EXPECT_EQ(1u, windows_.NormalWindowsOf(work_).size());
+  EXPECT_TRUE(windows_.IsOnScreen(work_window_));
+}
+
+TEST_F(SpaceControllerTest, WithNothingBackTheNewTabStays) {
+  windows_.popups = {work_window_};
+  last_session_.due.insert(work_);
+  controller_->SwitchTo(personal_window_, "Profile 1");
+  last_session_.Finish(0);
+  EXPECT_EQ(1u, tabs_.List(work_window_).size());
+}
+
+TEST_F(SpaceControllerTest, ALastSessionNotDueIsNotRestored) {
+  // Chromium's own rule says no: "On startup" opens the new tab page or
+  // pages of its own, or the profile is still being restored.
+  windows_.popups = {work_window_};
+  controller_->SwitchTo(personal_window_, "Profile 1");
+  EXPECT_TRUE(last_session_.restored.empty());
+  EXPECT_EQ(1u, tabs_.List(work_window_).size());
+}
+
+TEST_F(SpaceControllerTest, AWarmWindowGetsItsLastSessionAndStaysHidden) {
+  windows_.popups = {work_window_};
+  last_session_.due.insert(work_);
+  controller_->OnWindowCreated(personal_window_);
+  task_environment_.FastForwardBy(base::Seconds(30));
+  ASSERT_EQ(std::vector<BrowserWindowInterface*>{work_window_.get()},
+            last_session_.restored);
+  tabs_.Add(work_window_);
+  last_session_.Finish(1);
+  EXPECT_EQ(1u, tabs_.List(work_window_).size());
+  EXPECT_FALSE(windows_.IsOnScreen(work_window_));
+  EXPECT_TRUE(windows_.IsOnScreen(personal_window_));
+}
+
+TEST_F(SpaceControllerTest, ALastSessionAfterItsWindowClosedChangesNothing) {
+  windows_.popups = {work_window_};
+  last_session_.due.insert(work_);
+  controller_->SwitchTo(personal_window_, "Profile 1");
+  const TabId placeholder = tabs_.List(work_window_)[0];
+  windows_.UserCloses(work_window_);
+  last_session_.Finish(2);
+  EXPECT_TRUE(tabs_.Exists(placeholder));
+}
+
+TEST_F(SpaceControllerTest, ClosingOneOfTwoWindowsOnScreenLeavesTheHiddenOnes) {
+  AddWindow(work_window_, work_);
+  windows_.Hide(work_window_);
+  const raw_ptr<BrowserWindowInterface> second_personal =
+      FakeWindows::Handle<BrowserWindowInterface>(3);
+  AddWindow(second_personal, personal_);
+  FakeSidebar sidebar;
+  controller_->AddSidebar(personal_window_, &sidebar);
+  windows_.UserCloses(personal_window_);
+  EXPECT_EQ(std::vector<BrowserWindowInterface*>{personal_window_.get()},
+            windows_.closed);
+  controller_->RemoveSidebar(personal_window_);
+}
+
+TEST_F(SpaceControllerTest, ClosingTheLastWindowOnScreenClosesThemAll) {
+  AddWindow(work_window_, work_);
+  windows_.Hide(work_window_);
+  FakeSidebar sidebar;
+  controller_->AddSidebar(personal_window_, &sidebar);
+  controller_->OnWindowCreated(personal_window_);
+  task_environment_.FastForwardBy(base::Seconds(31));
+  windows_.UserCloses(personal_window_);
+  EXPECT_EQ((std::vector<BrowserWindowInterface*>{personal_window_.get(),
+                                                  work_window_.get()}),
+            windows_.closed);
+  controller_->RemoveSidebar(personal_window_);
+
+  // Gone, as Chrome forgets closed windows; the next window opened prepares
+  // the warm windows again.
+  windows_.windows.clear();
+  windows_.normal_windows.clear();
+  const raw_ptr<BrowserWindowInterface> reopened =
+      FakeWindows::Handle<BrowserWindowInterface>(3);
+  AddWindow(reopened, personal_);
+  windows_.popups = {FakeWindows::Handle<BrowserWindowInterface>(4)};
+  controller_->OnWindowCreated(reopened);
+  task_environment_.FastForwardBy(base::Seconds(30));
+  EXPECT_TRUE(windows_.popups.empty());
+  EXPECT_EQ(1u, windows_.NormalWindowsOf(work_).size());
+}
+
+TEST_F(SpaceControllerTest, AWindowClosedWholeClosesTheHiddenOnes) {
+  // Cmd+Shift+W: Chrome orders the window out before it closes.
+  AddWindow(work_window_, work_);
+  windows_.Hide(work_window_);
+  FakeSidebar sidebar;
+  controller_->AddSidebar(personal_window_, &sidebar);
+  controller_->AddSidebar(work_window_, &sidebar);
+  windows_.Hide(personal_window_);
+  windows_.UserCloses(personal_window_);
+  // Work's window closes once, as the group's; its own close is not a group
+  // close again.
+  EXPECT_EQ((std::vector<BrowserWindowInterface*>{personal_window_.get(),
+                                                  work_window_.get()}),
+            windows_.closed);
+  controller_->RemoveSidebar(personal_window_);
+  controller_->RemoveSidebar(work_window_);
+}
+
+TEST_F(SpaceControllerTest, TheDockBringsBackTheSpaceWithItsTabs) {
+  windows_.popups = {work_window_};
+  last_session_.due.insert(work_);
+  EXPECT_TRUE(controller_->Reopen("Profile 1"));
+  EXPECT_TRUE(windows_.IsOnScreen(work_window_));
+  EXPECT_EQ(std::vector<BrowserWindowInterface*>{work_window_.get()},
+            windows_.activated);
+  EXPECT_EQ(std::vector<BrowserWindowInterface*>{work_window_.get()},
+            last_session_.restored);
+}
+
+TEST_F(SpaceControllerTest, TheDockShowsTheSpacesHiddenWindow) {
+  AddWindow(work_window_, work_);
+  windows_.Hide(work_window_);
+  windows_.popups = {FakeWindows::Handle<BrowserWindowInterface>(3)};
+  EXPECT_TRUE(controller_->Reopen("Profile 1"));
+  EXPECT_TRUE(windows_.IsOnScreen(work_window_));
+  EXPECT_EQ(1u, windows_.popups.size());
+  EXPECT_TRUE(last_session_.restored.empty());
+}
+
+TEST_F(SpaceControllerTest, TheDockLeavesWhatIsNoSpaceToChrome) {
+  windows_.popups = {work_window_};
+  EXPECT_FALSE(controller_->Reopen("Profile 9"));
+  EXPECT_EQ(1u, windows_.popups.size());
+}
+
 TEST_F(SpaceControllerTest, OnlyAKnownSpaceGoes) {
   EXPECT_FALSE(controller_->DeleteSpace(personal_window_, "Profile 9"));
   EXPECT_TRUE(profiles_.deleted.empty());
@@ -207,7 +354,7 @@ TEST_F(SpaceControllerTest, TheLastSpaceStays) {
   FakeProfiles profiles;
   profiles.register_prefs = base::BindRepeating(&RegisterSpacePrefs);
   profiles.Add("Default", u"Only");
-  SpaceController controller(profiles, windows_, tabs_, theme_,
+  SpaceController controller(profiles, windows_, tabs_, last_session_, theme_,
                              strip_defaults_);
   EXPECT_FALSE(controller.DeleteSpace(personal_window_, "Default"));
   EXPECT_TRUE(profiles.deleted.empty());

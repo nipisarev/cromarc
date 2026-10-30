@@ -147,6 +147,8 @@ BrowserWindowInterface* WindowsAdapter::Create(Profile* profile,
                                                bool from_user_gesture) {
   BrowserWindowCreateParams params(*profile, from_user_gesture);
   params.initial_bounds = bounds;
+  // Its restore would bring every saved window back as a window of its own.
+  params.should_trigger_session_restore = false;
   return CreateBrowserWindow(std::move(params));
 }
 

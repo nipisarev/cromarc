@@ -11,6 +11,10 @@ class BrowserWindowInterface;
 class GURL;
 class Profile;
 
+namespace base {
+class FilePath;
+}  // namespace base
+
 namespace content {
 class WebContents;
 }  // namespace content
@@ -57,6 +61,10 @@ void OnTargetURL(Tabs& tabs,
 // Cmd+O in a Little window: the page goes to its space, as Arc's "Open in
 // Arc".
 bool OpenLittleInSpace(Windows& windows, BrowserWindowInterface* browser);
+
+// H21: the Dock icon with no window on screen brings back the space of the
+// profile at `profile_path`, as in Zen; false when it is no space.
+bool ReopenSpace(const base::FilePath& profile_path);
 
 }  // namespace cromarc
 

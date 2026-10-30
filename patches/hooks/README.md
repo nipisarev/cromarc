@@ -219,3 +219,16 @@ translation, so Cromarc's text comes in the language Chromium picked for its
 own; `cromarc_strings.grd` has its message ids.
 If it moved: the template that repacks the per-locale string paks of
 `//chrome`, and the grd id ranges.
+
+### H21 the Dock reopens the last active space
+Kind: code
+Where: `chrome/browser/app_controller_mac.mm`,
+`-applicationShouldHandleReopen:hasVisibleWindows:`, after the guest and
+signed-out check, before Chrome's own restore or new window.
+Calls: a guard on `cromarc::hooks::ReopenSpace(lastProfilePath)`.
+Contract: with no browser window on screen, a click on the Dock icon brings
+back the space of the last used profile in one window, with its tabs when its
+window was closed, as in Zen; for a profile that is no space Chrome's code
+runs.
+If it moved: where Chrome handles the Dock icon's reopen with no window
+visible, once it knows the last used profile.
