@@ -220,6 +220,13 @@ button {
   white-space: nowrap;
 }
 
+/* The window's extension buttons show over this room (Zen puts them before
+ * #page-action-buttons). */
+#page-action-buttons {
+  flex-shrink: 0;
+  height: 100%;
+}
+
 .urlbar-input[placeholder] {
   color: var(--text-dim);
 }

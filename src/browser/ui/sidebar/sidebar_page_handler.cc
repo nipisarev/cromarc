@@ -986,6 +986,33 @@ void SidebarPageHandler::GetWindowButtons(GetWindowButtonsCallback callback) {
   std::move(callback).Run(size.width(), size.height());
 }
 
+void SidebarPageHandler::PlaceExtensions(int32_t x,
+                                         int32_t y,
+                                         int32_t width,
+                                         int32_t height) {
+  SidebarView* sidebar = SidebarView::ForBrowser(browser_);
+  if (!sidebar) {
+    return;
+  }
+  sidebar->PlaceExtensions(gfx::Rect(x, y, width, height));
+  if (!extensions_width_subscription_) {
+    extensions_width_subscription_ =
+        sidebar->OnExtensionsWidthChanged(base::BindRepeating(
+            [](SidebarPageHandler* handler) {
+              if (SidebarView* view = SidebarView::ForBrowser(handler->browser_)) {
+                handler->page_->OnExtensionsWidthChanged(view->ExtensionsWidth());
+              }
+            },
+            base::Unretained(this)));
+  }
+}
+
+void SidebarPageHandler::GetExtensionsWidth(
+    GetExtensionsWidthCallback callback) {
+  SidebarView* sidebar = SidebarView::ForBrowser(browser_);
+  std::move(callback).Run(sidebar ? sidebar->ExtensionsWidth() : 0);
+}
+
 void SidebarPageHandler::OnNavigationChanged(mojom::NavigationPtr navigation) {
   page_->OnNavigationChanged(std::move(navigation));
 }

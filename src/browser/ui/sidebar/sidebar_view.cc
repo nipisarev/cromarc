@@ -217,6 +217,28 @@ void SidebarView::ShowNavigationHistory(bool forward,
   frame_->ShowNavigationHistory(forward, point);
 }
 
+void SidebarView::PlaceExtensions(const gfx::Rect& in_page) {
+  extensions_in_page_ = in_page;
+  gfx::Rect bounds = in_page;
+  // Clipped to what of the sidebar shows: none while compact mode has it in.
+  bounds.Intersect(GetLocalBounds());
+  if (!GetVisible() || !IsDrawn() || bounds.IsEmpty()) {
+    frame_->PlaceExtensions(gfx::Rect());
+    return;
+  }
+  views::View::ConvertRectToScreen(this, &bounds);
+  frame_->PlaceExtensions(bounds);
+}
+
+int SidebarView::ExtensionsWidth() const {
+  return frame_->ExtensionsWidth();
+}
+
+base::CallbackListSubscription SidebarView::OnExtensionsWidthChanged(
+    base::RepeatingClosure callback) {
+  return frame_->OnExtensionsWidthChanged(std::move(callback));
+}
+
 bool SidebarView::HandleKeyboardEvent(
     content::WebContents* source,
     const input::NativeWebKeyboardEvent& event) {
@@ -243,6 +265,21 @@ void SidebarView::PrimaryMainFrameRenderProcessGone(
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(&SidebarView::Reload, weak_factory_.GetWeakPtr()));
+}
+
+void SidebarView::OnBoundsChanged(const gfx::Rect& previous_bounds) {
+  views::WebView::OnBoundsChanged(previous_bounds);
+  if (!extensions_in_page_.IsEmpty()) {
+    PlaceExtensions(extensions_in_page_);
+  }
+}
+
+void SidebarView::VisibilityChanged(views::View* starting_from,
+                                    bool is_visible) {
+  views::WebView::VisibilityChanged(starting_from, is_visible);
+  if (!extensions_in_page_.IsEmpty()) {
+    PlaceExtensions(extensions_in_page_);
+  }
 }
 
 void SidebarView::AddedToWidget() {

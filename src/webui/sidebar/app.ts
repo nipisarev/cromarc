@@ -141,6 +141,7 @@ export class SidebarAppElement extends CrLitElement {
       pinsCollapsed_: {type: Boolean},
       navigation_: {type: Object},
       windowButtons_: {type: Object},
+      extensionsWidth_: {type: Number},
     };
   }
 
@@ -156,6 +157,10 @@ export class SidebarAppElement extends CrLitElement {
   // The room the window's controls take at the top left.
   protected accessor windowButtons_ = {width: 0, height: 0};
   private historyPressTimer_ = 0;
+  // Room for the window's extension buttons, which Chromium draws over the
+  // end of the address field (Zen's page-action-buttons).
+  protected accessor extensionsWidth_ = 0;
+  private extensionsRect_ = '';
   // Tabs in Chrome's collection of pinned tabs, set with tabs_.
   private pinnedTabs_: Set<string> = new Set();
   protected accessor tree_: TreeNode[] = [];
@@ -332,6 +337,11 @@ export class SidebarAppElement extends CrLitElement {
         ({navigation}) => this.navigation_ = navigation);
     this.proxy_.handler.getWindowButtons().then(
         buttons => this.windowButtons_ = buttons);
+    router.onExtensionsWidthChanged.addListener(
+        (width: number) => this.extensionsWidth_ = width);
+    this.proxy_.handler.getExtensionsWidth().then(
+        ({width}) => this.extensionsWidth_ = width);
+    window.addEventListener('resize', () => this.placeExtensions_());
     this.connectTabs_();
     this.resizeObserver_.observe(this);
     downloadsStore().subscribe(downloads => this.onDownloads_(downloads));
@@ -843,6 +853,22 @@ export class SidebarAppElement extends CrLitElement {
     this.proxy_.handler.showNavigationHistory(
         button.id === 'forward-button', Math.round(rect.left),
         Math.round(rect.bottom));
+  }
+
+  // Tells the browser where the extension buttons go: the room left at the
+  // end of the address field, none while the Library covers it.
+  private placeExtensions_() {
+    const room = this.shadowRoot?.querySelector('#page-action-buttons');
+    const box = room?.getBoundingClientRect();
+    const rect = !box || this.libraryShown_ || !box.width ?
+        [0, 0, 0, 0] :
+        [box.left, box.top, box.width, box.height].map(Math.round);
+    const key = rect.join(',');
+    if (key === this.extensionsRect_) {
+      return;
+    }
+    this.extensionsRect_ = key;
+    this.proxy_.handler.placeExtensions(rect[0]!, rect[1]!, rect[2]!, rect[3]!);
   }
 
   protected onUrlbarClick_() {
@@ -1757,6 +1783,7 @@ export class SidebarAppElement extends CrLitElement {
 
   override updated(changed: PropertyValues<this>) {
     super.updated(changed);
+    this.placeExtensions_();
     if (changed.has('renaming_' as keyof SidebarAppElement) && this.renaming_) {
       const input = this.shadowRoot.querySelector<HTMLInputElement>('input.rename');
       input?.focus();

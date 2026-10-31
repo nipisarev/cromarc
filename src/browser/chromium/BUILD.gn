@@ -77,6 +77,8 @@ source_set("chromium") {
   sources = [
     "browser_frame_adapter.cc",
     "browser_frame_adapter.h",
+    "sidebar_extensions.cc",
+    "sidebar_extensions.h",
     "downloads_adapter.cc",
     "downloads_adapter.h",
     "glance_menu_observer.cc",
