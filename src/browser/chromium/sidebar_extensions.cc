@@ -69,6 +69,8 @@ void SidebarExtensions::Take() {
   if (!container || container->parent() != toolbar || !view->GetWidget()) {
     return;
   }
+  toolbar_ = toolbar;
+  toolbar_observation_.Observe(toolbar);
   toolbar_index_ = toolbar->GetIndexOf(container).value_or(0);
   std::unique_ptr<views::View> owned = toolbar->RemoveChildViewT(container);
   delegate_ = std::make_unique<views::WidgetDelegate>();
@@ -95,16 +97,20 @@ void SidebarExtensions::GiveBack() {
   }
   container_observation_.Reset();
   window_observation_.Reset();
-  BrowserView* view = BrowserView::GetBrowserViewForBrowser(browser_);
-  ToolbarView* toolbar = view ? view->toolbar() : nullptr;
   std::unique_ptr<views::View> owned =
       taken_->parent()->RemoveChildViewT(taken_.get());
   taken_ = nullptr;
-  if (toolbar) {
-    toolbar->AddChildViewAt(
+  if (toolbar_) {
+    toolbar_->AddChildViewAt(
         std::move(owned),
-        std::min(toolbar_index_, toolbar->children().size()));
+        std::min(toolbar_index_, toolbar_->children().size()));
   }
+  // With no toolbar left it goes now, while the root view of the widget it
+  // was in, which it watches (ToolbarIconContainerView's restore observer),
+  // still lives.
+  owned.reset();
+  toolbar_observation_.Reset();
+  toolbar_ = nullptr;
   widget_.reset();
   delegate_.reset();
 }
@@ -117,6 +123,13 @@ void SidebarExtensions::OnWidgetDestroying(views::Widget* widget) {
 
 void SidebarExtensions::OnViewPreferredSizeChanged(views::View* view) {
   width_changed_.Notify();
+}
+
+void SidebarExtensions::OnViewIsDeleting(views::View* view) {
+  if (view == toolbar_) {
+    toolbar_observation_.Reset();
+    toolbar_ = nullptr;
+  }
 }
 
 }  // namespace cromarc

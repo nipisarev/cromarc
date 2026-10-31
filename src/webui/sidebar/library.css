@@ -64,7 +64,11 @@ button {
   visibility: hidden;
 }
 
+/* zen-library.css: the open Library moves the window (zen-library[open]
+ * -moz-window-dragging: drag), its content and its tabs not (#zen-library-
+ * content, .zen-library-tab). */
 #panel {
+  app-region: drag;
   display: flex;
   flex: 1;
   flex-direction: row;
@@ -1451,4 +1455,10 @@ cromarc-library-routing .search-top[open] ~ :is(.search-results, .routing-footer
 
 .pill.strong {
   background: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+#content,
+.tab,
+button {
+  app-region: no-drag;
 }

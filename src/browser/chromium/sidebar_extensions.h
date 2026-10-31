@@ -45,8 +45,9 @@ class SidebarExtensions : public views::WidgetObserver,
 
   // views::WidgetObserver, for the browser window:
   void OnWidgetDestroying(views::Widget* widget) override;
-  // views::ViewObserver, for the container:
+  // views::ViewObserver, for the container and the toolbar:
   void OnViewPreferredSizeChanged(views::View* view) override;
+  void OnViewIsDeleting(views::View* view) override;
 
  private:
   views::View* Container() const;
@@ -56,14 +57,18 @@ class SidebarExtensions : public views::WidgetObserver,
   const raw_ptr<BrowserWindowInterface> browser_;
   std::unique_ptr<views::WidgetDelegate> delegate_;
   std::unique_ptr<views::Widget> widget_;
-  // Taken from the toolbar, at this index in it.
+  // Taken from `toolbar_`, at this index in it. The toolbar is kept from the
+  // start: as the window comes down Chromium no longer finds it.
   raw_ptr<views::View> taken_ = nullptr;
+  raw_ptr<views::View> toolbar_ = nullptr;
   size_t toolbar_index_ = 0;
   base::RepeatingClosureList width_changed_;
   base::ScopedObservation<views::Widget, views::WidgetObserver>
       window_observation_{this};
   base::ScopedObservation<views::View, views::ViewObserver>
       container_observation_{this};
+  base::ScopedObservation<views::View, views::ViewObserver>
+      toolbar_observation_{this};
 };
 
 }  // namespace cromarc
