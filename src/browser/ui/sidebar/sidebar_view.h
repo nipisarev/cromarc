@@ -121,6 +121,12 @@ class SidebarView : public views::WebView {
   // Chromium's back or forward history menu at `point_in_page`, a point in
   // the sidebar's page.
   void ShowNavigationHistory(bool forward, const gfx::Point& point_in_page);
+  // Where the page leaves room for the extension buttons, in its coordinates;
+  // kept in place as the sidebar moves, hidden while it has no width.
+  void PlaceExtensions(const gfx::Rect& in_page);
+  int ExtensionsWidth() const;
+  base::CallbackListSubscription OnExtensionsWidthChanged(
+      base::RepeatingClosure callback);
 
   // content::WebContentsDelegate (through views::WebView):
   // Browser shortcuts (Cmd+T, Cmd+W, ...) keep working while the sidebar has
@@ -142,6 +148,8 @@ class SidebarView : public views::WebView {
  protected:
   // views::WebView:
   void AddedToWidget() override;
+  void OnBoundsChanged(const gfx::Rect& previous_bounds) override;
+  void VisibilityChanged(views::View* starting_from, bool is_visible) override;
 
  private:
   void Reload();
@@ -160,6 +168,7 @@ class SidebarView : public views::WebView {
   int reloads_ = 0;
   base::CallbackListSubscription fullscreen_subscription_;
   SkRegion drag_region_;
+  gfx::Rect extensions_in_page_;
   std::optional<std::string> theme_preview_;
   std::optional<Blend> theme_blend_;
   int library_width_ = 0;

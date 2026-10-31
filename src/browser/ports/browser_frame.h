@@ -43,6 +43,13 @@ class BrowserFrame {
   // `point_in_screen`.
   virtual void ShowNavigationHistory(bool forward,
                                      const gfx::Point& point_in_screen) = 0;
+  // Shows the window's extension buttons at `bounds_in_screen`, where Zen's
+  // single toolbar has them (the end of the address field); empty hides them.
+  // Nothing in a window that keeps Chromium's toolbar.
+  virtual void PlaceExtensions(const gfx::Rect& bounds_in_screen) = 0;
+  virtual int ExtensionsWidth() const = 0;
+  virtual base::CallbackListSubscription OnExtensionsWidthChanged(
+      base::RepeatingClosure callback) = 0;
 };
 
 }  // namespace cromarc

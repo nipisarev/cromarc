@@ -35,6 +35,8 @@ class View;
 
 namespace cromarc {
 
+class SidebarExtensions;
+
 // BrowserFrame on Chrome's BrowserView.
 class BrowserFrameAdapter : public BrowserFrame {
  public:
@@ -53,9 +55,14 @@ class BrowserFrameAdapter : public BrowserFrame {
   gfx::Size WindowButtons() const override;
   void ShowNavigationHistory(bool forward,
                              const gfx::Point& point_in_screen) override;
+  void PlaceExtensions(const gfx::Rect& bounds_in_screen) override;
+  int ExtensionsWidth() const override;
+  base::CallbackListSubscription OnExtensionsWidthChanged(
+      base::RepeatingClosure callback) override;
 
  private:
   const raw_ptr<BrowserWindowInterface> browser_;
+  std::unique_ptr<SidebarExtensions> extensions_;
   std::unique_ptr<ui::MenuModel> history_model_;
   std::unique_ptr<views::MenuRunner> history_runner_;
 };

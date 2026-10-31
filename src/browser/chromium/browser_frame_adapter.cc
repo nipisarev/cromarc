@@ -27,6 +27,7 @@
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "components/prefs/pref_service.h"
 #include "cromarc/browser/chromium/glance_surface_adapter.h"
+#include "cromarc/browser/chromium/sidebar_extensions.h"
 #include "cromarc/browser/chromium/window_material.h"
 #include "cromarc/browser/spaces/space_pref_names.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
@@ -122,6 +123,29 @@ base::CallbackListSubscription BrowserFrameAdapter::OnFullscreenChanged(
 
 void BrowserFrameAdapter::AttachWebUI(content::WebContents* contents) {
   webui::SetBrowserWindowInterface(contents, browser_);
+}
+
+void BrowserFrameAdapter::PlaceExtensions(const gfx::Rect& bounds_in_screen) {
+  if (!SidebarHoldsToolbar(browser_)) {
+    return;
+  }
+  if (!extensions_) {
+    extensions_ = std::make_unique<SidebarExtensions>(browser_);
+  }
+  extensions_->Place(bounds_in_screen);
+}
+
+int BrowserFrameAdapter::ExtensionsWidth() const {
+  return extensions_ ? extensions_->PreferredWidth()
+                     : SidebarExtensions(browser_).PreferredWidth();
+}
+
+base::CallbackListSubscription BrowserFrameAdapter::OnExtensionsWidthChanged(
+    base::RepeatingClosure callback) {
+  if (!extensions_) {
+    extensions_ = std::make_unique<SidebarExtensions>(browser_);
+  }
+  return extensions_->OnWidthChanged(std::move(callback));
 }
 
 bool SidebarHoldsToolbar(BrowserWindowInterface* browser) {

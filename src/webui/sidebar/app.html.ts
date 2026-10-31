@@ -67,6 +67,8 @@ export function getHtml(this: SidebarAppElement) {
       </div>
       <span class="urlbar-input" ?placeholder="${!this.navigation_.display}">${
           this.navigation_.display || this.strings.urlbarPlaceholder}</span>
+      <div id="page-action-buttons"
+          style="width: ${this.extensionsWidth_}px"></div>
     </div>
   </div>
 </div>

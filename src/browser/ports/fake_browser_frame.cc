@@ -44,4 +44,17 @@ void FakeBrowserFrame::ShowNavigationHistory(
   history_menus.emplace_back(forward, point_in_screen);
 }
 
+void FakeBrowserFrame::PlaceExtensions(const gfx::Rect& bounds_in_screen) {
+  extensions_bounds = bounds_in_screen;
+}
+
+int FakeBrowserFrame::ExtensionsWidth() const {
+  return extensions_width;
+}
+
+base::CallbackListSubscription FakeBrowserFrame::OnExtensionsWidthChanged(
+    base::RepeatingClosure callback) {
+  return extensions_width_changed.Add(std::move(callback));
+}
+
 }  // namespace cromarc

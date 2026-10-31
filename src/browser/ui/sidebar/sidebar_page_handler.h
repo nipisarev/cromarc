@@ -162,6 +162,9 @@ class SidebarPageHandler : public mojom::PageHandler,
   void ShowNavigationHistory(bool forward, int32_t x, int32_t y) override;
   void EditAddress() override;
   void GetWindowButtons(GetWindowButtonsCallback callback) override;
+  void PlaceExtensions(int32_t x, int32_t y, int32_t width,
+                       int32_t height) override;
+  void GetExtensionsWidth(GetExtensionsWidthCallback callback) override;
 
   // SpaceController::Sidebar:
   void OnSpacesChanged() override;
@@ -203,6 +206,7 @@ class SidebarPageHandler : public mojom::PageHandler,
   base::CallbackListSubscription glance_subscription_;
   std::unique_ptr<ContextMenu> context_menu_;
   std::unique_ptr<SidebarNavigation> navigation_;
+  base::CallbackListSubscription extensions_width_subscription_;
   std::unique_ptr<LibraryBackend> library_;
   std::unique_ptr<Downloads> downloads_;
   base::CancelableTaskTracker favicon_tracker_;

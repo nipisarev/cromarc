@@ -340,6 +340,12 @@ interface PageHandler {
   // The window's controls at the sidebar's top left, in DIPs: Zen's top row
   // leaves them room.
   GetWindowButtons() => (int32 width, int32 height);
+  // Where the page leaves room at the end of the address field for the
+  // window's extension buttons (Zen's single toolbar), in the page's
+  // coordinates; an empty rectangle hides them. OnExtensionsWidthChanged
+  // tells the width they take.
+  PlaceExtensions(int32 x, int32 y, int32 width, int32 height);
+  GetExtensionsWidth() => (int32 width);
 
   // As the Library slides out and back, the width the window's sidebar
   // column takes for it; 0 once it is shut.
@@ -414,6 +420,7 @@ interface Page {
   OnSwitchRequested(string id);
   OnSwipe(Swipe swipe);
   OnNavigationChanged(Navigation navigation);
+  OnExtensionsWidthChanged(int32 width);
   // History or the archive changed while the Library may be showing them.
   OnHistoryChanged();
   // A download came, changed or went; at most four times a second.

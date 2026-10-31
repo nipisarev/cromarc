@@ -79,6 +79,11 @@ check('the sidebar has Zen\'s top row', top?.row, JSON.stringify(top));
 check('the address field shows the page (an http address in full)', top?.text === `${site}/b.html`, JSON.stringify(top));
 check('back is on after a navigation, forward is off', top?.back && !top?.forward, JSON.stringify(top));
 check('the top row leaves room for the window buttons', top?.lights > 0, JSON.stringify(top));
+// Chromium's extensions container (its puzzle button at least) moves to the
+// end of the address field, which leaves it room.
+const room = await until(() => inSidebar(sidebar,
+    `return root.querySelector('#page-action-buttons').getBoundingClientRect().width;`));
+check('the address field leaves room for the extension buttons', room > 0, String(room));
 
 await click(sidebar, '#back-button');
 check('back goes back', !!(await until(() => pageAt(`${site}/a.html`))));
