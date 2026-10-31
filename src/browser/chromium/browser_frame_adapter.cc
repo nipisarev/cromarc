@@ -343,8 +343,10 @@ std::optional<float> ChromeBackgroundBlur(const views::View* view,
   if (!controller || !controller->IsCollapsed()) {
     return std::nullopt;
   }
-  // backdrop-filter: blur(42px).
-  return 42.0f;
+  // Release Zen's floating sidebar is not acrylic (zen.theme.acrylic-sidebar
+  // is on in Twilight only): an opaque base, no blur of what it floats over,
+  // not even Chromium's own.
+  return 0.0f;
 }
 
 }  // namespace cromarc

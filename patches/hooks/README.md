@@ -173,13 +173,14 @@ Calls: `size = cromarc::hooks::RegionSize(browser, size)`.
 Contract: Cromarc may widen the region (the Library); otherwise Chrome's width.
 If it moved: the vertical tab strip region's preferred width.
 
-### H17 the compact sidebar blurs what it floats over
+### H17 the compact sidebar sets its own blur
 Kind: code
 Where: `chrome/browser/ui/views/frame/custom_corners_background.cc`,
 `CustomCornersBackground::SetUseBackgroundBlur`.
 Calls: a guard on `cromarc::hooks::SetChromeBackgroundBlur(view, browser_view, layer, path)`.
 Contract: for the floating compact sidebar Cromarc sets the layer's backdrop
-blur; otherwise Chrome's blur setting.
+blur, none as release Zen has it (its sidebar is not acrylic: an opaque base
+over the page); otherwise Chrome's blur setting.
 If it moved: where the region's background sets its blur.
 
 ### H18 the page is a card all round, under a clear bookmarks bar
