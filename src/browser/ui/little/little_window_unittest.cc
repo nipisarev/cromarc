@@ -127,6 +127,12 @@ TEST_F(LittleWindowTest, ClosingItArchivesItsPage) {
   EXPECT_FALSE(delegate_.archived_at_session_end[0]);
 }
 
+TEST_F(LittleWindowTest, OpensWithItsOwnTitleBarAndNoneOfChromes) {
+  OpenLittle();
+  EXPECT_EQ(windows_.titlebar_heights[little_], kLittleBarHeight);
+  EXPECT_EQ(windows_.titlebar_views[little_], 1);
+}
+
 TEST_F(LittleWindowTest, MoveToSpaceOpensThePageThereInThisOnesPlace) {
   LittleWindow* little = OpenLittle();
   EXPECT_EQ(little->default_space(), "Default");
@@ -141,7 +147,8 @@ TEST_F(LittleWindowTest, MoveToSpaceOpensThePageThereInThisOnesPlace) {
   ASSERT_TRUE(LittleWindow::From(windows_, other_));
   EXPECT_EQ(LittleWindow::From(windows_, other_)->default_space(),
             "Profile 1");
-  EXPECT_EQ(windows_.toolbar_views[other_], 1);
+  EXPECT_EQ(windows_.titlebar_heights[other_], kLittleBarHeight);
+  EXPECT_EQ(windows_.titlebar_views[other_], 1);
   // This one is gone, its page not in the archive: it lives on there.
   EXPECT_EQ(windows_.closed, std::vector<BrowserWindowInterface*>{little_});
   EXPECT_FALSE(LittleWindow::From(windows_, little_));

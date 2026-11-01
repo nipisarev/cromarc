@@ -487,10 +487,10 @@
 <translation id="178780028814010798">Уже были <ph name="COUNT"/></translation>
 <!-- IDS_CROMARC_LITTLE_OPEN_IN -->
 <translation id="7042519442204120027">Открыть в <ph name="SPACE"/></translation>
+<!-- IDS_CROMARC_LITTLE_LINK_COPIED -->
+<translation id="3240426699337459095">Ссылка скопирована</translation>
 <!-- IDS_CROMARC_LITTLE_OPEN_IN_ANOTHER -->
 <translation id="6087204033151452905">Открыть в другом space</translation>
-<!-- IDS_CROMARC_LITTLE_CLOSE -->
-<translation id="3262198027729110870">Закрыть (уйдёт в архив)</translation>
 <!-- IDS_CROMARC_LITTLE_ALWAYS_OPEN -->
 <translation id="2211223404266253191">Всегда открывать <ph name="HOST"/> в «<ph name="SPACE"/>»</translation>
 <translation id="819576493860258696">Открыть ссылку в Glance</translation>

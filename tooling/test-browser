@@ -133,6 +133,7 @@ launch() {
   case "$name" in
     theme | compact) args+=(--cromarc-test-log-background) ;;
     library_spaces) args+=(--cromarc-test-log-spaces) ;;
+    little) args+=(--cromarc-test-log-little) ;;
     # Pages idle out in seconds; a Little window in half that.
     glance_sleep) args+=(--cromarc-idle-limit=8) ;;
     # Whether a person is at the Mac must not decide the run.

@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sun, 1 Nov 2026 12:51:09 +0100
+Subject: [PATCH] Cromarc H24: a Little window's title bar is Cromarc's
+
+
+diff --git a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
+index d69fc22161603..8c45857d35d41 100644
+--- a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
++++ b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
+@@ -281,6 +281,9 @@ void BrowserNativeWidgetMac::GetWindowFrameTitlebarHeight(
+     if (!browser_view_->ShouldDrawTabStrip()) {
+       *titlebar_height += kWebAppMenuMargin * 2;
+     }
++    // Cromarc: the traffic lights centred in Cromarc's own title bar.
++    *titlebar_height =
++        cromarc::hooks::TitlebarHeight(browser_view_, *titlebar_height);
+   } else {
+     *override_titlebar_height = false;
+     *titlebar_height = 0;
+@@ -742,6 +745,8 @@ void BrowserNativeWidgetMac::PopulateCreateWindowParams(
+     params->window_class = remote_cocoa::mojom::WindowClass::kDefault;
+   }
+   params->animation_enabled = true;
++  // Cromarc: a Little window has no title bar of the system's.
++  cromarc::hooks::AdjustWindowParams(browser_view_, params);
+ }
+ 
+ NativeWidgetMacNSWindow* BrowserNativeWidgetMac::CreateNSWindow(

@@ -365,7 +365,8 @@
       <!-- Little windows and Glance. -->
       <message name="IDS_CROMARC_LITTLE_OPEN_IN" desc="Little windows and Glance">Open in <ph name="SPACE">$1<ex>Work</ex></ph></message>
       <message name="IDS_CROMARC_LITTLE_OPEN_IN_ANOTHER" desc="Little windows and Glance">Open in another space</message>
-      <message name="IDS_CROMARC_LITTLE_CLOSE" desc="Little windows and Glance">Close (goes to the archive)</message>
+      <message name="IDS_CROMARC_LITTLE_COPY_LINK" desc="Little windows and Glance: the button in a Little window's bar that copies the page's address, Arc's words">Copy Link</message>
+      <message name="IDS_CROMARC_LITTLE_LINK_COPIED" desc="Little windows and Glance: said once the page's address is copied">Link copied</message>
       <message name="IDS_CROMARC_LITTLE_ALWAYS_OPEN" desc="Little windows and Glance">Always open <ph name="HOST">$1<ex>example.com</ex></ph> in “<ph name="SPACE">$2<ex>Work</ex></ph>”</message>
       <message name="IDS_CROMARC_GLANCE_OPEN_AS_TAB" desc="Little windows and Glance">Open as Tab</message>
       <message name="IDS_CROMARC_GLANCE_CLOSE" desc="Little windows and Glance">Close (Esc)</message>

@@ -51,16 +51,15 @@ void LittleWindow::Open(const Deps& deps,
                         std::optional<gfx::Rect> bounds) {
   // As in Arc, Little windows do not come back after a restart.
   BrowserWindowInterface* browser = deps.windows->OpenPopup(
-      profile, bounds ? *bounds : CentredOnCursorScreen(), url);
+      profile, bounds ? *bounds : CentredOnCursorScreen(), url,
+      kLittleBarHeight);
   if (!browser) {
     return;
   }
   auto window = base::WrapUnique(new LittleWindow(deps, browser));
   LittleWindow* const little = window.get();
   LittleWindows()[deps.windows->IdOf(browser)] = std::move(window);
-  // The popup's toolbar is a FlexLayout row: the location bar stretches and
-  // the bar takes its preferred width at the end.
-  deps.windows->AddToToolbar(browser, deps.delegate->MakeBar(*little));
+  deps.windows->SetTitlebar(browser, deps.delegate->MakeBar(*little));
 }
 
 // static
@@ -105,6 +104,11 @@ std::optional<TabId> LittleWindow::PageTab() const {
 GURL LittleWindow::url() const {
   const std::optional<TabId> tab = PageTab();
   return tab ? deps_.tabs->GetLastCommittedUrl(*tab) : GURL();
+}
+
+content::WebContents* LittleWindow::page() const {
+  const std::optional<TabId> tab = PageTab();
+  return tab ? deps_.tabs->GetContents(*tab) : nullptr;
 }
 
 void LittleWindow::OpenInSpace(const std::string& space_id) {

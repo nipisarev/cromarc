@@ -14,8 +14,14 @@ source_set("hooks") {
 
 source_set("impl") {
   sources = [ "hooks.cc" ]
+  deps = []
+  if (is_mac) {
+    sources += [ "hooks_mac.mm" ]
+    frameworks = [ "AppKit.framework" ]
+    deps += [ "//components/remote_cocoa/common:mojo" ]
+  }
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]
-  deps = [
+  deps += [
     ":hooks",
     "//chrome/app/vector_icons",
     "//cromarc/browser:keyed_services",

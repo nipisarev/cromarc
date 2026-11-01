@@ -65,13 +65,14 @@ class FakeWindows : public Windows {
       base::RepeatingCallback<void(BrowserWindowInterface*)> callback) override;
   BrowserWindowInterface* OpenPopup(Profile* profile,
                                     const gfx::Rect& bounds,
-                                    const GURL& url) override;
+                                    const GURL& url,
+                                    int own_titlebar_height) override;
   void AttachWebUI(BrowserWindowInterface* window,
                    content::WebContents* contents) override;
   BrowserWindowInterface* WindowOfWebUI(
       content::WebContents* contents) override;
-  void AddToToolbar(BrowserWindowInterface* window,
-                    std::unique_ptr<views::View> view) override;
+  void SetTitlebar(BrowserWindowInterface* window,
+                   std::unique_ptr<views::View> view) override;
 
   // The window is gone: FromId() no longer finds it, OnClosed() is called.
   void UserCloses(BrowserWindowInterface* window);
@@ -92,7 +93,8 @@ class FakeWindows : public Windows {
   // opened.
   std::vector<BrowserWindowInterface*> popups;
   std::vector<GURL> popup_urls;
-  std::map<BrowserWindowInterface*, int> toolbar_views;
+  std::map<BrowserWindowInterface*, int> titlebar_heights;
+  std::map<BrowserWindowInterface*, int> titlebar_views;
 
  private:
   std::map<BrowserWindowInterface*,

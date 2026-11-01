@@ -52,9 +52,8 @@ class CromarcStringsTest : public testing::TestWithParam<const char*> {
 TEST_P(CromarcStringsTest, NativeViewsReadInTheLocale) {
   EXPECT_EQ(Text(IDS_CROMARC_LITTLE_OPEN_IN_ANOTHER),
             russian() ? "Открыть в другом space" : "Open in another space");
-  EXPECT_EQ(Text(IDS_CROMARC_LITTLE_CLOSE), russian()
-                                                ? "Закрыть (уйдёт в архив)"
-                                                : "Close (goes to the archive)");
+  EXPECT_EQ(Text(IDS_CROMARC_LITTLE_LINK_COPIED),
+            russian() ? "Ссылка скопирована" : "Link copied");
   EXPECT_EQ(Text(IDS_CROMARC_GLANCE_OPEN_AS_TAB),
             russian() ? "Открыть как вкладку" : "Open as Tab");
   EXPECT_EQ(Text(IDS_CROMARC_GLANCE_CLOSE),

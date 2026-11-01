@@ -52,13 +52,14 @@ class WindowsAdapter : public Windows {
       base::RepeatingCallback<void(BrowserWindowInterface*)> callback) override;
   BrowserWindowInterface* OpenPopup(Profile* profile,
                                     const gfx::Rect& bounds,
-                                    const GURL& url) override;
+                                    const GURL& url,
+                                    int own_titlebar_height) override;
   void AttachWebUI(BrowserWindowInterface* window,
                    content::WebContents* contents) override;
   BrowserWindowInterface* WindowOfWebUI(
       content::WebContents* contents) override;
-  void AddToToolbar(BrowserWindowInterface* window,
-                    std::unique_ptr<views::View> view) override;
+  void SetTitlebar(BrowserWindowInterface* window,
+                   std::unique_ptr<views::View> view) override;
 };
 
 }  // namespace cromarc

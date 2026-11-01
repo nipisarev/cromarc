@@ -15,6 +15,8 @@
 #include "base/containers/flat_set.h"
 #include "base/feature_list.h"
 #include "base/observer_list.h"
+#include "build/build_config.h"
+#include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/gfx/geometry/size.h"
@@ -43,6 +45,10 @@ namespace gfx {
 class Canvas;
 struct VectorIcon;
 }  // namespace gfx
+
+namespace remote_cocoa::mojom {
+class CreateWindowParams;
+}  // namespace remote_cocoa::mojom
 
 namespace ui {
 class Layer;
@@ -173,6 +179,18 @@ void AddContextMenuItems(
     ui::SimpleMenuModel& model,
     base::ReentrantObserverList<RenderViewContextMenuObserver>::
         UncheckedAndDanglingUntriaged& observers);
+
+// H24: a window with Cromarc's own title bar (a Little window) has no title
+// bar of the system's: the traffic lights sit centred in Cromarc's bar.
+#if BUILDFLAG(IS_MAC)
+void AdjustWindowParams(BrowserView* browser_view,
+                        remote_cocoa::mojom::CreateWindowParams* params);
+#endif
+float TitlebarHeight(BrowserView* browser_view, float chrome_height);
+
+// H25: the empty space of Cromarc's own title bar moves the window; `point`
+// is in the browser view's parent.
+bool IsWindowCaption(BrowserView* browser_view, const gfx::Point& point);
 
 }  // namespace cromarc::hooks
 

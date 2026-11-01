@@ -38,13 +38,20 @@ source_set("little") {
   deps = [
     "//base",
     "//components/vector_icons",
+    "//content/public/browser",
     "//cromarc/browser/archive:service",
     "//cromarc/browser/routing",
     "//cromarc/browser/spaces",
+    "//cromarc/browser/ui/sidebar:space_theme_painter",
     "//cromarc/strings:cromarc_strings",
     "//ui/base",
+    "//ui/base/clipboard",
+    "//ui/color",
+    "//ui/events",
+    "//ui/gfx",
     "//ui/menus",
     "//ui/views",
+    "//url",
   ]
 }
 

@@ -19,6 +19,7 @@
 #include "cromarc/browser/chromium/browser_frame_adapter.h"
 #include "cromarc/browser/chromium/glance_menu_observer.h"
 #include "cromarc/browser/chromium/glance_surface_adapter.h"
+#include "cromarc/browser/chromium/own_titlebar.h"
 #include "cromarc/browser/chromium/sidebar_installer.h"
 #include "cromarc/browser/keyed_services.h"
 #include "cromarc/browser/ui/browser_commands.h"
@@ -110,6 +111,9 @@ gfx::Rect PageSpace(BrowserView* browser_view,
   }
   gfx::Rect page = space;
   page.Inset(cromarc::PageInsets(browser_view));
+  // A Little window: the page under Cromarc's title bar.
+  page.Inset(gfx::Insets::TLBR(cromarc::OwnTitlebarHeight(browser_view), 0, 0,
+                               0));
   return page;
 }
 
@@ -242,6 +246,15 @@ void AddContextMenuItems(
     base::ReentrantObserverList<RenderViewContextMenuObserver>::
         UncheckedAndDanglingUntriaged& observers) {
   cromarc::GlanceMenuObserver::Attach(menu, model, observers);
+}
+
+float TitlebarHeight(BrowserView* browser_view, float chrome_height) {
+  const int own = cromarc::OwnTitlebarHeight(browser_view);
+  return own ? own : chrome_height;
+}
+
+bool IsWindowCaption(BrowserView* browser_view, const gfx::Point& point) {
+  return cromarc::IsOwnTitlebarCaption(browser_view, point);
 }
 
 }  // namespace cromarc::hooks
