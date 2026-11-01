@@ -32,7 +32,6 @@
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/gfx/geometry/size.h"
-#include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/views/layout/flex_layout_types.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
@@ -134,9 +133,6 @@ SidebarView::SidebarView(Host host)
   // TabStripService.
   frame_->AttachWebUI(contents.get());
   contents->SetPageBaseBackgroundColor(SK_ColorTRANSPARENT);
-  // The page marks the empty space that moves the window (app-region: drag),
-  // as Zen's draggable sidebar (zen.view.draggable-sidebar).
-  contents->SetSupportsDraggableRegions(true);
   SetOwnedWebContents(std::move(contents));
   theme_pref_.Init(host.prefs);
   theme_pref_.Add(kSpaceThemePref,
@@ -189,56 +185,6 @@ gfx::Insets SidebarView::ColumnInsets() const {
                            std::max(0, region->bottom() - own.bottom()), 0);
 }
 
-void SidebarView::DraggableRegionsChanged(
-    const std::vector<blink::mojom::DraggableRegionPtr>& regions,
-    content::WebContents* contents) {
-  // In order: a later region wins where they overlap, as app-region does.
-  drag_region_.setEmpty();
-  for (const blink::mojom::DraggableRegionPtr& region : regions) {
-    drag_region_.op(gfx::RectToSkIRect(region->bounds),
-                    region->draggable ? SkRegion::kUnion_Op
-                                      : SkRegion::kDifference_Op);
-  }
-}
-
-bool SidebarView::IsDragRegion(const gfx::Point& point_in_view) const {
-  return GetVisible() && HitTestPoint(point_in_view) &&
-         drag_region_.contains(point_in_view.x(), point_in_view.y());
-}
-
-gfx::Size SidebarView::WindowButtons() const {
-  return frame_->WindowButtons();
-}
-
-void SidebarView::ShowNavigationHistory(bool forward,
-                                        const gfx::Point& point_in_page) {
-  gfx::Point point = point_in_page;
-  views::View::ConvertPointToScreen(this, &point);
-  frame_->ShowNavigationHistory(forward, point);
-}
-
-void SidebarView::PlaceExtensions(const gfx::Rect& in_page) {
-  extensions_in_page_ = in_page;
-  gfx::Rect bounds = in_page;
-  // Clipped to what of the sidebar shows: none while compact mode has it in.
-  bounds.Intersect(GetLocalBounds());
-  if (!GetVisible() || !IsDrawn() || bounds.IsEmpty()) {
-    frame_->PlaceExtensions(gfx::Rect());
-    return;
-  }
-  views::View::ConvertRectToScreen(this, &bounds);
-  frame_->PlaceExtensions(bounds);
-}
-
-int SidebarView::ExtensionsWidth() const {
-  return frame_->ExtensionsWidth();
-}
-
-base::CallbackListSubscription SidebarView::OnExtensionsWidthChanged(
-    base::RepeatingClosure callback) {
-  return frame_->OnExtensionsWidthChanged(std::move(callback));
-}
-
 bool SidebarView::HandleKeyboardEvent(
     content::WebContents* source,
     const input::NativeWebKeyboardEvent& event) {
@@ -265,21 +211,6 @@ void SidebarView::PrimaryMainFrameRenderProcessGone(
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(&SidebarView::Reload, weak_factory_.GetWeakPtr()));
-}
-
-void SidebarView::OnBoundsChanged(const gfx::Rect& previous_bounds) {
-  views::WebView::OnBoundsChanged(previous_bounds);
-  if (!extensions_in_page_.IsEmpty()) {
-    PlaceExtensions(extensions_in_page_);
-  }
-}
-
-void SidebarView::VisibilityChanged(views::View* starting_from,
-                                    bool is_visible) {
-  views::WebView::VisibilityChanged(starting_from, is_visible);
-  if (!extensions_in_page_.IsEmpty()) {
-    PlaceExtensions(extensions_in_page_);
-  }
 }
 
 void SidebarView::AddedToWidget() {

@@ -34,27 +34,4 @@ base::CallbackListSubscription FakeBrowserFrame::OnFullscreenChanged(
 
 void FakeBrowserFrame::AttachWebUI(content::WebContents* contents) {}
 
-gfx::Size FakeBrowserFrame::WindowButtons() const {
-  return window_buttons;
-}
-
-void FakeBrowserFrame::ShowNavigationHistory(
-    bool forward,
-    const gfx::Point& point_in_screen) {
-  history_menus.emplace_back(forward, point_in_screen);
-}
-
-void FakeBrowserFrame::PlaceExtensions(const gfx::Rect& bounds_in_screen) {
-  extensions_bounds = bounds_in_screen;
-}
-
-int FakeBrowserFrame::ExtensionsWidth() const {
-  return extensions_width;
-}
-
-base::CallbackListSubscription FakeBrowserFrame::OnExtensionsWidthChanged(
-    base::RepeatingClosure callback) {
-  return extensions_width_changed.Add(std::move(callback));
-}
-
 }  // namespace cromarc

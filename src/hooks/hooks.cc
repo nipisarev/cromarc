@@ -25,7 +25,6 @@
 #include "cromarc/browser/ui/glance/glance_navigation_throttle.h"
 #include "cromarc/browser/ui/glance/glance_registry.h"
 #include "cromarc/browser/ui/sidebar/cromarc_sidebar.h"
-#include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "cromarc/browser/ui/webui_registration.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/compositor/layer.h"
@@ -34,17 +33,6 @@
 #include "ui/views/view_utils.h"
 
 namespace cromarc::hooks {
-
-namespace {
-
-// The sidebar draws the region's top row: Zen's single toolbar, or the
-// Library, which takes the whole column.
-bool DrawsTopRow(BrowserWindowInterface* browser) {
-  return cromarc::LibraryTakesRegion(browser) ||
-         cromarc::SidebarHoldsToolbar(browser);
-}
-
-}  // namespace
 
 void InstallSidebar(views::View* content_area,
                     views::View* tab_list,
@@ -186,29 +174,14 @@ gfx::Size RegionSize(BrowserWindowInterface* browser, const gfx::Size& size) {
   return gfx::Size(cromarc::RegionWidth(browser, size.width()), size.height());
 }
 
-bool ToolbarVisible(BrowserWindowInterface* browser, bool chrome_visible) {
-  return chrome_visible && !cromarc::SidebarHoldsToolbar(browser);
-}
-
-bool IsSidebarCaption(BrowserWindowInterface* browser,
-                      const views::View* region,
-                      const gfx::Point& point) {
-  cromarc::SidebarView* sidebar = cromarc::SidebarView::ForBrowser(browser);
-  if (!sidebar) {
-    return false;
-  }
-  gfx::Point in_sidebar = point;
-  views::View::ConvertPointToTarget(region, sidebar, &in_sidebar);
-  return sidebar->IsDragRegion(in_sidebar);
-}
-
 gfx::Size RegionTopRowSize(BrowserWindowInterface* browser,
                            const gfx::Size& size) {
-  return DrawsTopRow(browser) ? gfx::Size(size.width(), 0) : size;
+  return cromarc::LibraryTakesRegion(browser) ? gfx::Size(size.width(), 0)
+                                              : size;
 }
 
 bool RegionTopRowVisible(BrowserWindowInterface* browser, bool visible) {
-  return visible && !DrawsTopRow(browser);
+  return visible && !cromarc::LibraryTakesRegion(browser);
 }
 
 int RegionBottomPadding(BrowserWindowInterface* browser, int padding) {

@@ -34,7 +34,6 @@
 #include "cromarc/browser/ui/sidebar/library_media.h"
 #include "cromarc/browser/ui/browser_commands.h"
 #include "cromarc/browser/ui/glance/glance_registry.h"
-#include "cromarc/browser/ui/sidebar/sidebar_navigation.h"
 #include "cromarc/browser/ui/sidebar/sidebar_view.h"
 #include "cromarc/browser/ui/sidebar/theme_picker.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
@@ -238,11 +237,6 @@ SidebarPageHandler::SidebarPageHandler(
   }
   glance_subscription_ = GlanceRegistry::Get()->RegisterOnChanged(
       base::BindRepeating(&SidebarPageHandler::OnGlancesChanged,
-                          base::Unretained(this)));
-  // Owned here, so it calls back no later than now.
-  navigation_ = std::make_unique<SidebarNavigation>(
-      *tabs_, browser_,
-      base::BindRepeating(&SidebarPageHandler::OnNavigationChanged,
                           base::Unretained(this)));
 }
 
@@ -958,63 +952,6 @@ void SidebarPageHandler::OnSwipe(const SwipeTracker::Event& event) {
   swipe->amount = event.amount;
   swipe->direction = event.direction;
   page_->OnSwipe(std::move(swipe));
-}
-
-void SidebarPageHandler::GetNavigation(GetNavigationCallback callback) {
-  std::move(callback).Run(navigation_->Get());
-}
-
-void SidebarPageHandler::Navigate(mojom::NavigationCommand command) {
-  navigation_->Do(command);
-}
-
-void SidebarPageHandler::ShowNavigationHistory(bool forward,
-                                               int32_t x,
-                                               int32_t y) {
-  if (SidebarView* sidebar = SidebarView::ForBrowser(browser_)) {
-    sidebar->ShowNavigationHistory(forward, gfx::Point(x, y));
-  }
-}
-
-void SidebarPageHandler::EditAddress() {
-  ShowCommandBar(*tabs_, *windows_, browser_, /*edit_current_url=*/true);
-}
-
-void SidebarPageHandler::GetWindowButtons(GetWindowButtonsCallback callback) {
-  SidebarView* sidebar = SidebarView::ForBrowser(browser_);
-  const gfx::Size size = sidebar ? sidebar->WindowButtons() : gfx::Size();
-  std::move(callback).Run(size.width(), size.height());
-}
-
-void SidebarPageHandler::PlaceExtensions(int32_t x,
-                                         int32_t y,
-                                         int32_t width,
-                                         int32_t height) {
-  SidebarView* sidebar = SidebarView::ForBrowser(browser_);
-  if (!sidebar) {
-    return;
-  }
-  sidebar->PlaceExtensions(gfx::Rect(x, y, width, height));
-  if (!extensions_width_subscription_) {
-    extensions_width_subscription_ =
-        sidebar->OnExtensionsWidthChanged(base::BindRepeating(
-            [](SidebarPageHandler* handler) {
-              if (SidebarView* view = SidebarView::ForBrowser(handler->browser_)) {
-                handler->page_->OnExtensionsWidthChanged(view->ExtensionsWidth());
-              }
-            },
-            base::Unretained(this)));
-  }
-}
-
-void SidebarPageHandler::GetExtensionsWidth(
-    GetExtensionsWidthCallback callback) {
-  SidebarView* sidebar = SidebarView::ForBrowser(browser_);
-  std::move(callback).Run(sidebar ? sidebar->ExtensionsWidth() : 0);
-}
-
-void SidebarPageHandler::OnNavigationChanged(mojom::NavigationPtr navigation) {
-  page_->OnNavigationChanged(std::move(navigation));
 }
 
 }  // namespace cromarc

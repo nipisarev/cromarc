@@ -30,7 +30,6 @@ class TabsAdapter : public Tabs {
   std::u16string GetTitle(TabId tab) override;
   base::Time GetLastActiveTime(TabId tab) override;
   bool IsAudibleOrCaptured(TabId tab) override;
-  SiteSecurity GetSiteSecurity(TabId tab) override;
   bool MayLoseInput(TabId tab) override;
   std::vector<TabId> List(BrowserWindowInterface* window) override;
   std::optional<TabId> GetActive(BrowserWindowInterface* window) override;
