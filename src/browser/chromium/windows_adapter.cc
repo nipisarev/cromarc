@@ -4,6 +4,8 @@
 
 #include "cromarc/browser/chromium/windows_adapter.h"
 
+#include <optional>
+
 #include <utility>
 
 #include "chrome/browser/profiles/profile.h"
@@ -14,9 +16,9 @@
 #include "chrome/browser/ui/navigator/browser_navigator.h"  // nogncheck: //chrome/browser links //cromarc
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"  // nogncheck: as above
 #include "chrome/browser/ui/views/frame/browser_view.h"  // nogncheck: as above
-#include "chrome/browser/ui/views/toolbar/toolbar_view.h"  // nogncheck: as above
 #include "chrome/browser/ui/webui/webui_embedding_context.h"
 #include "components/sessions/core/session_id.h"
+#include "cromarc/browser/chromium/own_titlebar.h"
 #include "ui/base/base_window.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
@@ -158,7 +160,8 @@ BrowserWindowInterface* WindowsAdapter::Create(Profile* profile,
 
 BrowserWindowInterface* WindowsAdapter::OpenPopup(Profile* profile,
                                                   const gfx::Rect& bounds,
-                                                  const GURL& url) {
+                                                  const GURL& url,
+                                                  int own_titlebar_height) {
   BrowserWindowCreateParams create(BrowserWindowInterface::TYPE_POPUP, *profile,
                                    /*from_user_gesture=*/true);
   create.initial_bounds = bounds;
@@ -166,7 +169,16 @@ BrowserWindowInterface* WindowsAdapter::OpenPopup(Profile* profile,
       BrowserWindowCreateParams::ValueSpecified::kSpecified;
   create.omit_from_session_restore = true;
   create.should_trigger_session_restore = false;
-  BrowserWindowInterface* window = CreateBrowserWindow(std::move(create));
+  // A trusted popup shows no location bar, so no toolbar of Chrome's.
+  create.is_trusted_source = own_titlebar_height > 0;
+  BrowserWindowInterface* window = nullptr;
+  {
+    std::optional<ScopedOwnTitlebar> own_titlebar;
+    if (own_titlebar_height > 0) {
+      own_titlebar.emplace(own_titlebar_height);
+    }
+    window = CreateBrowserWindow(std::move(create));
+  }
   if (!window) {
     return nullptr;
   }
@@ -189,11 +201,11 @@ BrowserWindowInterface* WindowsAdapter::WindowOfWebUI(
   return webui::GetBrowserWindowInterface(contents);
 }
 
-void WindowsAdapter::AddToToolbar(BrowserWindowInterface* window,
-                                  std::unique_ptr<views::View> view) {
+void WindowsAdapter::SetTitlebar(BrowserWindowInterface* window,
+                                 std::unique_ptr<views::View> view) {
   if (BrowserView* browser_view =
           BrowserView::GetBrowserViewForBrowser(window)) {
-    browser_view->toolbar()->AddChildView(std::move(view));
+    SetOwnTitlebar(browser_view, std::move(view));
   }
 }
 

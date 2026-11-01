@@ -11,12 +11,18 @@
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/timer/timer.h"
+#include "content/public/browser/web_contents_observer.h"
+#include "cromarc/browser/ui/sidebar/space_theme_painter.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/menus/simple_menu_model.h"
 #include "ui/views/view.h"
 
 namespace views {
-class MdTextButton;
+class Button;
+class ImageButton;
+class Label;
 class MenuRunner;
 }  // namespace views
 
@@ -24,10 +30,14 @@ namespace cromarc {
 
 class LittleWindow;
 
-// The right end of a Little window's toolbar: its space (a menu moves the
-// window to another), "Open in <space>", a menu of the other spaces, and
-// close.
-class LittleBar : public views::View, public ui::SimpleMenuModel::Delegate {
+// A Little window's title bar, as Arc's Little Arc has it (Arc's own
+// screenshots are the reference: Arc has no code to port): one bar in the
+// space's colour with the traffic lights in it; a field with the space, the
+// page's domain and Copy Link; "Open in <space> ⌘O"; and a menu of the
+// spaces. Its empty space moves the window.
+class LittleBar : public views::View,
+                  public ui::SimpleMenuModel::Delegate,
+                  public content::WebContentsObserver {
   METADATA_HEADER(LittleBar, views::View)
 
  public:
@@ -39,17 +49,64 @@ class LittleBar : public views::View, public ui::SimpleMenuModel::Delegate {
   // ui::SimpleMenuModel::Delegate:
   void ExecuteCommand(int command_id, int event_flags) override;
 
+  // views::View:
+  void OnPaint(gfx::Canvas* canvas) override;
+  void OnThemeChanged() override;
+  void AddedToWidget() override;
+  bool AcceleratorPressed(const ui::Accelerator& accelerator) override;
+  void Layout(PassKey) override;
+
+  // content::WebContentsObserver:
+  void PrimaryPageChanged(content::Page& page) override;
+
  private:
+  // The colours of everything on the bar, from the space's theme.
+  struct Colors {
+    SkColor bar;
+    SkColor text;
+    SkColor secondary;
+    SkColor field;
+    SkColor chip;
+    SkColor chip_hover;
+    SkColor button;
+    SkColor button_hover;
+    SkColor key;
+    SkColor space_name;
+  };
+
   void ShowSpacesMenu();
   void ShowMoveMenu();
+  void CopyLink();
+  void ShowCopyIcon(bool copied);
+  void UpdateDomain();
+  void ApplyColors();
+  // For tests (--cromarc-test-log-little): the window's hit test on the bar.
+  void LogHits();
+  Colors ComputeColors() const;
 
   // The window outlives its bar only until it closes.
   base::WeakPtr<LittleWindow> window_;
-  raw_ptr<views::View> menu_button_ = nullptr;
-  raw_ptr<views::View> space_button_ = nullptr;
+  SpaceTheme theme_;
+  Colors colors_{};
+
+  raw_ptr<views::View> field_ = nullptr;
+  raw_ptr<views::Button> space_ = nullptr;
+  raw_ptr<views::Label> space_label_ = nullptr;
+  raw_ptr<views::Label> domain_ = nullptr;
+  raw_ptr<views::ImageButton> copy_ = nullptr;
+  raw_ptr<views::Button> open_ = nullptr;
+  raw_ptr<views::Label> open_prefix_ = nullptr;
+  raw_ptr<views::Label> open_space_ = nullptr;
+  raw_ptr<views::Label> open_suffix_ = nullptr;
+  raw_ptr<views::Label> open_key_ = nullptr;
+  raw_ptr<views::ImageButton> spaces_ = nullptr;
+
+  base::OneShotTimer copied_timer_;
   std::vector<std::string> menu_spaces_;
   std::unique_ptr<ui::SimpleMenuModel> menu_model_;
   std::unique_ptr<views::MenuRunner> menu_runner_;
+  bool logged_hits_ = false;
+  base::WeakPtrFactory<LittleBar> weak_factory_{this};
 };
 
 }  // namespace cromarc

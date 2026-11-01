@@ -26,19 +26,28 @@
 class BrowserWindowInterface;
 class Profile;
 
+namespace content {
+class WebContents;
+}  // namespace content
+
 namespace views {
 class View;
 }  // namespace views
 
 namespace cromarc {
 
+// The height of a Little window's own title bar, Arc's Little Arc bar (Arc's
+// screenshots, 1x).
+inline constexpr int kLittleBarHeight = 46;
+
 class AppLifecycle;
 class Presence;
 class Profiles;
 
 // Little Arc (design, component 5 and UI section 7): a link from another app
-// opens in a small popup window of the last active space, with its space,
-// "Open in <space>" and close in its toolbar. Closing it archives the link;
+// opens in a small window of the last active space with one bar of Cromarc's
+// own, as Arc's: the traffic lights, its space, the page's domain, "Open in
+// <space>" and a menu of the spaces. Closing it archives the link;
 // opening it in a space moves the page to that space's Today. Left unused for
 // 6 h it archives itself, as Little Arc windows do.
 class LittleWindow {
@@ -87,6 +96,8 @@ class LittleWindow {
   std::string default_space() const { return default_space_; }
   // The page's URL; empty once the window has closed.
   GURL url() const;
+  // The page; null once the window has closed.
+  content::WebContents* page() const;
 
   // Moves the page to the space's Today and brings that space forward. A
   // space of another profile gets the URL; the page here closes unarchived.

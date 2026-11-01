@@ -6,6 +6,7 @@
 // and closing that window keeps its page in the space's archive. The link
 // comes the way another app's does: LaunchServices (`open -a`).
 import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
 const [port, pid] = process.argv.slice(2);
@@ -78,6 +79,21 @@ const littleWindow = little && await windowOf(little);
 check('it opens in a window of its own', !!littleWindow && littleWindow.windowId !== spaceWindow.windowId,
     JSON.stringify({littleWindow, spaceWindow}));
 const screen = little && await evaluate(little, `({left: screen.availLeft, width: screen.availWidth})`);
+// Arc's Little Arc: one bar of Cromarc's own, no title bar or toolbar of
+// Chrome's over the page.
+const frame = little && await evaluate(little, `({outer: outerHeight, inner: innerHeight})`);
+check('…with no title bar or toolbar of Chrome\'s: the page is right under a bar 46 high',
+    !!frame && frame.outer - frame.inner === 46, JSON.stringify(frame));
+const log = () => readFileSync(process.env.CROMARC_TEST_LOG, 'utf8');
+const bar = (log().match(/cromarc little bar: (.*)/) ?? [])[1];
+check('…the bar names the window\'s space and offers to open the page in it',
+    /^space=(.+) open=Open in \1 height=46$/.test(bar ?? ''), String(bar));
+// The window's own hit test on the bar (HTCAPTION 2 moves the window,
+// HTCLIENT 1 takes the click), and the bar's shortcuts.
+const hits = await until(() => (log().match(/cromarc little hits: (.*)/) ?? [])[1]);
+check('…its empty space and the field around the domain move the window; the space, Copy Link, Open in and the menu take clicks',
+    /^empty=2 field=2 chip=1 copy=1 open=1 menu=1 page=1 /.test(hits ?? ''), String(hits));
+check('…and Shift+Cmd+O and Option+Cmd+O are the bar\'s, for the menu of spaces', / keys=1$/.test(hits ?? ''), String(hits));
 check('…900 wide, centred across the screen', !!littleWindow && littleWindow.bounds.width === 900 &&
     Math.abs(littleWindow.bounds.left + 450 - (screen.left + screen.width / 2)) <= 1,
     JSON.stringify({bounds: littleWindow?.bounds, screen}));

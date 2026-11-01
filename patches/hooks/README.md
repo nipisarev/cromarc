@@ -119,7 +119,8 @@ Calls: `cromarc::hooks::PageShowsBackground(...)` wrapping Chrome's
 Contract: outside split view Cromarc gives the page's margins; with margins
 the page shows on a background, as a card. While the active tab is a glance,
 the page area is the glance's card (7.5% in from each side) and shows on a
-background.
+background. In a window with Cromarc's own title bar (H24, a Little window)
+the page starts under that bar.
 If it moved: the layout of the web contents area, outside split view or while
 a glance shows.
 
@@ -266,3 +267,33 @@ If it moved: the end of the context menu's item building, where the menu
 model and its observer list are at hand. The hook takes `observers_` as
 Chromium declares it (now a `base::ReentrantObserverList`); its type follows
 that declaration.
+
+### H24 a Little window's title bar is Cromarc's
+Kind: code
+Where: `chrome/browser/ui/views/frame/browser_native_widget_mac.mm`,
+`BrowserNativeWidgetMac::PopulateCreateWindowParams` (at its end) and
+`BrowserNativeWidgetMac::GetWindowFrameTitlebarHeight` (after the height is
+computed).
+Calls: `cromarc::hooks::AdjustWindowParams(browser_view_, params)` and
+`*titlebar_height = cromarc::hooks::TitlebarHeight(browser_view_, ...)`.
+Contract: a popup Cromarc opened with a title bar of its own (a Little
+window, trusted, so Chrome shows no toolbar in it) gets an NSWindow of
+Chrome's browser class with its content under a clear, untitled title bar,
+whose height is Cromarc's bar's, so macOS centres the traffic lights in it.
+Every other window keeps Chrome's parameters and height.
+If it moved: where the browser window's NSWindow parameters are chosen, and
+where Chrome tells the window its title bar height (the
+`_titlebarHeight` override of `BrowserNativeWidgetWindow` asks for it).
+
+### H25 Cromarc's own title bar moves the window
+Kind: code
+Where: `chrome/browser/ui/views/frame/browser_view.cc`,
+`BrowserView::NonClientHitTest`, at its top.
+Calls: a guard on `cromarc::hooks::IsWindowCaption(this, point)` returning
+`HTCAPTION`.
+Contract: in a window with Cromarc's own title bar, a point on that bar's
+empty space (a view marked `HTCAPTION` with `views::SetHitTestComponent`,
+not a control) is the window's caption: dragging there moves the window and
+a double click does what macOS's setting says. Elsewhere, and in every other
+window, Chrome's hit test answers.
+If it moved: the browser view's non-client hit test.

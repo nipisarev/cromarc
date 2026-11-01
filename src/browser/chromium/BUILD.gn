@@ -42,6 +42,7 @@ source_set("adapters") {
     "//cromarc/browser/ports",
   ]
   deps = [
+    ":own_titlebar",
     "//chrome/browser:browser_process",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/prefs:util",
@@ -97,6 +98,7 @@ source_set("chromium") {
   ]
   public_deps = [
     ":adapters",
+    ":own_titlebar",
     ":system_accent",
     ":window_material",
     "//chrome/browser:browser_public_dependencies",
@@ -134,6 +136,23 @@ source_set("chromium") {
     "//ui/gfx",
     "//ui/gfx/geometry:geometry_skia",
     "//ui/menus",
+    "//ui/views",
+  ]
+}
+
+# A popup whose title bar is Cromarc's own view: a Little window.
+source_set("own_titlebar") {
+  sources = [
+    "own_titlebar.cc",
+    "own_titlebar.h",
+  ]
+  public_deps = [ "//base" ]
+  deps = [
+    "//chrome/browser:browser_public_dependencies",
+    "//chrome/browser/ui/browser_window",
+    "//ui/base",
+    "//ui/compositor",
+    "//ui/gfx/geometry",
     "//ui/views",
   ]
 }

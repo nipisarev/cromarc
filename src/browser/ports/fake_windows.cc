@@ -154,13 +154,15 @@ base::CallbackListSubscription FakeWindows::OnClosed(
 
 BrowserWindowInterface* FakeWindows::OpenPopup(Profile* profile,
                                                const gfx::Rect& popup_bounds,
-                                               const GURL& url) {
+                                               const GURL& url,
+                                               int own_titlebar_height) {
   if (popups.empty()) {
     return nullptr;
   }
   BrowserWindowInterface* window = popups.front();
   popups.erase(popups.begin());
   popup_urls.push_back(url);
+  titlebar_heights[window] = own_titlebar_height;
   profiles[window] = profile;
   bounds[window] = popup_bounds;
   return window;
@@ -174,9 +176,9 @@ BrowserWindowInterface* FakeWindows::WindowOfWebUI(
   return nullptr;
 }
 
-void FakeWindows::AddToToolbar(BrowserWindowInterface* window,
-                               std::unique_ptr<views::View> view) {
-  ++toolbar_views[window];
+void FakeWindows::SetTitlebar(BrowserWindowInterface* window,
+                              std::unique_ptr<views::View> view) {
+  ++titlebar_views[window];
 }
 
 }  // namespace cromarc

@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikolay Pisarev <nipisarev@gmail.com>
+Date: Sun, 1 Nov 2026 13:12:18 +0100
+Subject: [PATCH] Cromarc H25: Cromarc's own title bar moves the window
+
+
+diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
+index d441b8a76bd24..86b5a6dcfca5f 100644
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -308,6 +308,7 @@
+ #include "content/public/common/content_features.h"
+ #include "content/public/common/content_switches.h"
+ #include "content/public/common/drop_data.h"
++#include "cromarc/hooks/hooks.h"  // Cromarc
+ #include "extensions/common/command.h"
+ #include "media/capture/capture_switches.h"
+ #include "third_party/blink/public/common/features.h"
+@@ -4617,6 +4618,10 @@ views::CloseRequestResult BrowserView::OnWindowCloseRequested() {
+ }
+ 
+ int BrowserView::NonClientHitTest(const gfx::Point& point) {
++  // Cromarc: the empty space of its own title bar moves the window.
++  if (cromarc::hooks::IsWindowCaption(this, point)) {
++    return HTCAPTION;
++  }
+ #if BUILDFLAG(IS_MAC)
+   // The top container while in immersive fullscreen on macOS lives in another
+   // Widget (OverlayWidgetMac). This means that BrowserView does not need to

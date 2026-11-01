@@ -87,10 +87,14 @@ class Windows {
                                          const gfx::Rect& bounds,
                                          bool from_user_gesture) = 0;
   // Opens `url` in a new popup window of `profile` at `bounds`, shown, and
-  // left out of session restore. Null when no window took it.
+  // left out of session restore. Null when no window took it. With
+  // `own_titlebar_height`, the window has neither the system's title bar nor
+  // Chrome's toolbar: the traffic lights sit centred in its top
+  // `own_titlebar_height`, over SetTitlebar()'s view, and the page is below.
   virtual BrowserWindowInterface* OpenPopup(Profile* profile,
                                             const gfx::Rect& bounds,
-                                            const GURL& url) = 0;
+                                            const GURL& url,
+                                            int own_titlebar_height) = 0;
   // Gives `contents`, a WebUI of the window's own chrome (a panel over it),
   // its window, as Chrome's top chrome WebUIs have it.
   virtual void AttachWebUI(BrowserWindowInterface* window,
@@ -98,9 +102,11 @@ class Windows {
   // The window a WebUI of its chrome, or a tab, is in; null for none.
   virtual BrowserWindowInterface* WindowOfWebUI(
       content::WebContents* contents) = 0;
-  // Adds `view` at the end of the window's toolbar.
-  virtual void AddToToolbar(BrowserWindowInterface* window,
-                            std::unique_ptr<views::View> view) = 0;
+  // Puts `view` across the top of a popup opened with a title bar of its own.
+  // In `view`, a View with views::SetHitTestComponent(HTCAPTION) moves the
+  // window; each control in it needs HTCLIENT.
+  virtual void SetTitlebar(BrowserWindowInterface* window,
+                           std::unique_ptr<views::View> view) = 0;
 };
 
 }  // namespace cromarc
