@@ -136,11 +136,6 @@ bool FakeTabs::IsAudibleOrCaptured(TabId tab) {
   return audible.contains(tab);
 }
 
-SiteSecurity FakeTabs::GetSiteSecurity(TabId tab) {
-  const auto it = security.find(tab);
-  return it == security.end() ? SiteSecurity::kNone : it->second;
-}
-
 bool FakeTabs::MayLoseInput(TabId tab) {
   return may_lose_input.contains(tab);
 }

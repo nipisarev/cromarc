@@ -260,16 +260,10 @@ void PaintLayers(gfx::Canvas* canvas,
   PaintGrain(canvas, box, theme.texture);
 }
 
-// getToolbarModifiedBaseRaw as release Zen has it: zen.theme.acrylic-sidebar
-// is on in Twilight only, so the base is opaque.
+// getToolbarModifiedBaseRaw with zen.theme.acrylic-sidebar on: 0.6 opaque.
 SkColor ToolbarBase(bool dark) {
-  return dark ? SkColorSetRGB(23, 23, 26) : SkColorSetRGB(240, 240, 244);
-}
-
-// #getSingleRGBColor(color, forToolbar) with the sidebar not acrylic: 90% of
-// the colour on the toolbar base (a window that can be transparent), opaque.
-SkColor4f ToolbarColorOf(SkColor color, bool dark) {
-  return SkColor4f::FromColor(Blend(color, ToolbarBase(dark), 90));
+  return SkColorSetA(
+      dark ? SkColorSetRGB(23, 23, 26) : SkColorSetRGB(240, 240, 244), 0x99);
 }
 
 // getGradient(colors, forToolbar) over `box`, and the grain:
@@ -282,7 +276,7 @@ void PaintToolbarTheme(gfx::Canvas* canvas,
                        bool dark) {
   std::vector<SkColor4f> colors;
   for (SkColor color : theme.colors) {
-    colors.push_back(ToolbarColorOf(color, dark));
+    colors.push_back(ColorOf(color, theme.opacity));
   }
   switch (colors.size()) {
     case 0:
